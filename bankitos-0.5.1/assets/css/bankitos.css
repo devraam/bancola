@@ -1,0 +1,29 @@
+/* Bankitos CSS (resumen, incluye estados de error y botones) */
+:root{
+  --bco-azul:#0073B3; --bco-azul-osc:#005D8E; --bco-azul-claro:#E6F3FA;
+  --bco-lima:#A6E22E; --bco-gris:#F6F8FA; --bco-texto:#0F172A; --bco-blanco:#FFF; --bco-rojo:#E11D48;
+  --card-w:600px; --card-radius:16px; --shadow:0 8px 30px rgba(16,24,40,.08);
+}
+.bankitos-form,.bankitos-panel,.bankitos-login-wrap,.bankitos-register-wrap{
+  max-width:var(--card-w);margin:2rem auto;padding:1.25rem 1.5rem;background:var(--bco-blanco);
+  border-radius:var(--card-radius);box-shadow:var(--shadow);color:var(--bco-texto);
+}
+.bankitos-form h2,.bankitos-panel h2,.bankitos-login-wrap h2,.bankitos-register-wrap h2{margin:0 0 1rem 0;font-size:1.55rem;font-weight:800;color:var(--bco-azul);}
+.bankitos-form input, .bankitos-form select, .bankitos-form textarea,
+.bankitos-login-wrap input,.bankitos-register-wrap input{
+  display:block;width:100%;margin:.45rem 0 1rem;padding:.9rem 1rem;border-radius:12px;border:1px solid #D0D7DE;background:var(--bco-gris);
+}
+.bankitos-form input:focus,.bankitos-form select:focus,.bankitos-form textarea:focus{border-color:var(--bco-azul);background:var(--bco-azul-claro);box-shadow:0 0 0 4px rgba(0,115,179,.14);outline:none;}
+.bankitos-btn,.bankitos-panel .button{display:inline-block;width:100%;padding:1rem 1.1rem;border:none;border-radius:12px;background:var(--bco-azul);color:#fff;font-weight:800;cursor:pointer;transition:background .18s}
+.bankitos-btn:hover,.bankitos-panel .button:hover{background:var(--bco-azul-osc);}
+.bankitos-btn.is-disabled,.bankitos-form button[disabled]{opacity:.55;cursor:not-allowed;filter:grayscale(15%);}
+
+.bankitos-error{background:#FEE2E2;border:1px solid #FCA5A5;color:var(--bco-rojo);padding:.8rem 1rem;border-radius:12px;margin-bottom:1rem;font-weight:700;}
+.bankitos-success{background:#DCFCE7;border:1px solid #86EFAC;color:#166534;padding:.8rem 1rem;border-radius:12px;margin-bottom:1rem;font-weight:700;}
+
+.bankitos-field{position:relative;}
+.bankitos-field-error{display:none;margin-top:.35rem;font-size:.92rem;color:#b91c1c;font-weight:700;}
+.bankitos-field.has-error .bankitos-field-error{display:block;}
+.bankitos-field.has-error input,.bankitos-field.has-error select,.bankitos-field.has-error textarea{
+  border-color:#ef4444 !important;background:#fff !important;box-shadow:0 0 0 4px rgba(239,68,68,.14) !important;
+}
