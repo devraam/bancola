@@ -13,6 +13,10 @@ class BK_Banco_Handler {
     public static function front_create_banco() {
         if (!is_user_logged_in()) { self::front_create_denied(); }
         check_admin_referer('bankitos_front_create');
+        if (class_exists('Bankitos_Recaptcha') && Bankitos_Recaptcha::is_enabled()) {
+            $token = sanitize_text_field($_POST['g-recaptcha-response'] ?? '');
+            if (!$token || !Bankitos_Recaptcha::verify_token($token)) { self::redir_err('recaptcha'); }
+        }
         $user_id = get_current_user_id();
         if (class_exists('Bankitos_Handlers') && Bankitos_Handlers::get_user_banco_id($user_id) > 0) {
             wp_safe_redirect(add_query_arg('err','ya_miembro', site_url('/panel'))); exit;
@@ -37,7 +41,19 @@ class BK_Banco_Handler {
         update_post_meta($post_id,'_bk_tasa',$tasa);
         update_post_meta($post_id,'_bk_duracion_meses',$dur);
         if (class_exists('Bankitos_Handlers')) Bankitos_Handlers::registrar_miembro($post_id,$user_id,'presidente');
-        $u=new WP_User($user_id); if ($u && !$u->has_cap('administrator')) $u->set_role('presidente');
+        $u=new WP_User($user_id);
+        if ($u && !$u->has_cap('administrator')) {
+            $existing_roles = is_array($u->roles) ? $u->roles : [];
+            if (!get_user_meta($user_id, 'bankitos_previous_roles', true)) {
+                update_user_meta($user_id, 'bankitos_previous_roles', $existing_roles);
+            }
+            if (!in_array('presidente', $existing_roles, true)) {
+                $u->add_role('presidente');
+            }
+            if (in_array('socio_general', $existing_roles, true)) {
+                $u->remove_role('socio_general');
+            }
+        }
         wp_safe_redirect(add_query_arg('ok','creado', site_url('/panel'))); exit;
     }
 }

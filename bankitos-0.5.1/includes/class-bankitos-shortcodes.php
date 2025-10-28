@@ -42,18 +42,197 @@ class Bankitos_Shortcodes {
             'no_banco'=>__('No perteneces a ningún B@nko.','bankitos'),
             'monto'=>__('Debes ingresar un monto válido.','bankitos'),
             'crear_aporte'=>__('No pudimos crear el aporte.','bankitos'),
+            'credenciales'=>__('Las credenciales no son válidas. Intenta nuevamente.','bankitos'),
+            'archivo_tipo'=>__('El comprobante debe ser una imagen válida.','bankitos'),
+            'archivo_tamano'=>__('El comprobante excede el tamaño permitido.','bankitos'),
+            'archivo_subida'=>__('Hubo un problema subiendo el comprobante.','bankitos'),
         ];
         $msg = $map[$err] ?? __('Ha ocurrido un error. Intenta nuevamente.','bankitos');
         return '<div class="bankitos-error">'.esc_html($msg).'</div>';
+    }
+
+    private static function enqueue_create_banco_assets(): void {
+        if (!wp_script_is('bankitos-create-banco', 'registered')) {
+            wp_register_script('bankitos-create-banco', BANKITOS_URL . 'assets/js/create-banco.js', [], defined('BANKITOS_VERSION') ? BANKITOS_VERSION : '1.0.0', true);
+        }
+
+        wp_enqueue_script('bankitos-create-banco');
+        $messages = [
+            'required'        => __('Este campo es obligatorio.', 'bankitos'),
+            'number'          => __('Introduce un número válido.', 'bankitos'),
+            'cuotaMin'        => __('La cuota mínima es 1.000.', 'bankitos'),
+            'periodRequired'  => __('Selecciona una periodicidad válida.', 'bankitos'),
+            'tasaRange'       => __('La tasa debe estar entre 0.1 y 3.0.', 'bankitos'),
+            'tasaStep'        => __('Usa incrementos de 0.1 (ej. 2.3).', 'bankitos'),
+            'focusMessage'    => __('Revisa los campos marcados en rojo.', 'bankitos'),
+        ];
+
+        $config = [
+            'form'     => '#bankitos-create-form',
+            'submit'   => '#bankitos-create-form button[type="submit"]',
+            'fields'   => [
+                'nombre'   => '#bk_nombre',
+                'objetivo' => '#bk_obj',
+                'cuota'    => '#bk_cuota',
+                'per'      => '#bk_per',
+                'tasa'     => '#bk_tasa',
+                'dur'      => '#bk_dur',
+            ],
+            'wrappers' => [
+                'nombre'   => '#wrap_nombre',
+                'objetivo' => '#wrap_obj',
+                'cuota'    => '#wrap_cuota',
+                'per'      => '#wrap_per',
+                'tasa'     => '#wrap_tasa',
+                'dur'      => '#wrap_dur',
+            ],
+            'errors'   => [
+                'nombre'   => '#err_nombre',
+                'objetivo' => '#err_obj',
+                'cuota'    => '#err_cuota',
+                'per'      => '#err_per',
+                'tasa'     => '#err_tasa',
+                'dur'      => '#err_dur',
+            ],
+            'limits'   => [
+                'cuotaMin'  => 1000,
+                'tasaMin'   => 0.1,
+                'tasaMax'   => 3.0,
+                'tasaStep'  => 0.1,
+            ],
+        ];
+
+        wp_localize_script('bankitos-create-banco', 'bankitosCreateBanco', [
+            'messages' => $messages,
+            'config'   => $config,
+        ]);
+    }
+
+    private static function get_current_url(): string {
+        global $wp;
+        $request = is_object($wp) && isset($wp->request) ? $wp->request : '';
+        $base = home_url($request ? '/' . ltrim($request, '/') : '/');
+        if (empty($_GET)) {
+            return $base;
+        }
+        $params = [];
+        foreach ($_GET as $key => $value) {
+            if ($key === 'redirect_to') {
+                continue;
+            }
+            if (is_scalar($value)) {
+                $params[$key] = sanitize_text_field($value);
+            }
+        }
+        return $params ? add_query_arg($params, $base) : $base;
+    }
+
+    private static function filtered_hidden_inputs(array $exclude_keys): string {
+        $html = '';
+        foreach ($_GET as $key => $value) {
+            if (in_array($key, $exclude_keys, true) || $key === 'redirect_to') {
+                continue;
+            }
+            if (is_array($value)) {
+                continue;
+            }
+            $html .= sprintf('<input type="hidden" name="%s" value="%s" />', esc_attr($key), esc_attr(sanitize_text_field($value)));
+        }
+        return $html;
+    }
+
+    private static function get_aporte_filters(string $context): array {
+        $prefix = $context === 'tesorero' ? 'bk_tes_' : 'bk_vee_';
+        $from_key = $prefix . 'from';
+        $to_key   = $prefix . 'to';
+        $page_key = $prefix . 'page';
+
+        $from = isset($_GET[$from_key]) ? sanitize_text_field($_GET[$from_key]) : '';
+        $to   = isset($_GET[$to_key]) ? sanitize_text_field($_GET[$to_key]) : '';
+
+        $from = preg_match('/^\d{4}-\d{2}-\d{2}$/', $from) ? $from : '';
+        $to   = preg_match('/^\d{4}-\d{2}-\d{2}$/', $to) ? $to : '';
+
+        $range = [];
+        if ($from) {
+            $range['after'] = $from;
+        }
+        if ($to) {
+            $range['before'] = $to;
+        }
+        if ($range) {
+            $range['inclusive'] = true;
+        }
+
+        $page = isset($_GET[$page_key]) ? max(1, absint($_GET[$page_key])) : 1;
+
+        return [
+            'from'      => $from,
+            'to'        => $to,
+            'page'      => $page,
+            'from_key'  => $from_key,
+            'to_key'    => $to_key,
+            'page_key'  => $page_key,
+            'date_query'=> $range ? [$range] : [],
+            'query_args'=> array_filter([
+                $from_key => $from,
+                $to_key   => $to,
+            ]),
+        ];
+    }
+
+    private static function render_aporte_filter_form(string $context, array $filters): string {
+        $title = $context === 'tesorero' ? __('Filtrar aportes pendientes', 'bankitos') : __('Filtrar aportes aprobados', 'bankitos');
+        $exclude = [$filters['from_key'], $filters['to_key'], $filters['page_key']];
+        $html  = '<form method="get" class="bankitos-filter-form">';
+        $html .= '<fieldset><legend>' . esc_html($title) . '</legend>';
+        $html .= self::filtered_hidden_inputs($exclude);
+        $html .= sprintf('<label>%s <input type="date" name="%s" value="%s"></label>', esc_html__('Desde', 'bankitos'), esc_attr($filters['from_key']), esc_attr($filters['from'] ?? ''));
+        $html .= sprintf('<label>%s <input type="date" name="%s" value="%s"></label>', esc_html__('Hasta', 'bankitos'), esc_attr($filters['to_key']), esc_attr($filters['to'] ?? ''));
+        $html .= sprintf('<input type="hidden" name="%s" value="1" />', esc_attr($filters['page_key']));
+        $html .= '<button type="submit" class="button">' . esc_html__('Aplicar filtros', 'bankitos') . '</button>';
+        $html .= '</fieldset></form>';
+        return $html;
+    }
+
+    private static function render_aporte_pagination(WP_Query $query, string $page_key, array $extra_args = [], int $current = 1): string {
+        if ($query->max_num_pages <= 1) {
+            return '';
+        }
+        $sanitized_args = [];
+        foreach ($extra_args as $key => $value) {
+            if (is_scalar($value)) {
+                $sanitized_args[$key] = sanitize_text_field($value);
+            }
+        }
+        $links = paginate_links([
+            'total'   => $query->max_num_pages,
+            'current' => max(1, $current),
+            'format'  => false,
+            'add_args'=> $sanitized_args,
+            'type'    => 'array',
+            'base'    => add_query_arg($page_key, '%#%'),
+        ]);
+        if (!$links) {
+            return '';
+        }
+        $html = '<nav class="bankitos-pagination"><ul class="page-numbers">';
+        foreach ($links as $link) {
+            $html .= '<li>' . $link . '</li>';
+        }
+        $html .= '</ul></nav>';
+        return $html;
     }
 
     public static function login() {
         ob_start(); ?>
         <div class="bankitos-login-wrap">
           <h2><?php esc_html_e('Iniciar sesión','bankitos'); ?></h2>
-          <form class="bankitos-form" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+          <?php $recaptcha_field = class_exists('Bankitos_Recaptcha') ? Bankitos_Recaptcha::field('login') : ''; ?>
+          <form class="bankitos-form" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>"<?php if ($recaptcha_field) echo ' data-bankitos-recaptcha="login"'; ?>>
             <?php echo wp_nonce_field('bankitos_do_login','_wpnonce', true, false); ?>
             <input type="hidden" name="action" value="bankitos_do_login">
+            <?php echo $recaptcha_field; ?>
             <div class="bankitos-field">
               <label for="bk_login_email"><?php esc_html_e('Email','bankitos'); ?></label>
               <input id="bk_login_email" type="email" name="email" required autocomplete="email">
@@ -77,9 +256,11 @@ class Bankitos_Shortcodes {
         ob_start(); ?>
         <div class="bankitos-register-wrap">
           <h2><?php esc_html_e('Crear cuenta','bankitos'); ?></h2>
-          <form class="bankitos-form" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+          <?php $register_recaptcha = class_exists('Bankitos_Recaptcha') ? Bankitos_Recaptcha::field('register') : ''; ?>
+          <form class="bankitos-form" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>"<?php if ($register_recaptcha) echo ' data-bankitos-recaptcha="register"'; ?>>
             <?php echo wp_nonce_field('bankitos_do_register','_wpnonce', true, false); ?>
             <input type="hidden" name="action" value="bankitos_do_register">
+            <?php echo $register_recaptcha; ?>
             <div class="bankitos-field">
               <label for="bk_reg_name"><?php esc_html_e('Nombre','bankitos'); ?></label>
               <input id="bk_reg_name" type="text" name="name" required autocomplete="name">
@@ -139,15 +320,17 @@ class Bankitos_Shortcodes {
         if (class_exists('Bankitos_Handlers') && Bankitos_Handlers::get_user_banco_id(get_current_user_id()) > 0) {
             return '<div class="bankitos-form"><p>'.esc_html__('Ya perteneces a un B@nko.','bankitos').' <a href="'.esc_url(site_url('/panel')).'">'.esc_html__('Ir al panel','bankitos').'</a></p></div>';
         }
+        self::enqueue_create_banco_assets();
         ob_start(); ?>
         <div class="bankitos-form">
           <h2><?php esc_html_e('Crear B@nko','bankitos'); ?></h2>
           <?php echo self::top_notice_from_query(); ?>
 
-          <form id="bankitos-create-form" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" novalidate>
+          <?php $create_recaptcha = class_exists('Bankitos_Recaptcha') ? Bankitos_Recaptcha::field('crear_banco') : ''; ?>
+          <form id="bankitos-create-form" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" novalidate<?php if ($create_recaptcha) echo ' data-bankitos-recaptcha="crear_banco"'; ?>>
             <?php echo wp_nonce_field('bankitos_front_create','_wpnonce', true, false); ?>
             <input type="hidden" name="action" value="bankitos_front_create">
-
+            <?php echo $create_recaptcha; ?>
             <div class="bankitos-field" id="wrap_nombre">
               <label for="bk_nombre"><?php esc_html_e('Nombre del B@nko','bankitos'); ?></label>
               <input id="bk_nombre" type="text" name="nombre" required maxlength="140" autocomplete="off">
@@ -198,91 +381,6 @@ class Bankitos_Shortcodes {
           </form>
         </div>
 
-        <script>
-        (function(){
-          var f = document.getElementById('bankitos-create-form');
-          if(!f) return;
-          var B = f.querySelector('button[type=submit]');
-          var F = {
-            nombre:  document.getElementById('bk_nombre'),
-            objetivo:document.getElementById('bk_obj'),
-            cuota:   document.getElementById('bk_cuota'),
-            per:     document.getElementById('bk_per'),
-            tasa:    document.getElementById('bk_tasa'),
-            dur:     document.getElementById('bk_dur')
-          };
-          var W = {
-            nombre:  document.getElementById('wrap_nombre'),
-            objetivo:document.getElementById('wrap_obj'),
-            cuota:   document.getElementById('wrap_cuota'),
-            per:     document.getElementById('wrap_per'),
-            tasa:    document.getElementById('wrap_tasa'),
-            dur:     document.getElementById('wrap_dur')
-          };
-          var E = {
-            nombre:  document.getElementById('err_nombre'),
-            objetivo:document.getElementById('err_obj'),
-            cuota:   document.getElementById('err_cuota'),
-            per:     document.getElementById('err_per'),
-            tasa:    document.getElementById('err_tasa'),
-            dur:     document.getElementById('err_dur')
-          };
-
-          function setErr(k,msg){
-            if(!W[k]) return;
-            if(msg){ W[k].classList.add('has-error'); if(E[k]){E[k].textContent=msg; E[k].style.display='block';} }
-            else{ W[k].classList.remove('has-error'); if(E[k]){E[k].textContent=''; E[k].style.display='none';} }
-          }
-
-          function vNombre(){ return F.nombre.value.trim() ? '' : 'Este campo es obligatorio.'; }
-          function vObjetivo(){ return F.objetivo.value.trim() ? '' : 'Este campo es obligatorio.'; }
-          function vCuota(){
-            var t = F.cuota.value;
-            if(!t) return 'Este campo es obligatorio.';
-            var v = parseFloat(t);
-            if(isNaN(v)) return 'Introduce un número válido.';
-            if(v < 1000) return 'La cuota mínima es 1.000.';
-            return '';
-          }
-          function vPer(){ return F.per.value ? '' : 'Este campo es obligatorio.'; }
-          function vTasa(){
-            var t = F.tasa.value;
-            if(!t) return 'Este campo es obligatorio.';
-            var v = parseFloat(t);
-            if(isNaN(v)) return 'Introduce un número válido.';
-            if(v < 0.1 || v > 3.0) return 'La tasa debe estar entre 0.1 y 3.0.';
-            var red = Math.round(v*10)/10; if(Math.abs(v-red)>1e-9) return 'Usa incrementos de 0.1 (ej. 2.3).';
-            return '';
-          }
-          function vDur(){ return F.dur.value ? '' : 'Este campo es obligatorio.'; }
-
-          function run(){
-            var m1=vNombre(); setErr('nombre',m1);
-            var m2=vObjetivo(); setErr('objetivo',m2);
-            var m3=vCuota(); setErr('cuota',m3);
-            var m4=vPer(); setErr('per',m4);
-            var m5=vTasa(); setErr('tasa',m5);
-            var m6=vDur(); setErr('dur',m6);
-            var ok = !(m1||m2||m3||m4||m5||m6);
-            if(B){ if(ok){ B.removeAttribute('disabled'); B.classList.remove('is-disabled'); } else { B.setAttribute('disabled','disabled'); B.classList.add('is-disabled'); } }
-            return ok;
-          }
-
-          ['input','change','blur'].forEach(function(ev){
-            Object.keys(F).forEach(function(k){ F[k].addEventListener(ev, run); });
-          });
-
-          f.addEventListener('submit', function(e){
-            if(!run()){
-              e.preventDefault();
-              var first = f.querySelector('.has-error input, .has-error select, .has-error textarea');
-              if(first){ first.focus({preventScroll:false}); first.scrollIntoView({behavior:'smooth', block:'center'}); }
-            }
-          });
-
-          run();
-        })();
-        </script>
         <?php return ob_get_clean();
     }
 
@@ -321,11 +419,28 @@ class Bankitos_Shortcodes {
         $user_id=get_current_user_id();
         $banco_id = class_exists('Bankitos_Handlers') ? Bankitos_Handlers::get_user_banco_id($user_id) : 0;
         if ($banco_id <= 0) return '<div class="bankitos-form"><p>'.esc_html__('No perteneces a un B@nko.','bankitos').'</p></div>';
-        $q = new WP_Query(['post_type'=>Bankitos_CPT::SLUG_APORTE,'post_status'=>'pending','posts_per_page'=>50,'meta_query'=>[['key'=>'_bankitos_banco_id','value'=>$banco_id,'compare'=>'=']]]);
+        $filters = self::get_aporte_filters('tesorero');
+        $per_page = (int) apply_filters('bankitos_aportes_per_page', 20, 'pending');
+        $args = [
+            'post_type'      => Bankitos_CPT::SLUG_APORTE,
+            'post_status'    => 'pending',
+            'posts_per_page' => $per_page,
+            'paged'          => $filters['page'],
+            'meta_query'     => [[
+                'key'   => '_bankitos_banco_id',
+                'value' => $banco_id,
+                'compare' => '=',
+            ]],
+        ];
+        if (!empty($filters['date_query'])) {
+            $args['date_query'] = $filters['date_query'];
+        }
+        $q = new WP_Query($args);
         ob_start(); ?>
         <div class="bankitos-form">
           <h3><?php esc_html_e('Aportes pendientes','bankitos'); ?></h3>
           <?php echo self::top_notice_from_query(); ?>
+          <?php echo self::render_aporte_filter_form('tesorero', $filters); ?>
           <?php if (!$q->have_posts()): ?>
             <p><?php esc_html_e('No hay aportes pendientes.','bankitos'); ?></p>
           <?php else: ?>
@@ -338,13 +453,15 @@ class Bankitos_Shortcodes {
                   <td><strong><?php echo esc_html(number_format((float)$monto,2,',','.')); ?></strong></td>
                   <td><?php if ($thumb): ?><a href="<?php echo esc_url($thumb); ?>" target="_blank"><?php esc_html_e('Ver imagen','bankitos'); ?></a><?php else: ?>—<?php endif; ?></td>
                   <td>
-                    <a class="button" href="<?php echo esc_url(wp_nonce_url(add_query_arg(['action'=>'bankitos_aporte_approve','aporte'=>$aporte_id], admin_url('admin-post.php')), 'bankitos_aporte_mod')); ?>"><?php esc_html_e('Aprobar','bankitos'); ?></a>
-                    <a class="button" href="<?php echo esc_url(wp_nonce_url(add_query_arg(['action'=>'bankitos_aporte_reject','aporte'=>$aporte_id], admin_url('admin-post.php')), 'bankitos_aporte_mod')); ?>"><?php esc_html_e('Rechazar','bankitos'); ?></a>
+                    <?php $redirect = self::get_current_url(); ?>
+                    <a class="button" href="<?php echo esc_url(wp_nonce_url(add_query_arg(['action'=>'bankitos_aporte_approve','aporte'=>$aporte_id,'redirect_to'=>$redirect], admin_url('admin-post.php')), 'bankitos_aporte_mod')); ?>"><?php esc_html_e('Aprobar','bankitos'); ?></a>
+                    <a class="button" href="<?php echo esc_url(wp_nonce_url(add_query_arg(['action'=>'bankitos_aporte_reject','aporte'=>$aporte_id,'redirect_to'=>$redirect], admin_url('admin-post.php')), 'bankitos_aporte_mod')); ?>"><?php esc_html_e('Rechazar','bankitos'); ?></a>
                   </td>
                 </tr>
               <?php endwhile; wp_reset_postdata(); ?>
               </tbody>
             </table>
+            <?php echo self::render_aporte_pagination($q, $filters['page_key'], $filters['query_args'], $filters['page']); ?>
           <?php endif; ?>
         </div>
         <?php return ob_get_clean();
@@ -356,10 +473,27 @@ class Bankitos_Shortcodes {
         $user_id=get_current_user_id();
         $banco_id = class_exists('Bankitos_Handlers') ? Bankitos_Handlers::get_user_banco_id($user_id) : 0;
         if ($banco_id <= 0) return '<div class="bankitos-form"><p>'.esc_html__('No perteneces a un B@nko.','bankitos').'</p></div>';
-        $q = new WP_Query(['post_type'=>Bankitos_CPT::SLUG_APORTE,'post_status'=>'publish','posts_per_page'=>50,'meta_query'=>[['key'=>'_bankitos_banco_id','value'=>$banco_id,'compare'=>'=']]]);
+        $filters = self::get_aporte_filters('veedor');
+        $per_page = (int) apply_filters('bankitos_aportes_per_page', 20, 'publish');
+        $args = [
+            'post_type'      => Bankitos_CPT::SLUG_APORTE,
+            'post_status'    => 'publish',
+            'posts_per_page' => $per_page,
+            'paged'          => $filters['page'],
+            'meta_query'     => [[
+                'key'   => '_bankitos_banco_id',
+                'value' => $banco_id,
+                'compare' => '=',
+            ]],
+        ];
+        if (!empty($filters['date_query'])) {
+            $args['date_query'] = $filters['date_query'];
+        }
+        $q = new WP_Query($args);
         ob_start(); ?>
         <div class="bankitos-form">
           <h3><?php esc_html_e('Aportes aprobados','bankitos'); ?></h3>
+          <?php echo self::render_aporte_filter_form('veedor', $filters); ?>
           <?php if (!$q->have_posts()): ?>
             <p><?php esc_html_e('No hay aportes aprobados.','bankitos'); ?></p>
           <?php else: ?>
@@ -376,6 +510,7 @@ class Bankitos_Shortcodes {
               <?php endwhile; wp_reset_postdata(); ?>
               </tbody>
             </table>
+            <?php echo self::render_aporte_pagination($q, $filters['page_key'], $filters['query_args'], $filters['page']); ?>
           <?php endif; ?>
         </div>
         <?php return ob_get_clean();

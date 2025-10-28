@@ -78,7 +78,9 @@ class Bankitos_CPT {
             'submit_aportes'
         ]);
         self::grant_caps_to_role('veedor',[ 'read_banco','read_private_bancos','read_aporte','read_private_aportes','audit_aportes']);
-        self::grant_caps_to_role('socio_general',[ 'read_banco','read_private_bancos','read_aporte','submit_aportes']);
+        self::grant_caps_to_role('socio_general',[
+            'read_banco','read_private_bancos','read_aporte','submit_aportes','create_bancos','edit_banco','edit_bancos','publish_bancos'
+        ]);
 
         if ($admin=get_role('administrator')) {
             foreach ($admin_like_caps as $cap) $admin->add_cap($cap);
@@ -137,21 +139,6 @@ class Bankitos_CPT {
         update_post_meta($post_id,'_bk_duracion_meses',$dur);
     }
 
-    public static function maybe_create_members_table() {
-        global $wpdb;
-        require_once ABSPATH.'wp-admin/includes/upgrade.php';
-        $charset=$wpdb->get_charset_collate();
-        $members=$wpdb->prefix.'banco_members';
-        dbDelta("CREATE TABLE $members (
-            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-            banco_id BIGINT UNSIGNED NOT NULL,
-            user_id BIGINT UNSIGNED NOT NULL,
-            member_role VARCHAR(40) NOT NULL DEFAULT 'socio_general',
-            joined_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY  (id),
-            KEY banco_user (banco_id,user_id)
-        ) $charset;");
-        $has_role=$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=%s AND TABLE_NAME=%s AND COLUMN_NAME='role'",DB_NAME,$members));
-        if ($has_role){ $wpdb->query("ALTER TABLE $members CHANGE COLUMN role member_role VARCHAR(40) NOT NULL DEFAULT 'socio_general'"); }
-    }
+
 }
+add_action('init', ['Bankitos_CPT', 'add_roles_and_caps'], 20);
