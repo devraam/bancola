@@ -78,7 +78,9 @@ class Bankitos_CPT {
             'submit_aportes'
         ]);
         self::grant_caps_to_role('veedor',[ 'read_banco','read_private_bancos','read_aporte','read_private_aportes','audit_aportes']);
-        self::grant_caps_to_role('socio_general',[ 'read_banco','read_private_bancos','read_aporte','submit_aportes']);
+        self::grant_caps_to_role('socio_general',[
+            'read_banco','read_private_bancos','read_aporte','submit_aportes','create_bancos'
+        ]);
 
         if ($admin=get_role('administrator')) {
             foreach ($admin_like_caps as $cap) $admin->add_cap($cap);
@@ -137,4 +139,6 @@ class Bankitos_CPT {
         update_post_meta($post_id,'_bk_duracion_meses',$dur);
     }
 
+
 }
+add_action('init', ['Bankitos_CPT', 'add_roles_and_caps'], 20);
