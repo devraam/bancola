@@ -30,5 +30,6 @@ class Bankitos_Plugin {
 
         wp_enqueue_style('bankitos-style', BANKITOS_URL . 'assets/css/bankitos.css', [], BANKITOS_VERSION);
         wp_register_script('bankitos-create-banco', BANKITOS_URL . 'assets/js/create-banco.js', [], BANKITOS_VERSION, true);
+        wp_register_script('bankitos-recaptcha', BANKITOS_URL . 'assets/js/recaptcha.js', [], BANKITOS_VERSION, true);
     }
 }

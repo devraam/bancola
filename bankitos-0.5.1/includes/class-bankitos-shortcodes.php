@@ -228,9 +228,11 @@ class Bankitos_Shortcodes {
         ob_start(); ?>
         <div class="bankitos-login-wrap">
           <h2><?php esc_html_e('Iniciar sesión','bankitos'); ?></h2>
-          <form class="bankitos-form" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+          <?php $recaptcha_field = class_exists('Bankitos_Recaptcha') ? Bankitos_Recaptcha::field('login') : ''; ?>
+          <form class="bankitos-form" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>"<?php if ($recaptcha_field) echo ' data-bankitos-recaptcha="login"'; ?>>
             <?php echo wp_nonce_field('bankitos_do_login','_wpnonce', true, false); ?>
             <input type="hidden" name="action" value="bankitos_do_login">
+            <?php echo $recaptcha_field; ?>
             <div class="bankitos-field">
               <label for="bk_login_email"><?php esc_html_e('Email','bankitos'); ?></label>
               <input id="bk_login_email" type="email" name="email" required autocomplete="email">
@@ -254,9 +256,11 @@ class Bankitos_Shortcodes {
         ob_start(); ?>
         <div class="bankitos-register-wrap">
           <h2><?php esc_html_e('Crear cuenta','bankitos'); ?></h2>
-          <form class="bankitos-form" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+          <?php $register_recaptcha = class_exists('Bankitos_Recaptcha') ? Bankitos_Recaptcha::field('register') : ''; ?>
+          <form class="bankitos-form" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>"<?php if ($register_recaptcha) echo ' data-bankitos-recaptcha="register"'; ?>>
             <?php echo wp_nonce_field('bankitos_do_register','_wpnonce', true, false); ?>
             <input type="hidden" name="action" value="bankitos_do_register">
+            <?php echo $register_recaptcha; ?>
             <div class="bankitos-field">
               <label for="bk_reg_name"><?php esc_html_e('Nombre','bankitos'); ?></label>
               <input id="bk_reg_name" type="text" name="name" required autocomplete="name">
@@ -322,10 +326,11 @@ class Bankitos_Shortcodes {
           <h2><?php esc_html_e('Crear B@nko','bankitos'); ?></h2>
           <?php echo self::top_notice_from_query(); ?>
 
-          <form id="bankitos-create-form" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" novalidate>
+          <?php $create_recaptcha = class_exists('Bankitos_Recaptcha') ? Bankitos_Recaptcha::field('crear_banco') : ''; ?>
+          <form id="bankitos-create-form" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" novalidate<?php if ($create_recaptcha) echo ' data-bankitos-recaptcha="crear_banco"'; ?>>
             <?php echo wp_nonce_field('bankitos_front_create','_wpnonce', true, false); ?>
             <input type="hidden" name="action" value="bankitos_front_create">
-
+            <?php echo $create_recaptcha; ?>
             <div class="bankitos-field" id="wrap_nombre">
               <label for="bk_nombre"><?php esc_html_e('Nombre del B@nko','bankitos'); ?></label>
               <input id="bk_nombre" type="text" name="nombre" required maxlength="140" autocomplete="off">
