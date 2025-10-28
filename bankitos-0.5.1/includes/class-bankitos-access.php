@@ -17,11 +17,42 @@ class Bankitos_Access {
     }
 
     public static function restrict_admin_for_non_admins() {
-        if (is_user_logged_in() && is_admin() && !current_user_can('administrator') && !(defined('DOING_AJAX') && DOING_AJAX)) {
+        if (!is_user_logged_in()) {
+            return;
+        }
+
+        $is_admin_post = false;
+        if (is_admin()) {
+            $current_screen = $GLOBALS['pagenow'] ?? '';
+            $is_admin_post = ($current_screen === 'admin-post.php');
+        }
+
+        if ($is_admin_post) {
+            $action = isset($_REQUEST['action']) ? sanitize_key(wp_unslash($_REQUEST['action'])) : '';
+            $allowed_actions = apply_filters(
+                'bankitos_public_admin_post_actions',
+                [
+                    'bankitos_front_create',
+                    'bankitos_aporte_submit',
+                    'bankitos_aporte_approve',
+                    'bankitos_aporte_reject',
+                    'bankitos_do_login',
+                    'bankitos_do_register',
+                ]
+            );
+            if (in_array($action, $allowed_actions, true)) {
+                if (!current_user_can('administrator')) {
+                    show_admin_bar(false);
+                }
+                return;
+            }
+        }
+
+        if (is_admin() && !current_user_can('administrator') && !(defined('DOING_AJAX') && DOING_AJAX)) {
             wp_safe_redirect(site_url('/panel'));
             exit;
         }
-        if (is_user_logged_in() && !current_user_can('administrator')) {
+        if (!current_user_can('administrator')) {
             show_admin_bar(false);
         }
     }

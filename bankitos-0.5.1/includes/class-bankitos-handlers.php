@@ -38,7 +38,16 @@ class Bankitos_Handlers {
         return $bid;
     }
 
+    /**
+     * @return true|WP_Error
+     */
     public static function registrar_miembro(int $banco_id, int $user_id, string $rol = 'socio_general') {
+
+        $existing = self::get_user_banco_id($user_id);
+        if ($existing > 0 && $existing !== $banco_id) {
+            return new WP_Error('bankitos_user_has_banco', __('El usuario ya pertenece a otro B@nko.', 'bankitos'));
+        }
+
         update_user_meta($user_id, 'bankitos_banco_id', $banco_id);
         update_user_meta($user_id, 'bankitos_rol', $rol);
 
@@ -69,6 +78,7 @@ class Bankitos_Handlers {
                 );
             }
         }
+        return true;
     }
 }
 add_action('init', ['Bankitos_Handlers', 'init']);
