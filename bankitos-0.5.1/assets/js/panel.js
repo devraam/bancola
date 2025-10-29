@@ -1,8 +1,9 @@
 (function(){
   const doc = document;
   const selectors = {
+    section: '[data-bankitos-members]',
     open: '[data-bankitos-invite-open]',
-    modal: '[data-bankitos-modal]',
+    panel: '[data-bankitos-invite-panel]',
     close: '[data-bankitos-invite-close]',
     form: '[data-bankitos-invite-form]',
     rows: '[data-bankitos-invite-rows]',
@@ -30,14 +31,18 @@
     return wrapper;
   }
 
-  function toggleModal(modal, show){
-    if (!modal) return;
+  function togglePanel(panel, show){
+    if (!panel) return;
     if (show){
-      modal.removeAttribute('hidden');
-      doc.body.style.overflow = 'hidden';
+      panel.removeAttribute('hidden');
+      panel.classList.add('is-visible');
+      const firstInput = panel.querySelector('input');
+      if (firstInput){
+        firstInput.focus();
+      }
     } else {
-      modal.setAttribute('hidden','');
-      doc.body.style.overflow = '';
+      panel.setAttribute('hidden','');
+      panel.classList.remove('is-visible');
     }
   }
 
@@ -99,56 +104,68 @@
   }
 
   function init(){
-    const modal = doc.querySelector(selectors.modal);
-    if (!modal) return;
-    const openBtn = doc.querySelector(selectors.open);
-    const closeElements = modal.querySelectorAll(selectors.close);
-    const form = modal.querySelector(selectors.form);
-    const rowsContainer = modal.querySelector(selectors.rows);
-    const addBtn = modal.querySelector(selectors.add);
-    const errorBox = modal.querySelector(selectors.error);
+    const sections = doc.querySelectorAll(selectors.section);
+    if (!sections.length) return;
 
-    if (openBtn){
-      openBtn.addEventListener('click', () => toggleModal(modal, true));
-    }
-    closeElements.forEach(el => el.addEventListener('click', () => toggleModal(modal, false)));
-    modal.addEventListener('click', (event) => {
-      if (event.target === modal) {
-        toggleModal(modal, false);
+    sections.forEach(section => {
+      const panel = section.querySelector(selectors.panel);
+      if (!panel) return;
+
+      const toggleBtn = section.querySelector(selectors.open);
+      const form = panel.querySelector(selectors.form);
+      const rowsContainer = panel.querySelector(selectors.rows);
+      const addBtn = panel.querySelector(selectors.add);
+      const errorBox = panel.querySelector(selectors.error);
+      const closeElements = panel.querySelectorAll(selectors.close);
+
+      if (toggleBtn){
+        toggleBtn.addEventListener('click', () => {
+          const willShow = panel.hasAttribute('hidden');
+          togglePanel(panel, willShow);
+          toggleBtn.setAttribute('aria-expanded', willShow ? 'true' : 'false');
+        });
       }
-    });
-
+      closeElements.forEach(el => {
+          el.addEventListener('click', () => {
+            togglePanel(panel, false);
+            if (toggleBtn){
+              toggleBtn.setAttribute('aria-expanded', 'false');
+              toggleBtn.focus();
+            }
+          });
+        });
     if (addBtn && rowsContainer){
-      addBtn.addEventListener('click', (event) => {
-        event.preventDefault();
-        rowsContainer.appendChild(createRow());
-      });
-    }
-
-    if (rowsContainer){
-      rowsContainer.addEventListener('click', (event) => {
-        const target = event.target;
-        if (target && target.matches(selectors.remove)) {
+        addBtn.addEventListener('click', (event) => {
           event.preventDefault();
-          const row = target.closest('[data-bankitos-invite-row]');
-          if (row && rowsContainer.children.length > 1) {
-            row.remove();
+          rowsContainer.appendChild(createRow());
+        });
+      }
+
+      if (rowsContainer){
+        rowsContainer.addEventListener('click', (event) => {
+          const target = event.target;
+          if (target && target.matches(selectors.remove)) {
+            event.preventDefault();
+            const row = target.closest('[data-bankitos-invite-row]');
+            if (row && rowsContainer.children.length > 1) {
+              row.remove();
+            }
           }
-        }
-      });
-    }
+        });
+      }
 
     if (form){
-      form.addEventListener('submit', (event) => {
-        const result = validateForm(form);
-        if (!result.valid) {
-          event.preventDefault();
-          showError(errorBox, result.message);
-        } else {
-          showError(errorBox, '');
-        }
-      });
-    }
+        form.addEventListener('submit', (event) => {
+          const result = validateForm(form);
+          if (!result.valid) {
+            event.preventDefault();
+            showError(errorBox, result.message);
+          } else {
+            showError(errorBox, '');
+          }
+        });
+      }
+    });
   }
 
   if (document.readyState === 'loading'){
