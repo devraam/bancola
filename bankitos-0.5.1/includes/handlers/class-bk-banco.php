@@ -40,7 +40,13 @@ class BK_Banco_Handler {
         update_post_meta($post_id,'_bk_periodicidad',$period);
         update_post_meta($post_id,'_bk_tasa',$tasa);
         update_post_meta($post_id,'_bk_duracion_meses',$dur);
-        if (class_exists('Bankitos_Handlers')) Bankitos_Handlers::registrar_miembro($post_id,$user_id,'presidente');
+        if (class_exists('Bankitos_Handlers')) {
+            $registro = Bankitos_Handlers::registrar_miembro($post_id,$user_id,'presidente');
+            if (is_wp_error($registro)) {
+                wp_delete_post($post_id, true);
+                wp_safe_redirect(add_query_arg('err','ya_miembro', site_url('/panel'))); exit;
+            }
+        }
         $u=new WP_User($user_id);
         if ($u && !$u->has_cap('administrator')) {
             $existing_roles = is_array($u->roles) ? $u->roles : [];

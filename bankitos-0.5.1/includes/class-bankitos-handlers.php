@@ -8,13 +8,14 @@ class Bankitos_Handlers {
 
     public static function init() {
         $base = BANKITOS_PATH . 'includes/handlers/';
-        foreach (['class-bk-auth.php','class-bk-banco.php','class-bk-aportes.php'] as $f) {
+        foreach (['class-bk-auth.php','class-bk-banco.php','class-bk-aportes.php','class-bk-invites.php'] as $f) {
             $file = $base.$f;
             if (file_exists($file)) require_once $file;
         }
         if (class_exists('BK_Auth_Handler')) BK_Auth_Handler::init();
         if (class_exists('BK_Banco_Handler')) BK_Banco_Handler::init();
         if (class_exists('BK_Aportes_Handler')) BK_Aportes_Handler::init();
+        if (class_exists('BK_Invites_Handler')) BK_Invites_Handler::init();
     }
 
     public static function get_user_banco_id(int $user_id): int {
@@ -38,7 +39,16 @@ class Bankitos_Handlers {
         return $bid;
     }
 
+    /**
+     * @return true|WP_Error
+     */
     public static function registrar_miembro(int $banco_id, int $user_id, string $rol = 'socio_general') {
+
+        $existing = self::get_user_banco_id($user_id);
+        if ($existing > 0 && $existing !== $banco_id) {
+            return new WP_Error('bankitos_user_has_banco', __('El usuario ya pertenece a otro B@nko.', 'bankitos'));
+        }
+
         update_user_meta($user_id, 'bankitos_banco_id', $banco_id);
         update_user_meta($user_id, 'bankitos_rol', $rol);
 
@@ -69,6 +79,7 @@ class Bankitos_Handlers {
                 );
             }
         }
+        return true;
     }
 }
 add_action('init', ['Bankitos_Handlers', 'init']);
