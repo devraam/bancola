@@ -63,7 +63,7 @@ class Bankitos_CPT {
         $admin_like_caps = [
             'read_banco','read_private_bancos','edit_banco','edit_bancos','edit_private_bancos','edit_published_bancos','edit_others_bancos','delete_banco','delete_bancos','delete_private_bancos','delete_published_bancos','delete_others_bancos','publish_bancos','create_bancos',
             'read_aporte','read_private_aportes','edit_aporte','edit_aportes','edit_private_aportes','edit_published_aportes','edit_others_aportes','delete_aporte','delete_aportes','delete_private_aportes','delete_published_aportes','delete_others_aportes','publish_aportes','create_aportes',
-            'submit_aportes','approve_aportes','audit_aportes'
+            'submit_aportes','approve_aportes','audit_aportes','manage_bank_invites'
         ];
         self::grant_caps_to_role('presidente',$admin_like_caps);
 

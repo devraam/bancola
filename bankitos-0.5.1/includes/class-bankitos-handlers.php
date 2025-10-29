@@ -8,13 +8,14 @@ class Bankitos_Handlers {
 
     public static function init() {
         $base = BANKITOS_PATH . 'includes/handlers/';
-        foreach (['class-bk-auth.php','class-bk-banco.php','class-bk-aportes.php'] as $f) {
+        foreach (['class-bk-auth.php','class-bk-banco.php','class-bk-aportes.php','class-bk-invites.php'] as $f) {
             $file = $base.$f;
             if (file_exists($file)) require_once $file;
         }
         if (class_exists('BK_Auth_Handler')) BK_Auth_Handler::init();
         if (class_exists('BK_Banco_Handler')) BK_Banco_Handler::init();
         if (class_exists('BK_Aportes_Handler')) BK_Aportes_Handler::init();
+        if (class_exists('BK_Invites_Handler')) BK_Invites_Handler::init();
     }
 
     public static function get_user_banco_id(int $user_id): int {

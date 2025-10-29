@@ -16,6 +16,8 @@ class BK_Auth_Handler {
                 wp_safe_redirect(add_query_arg('err','recaptcha', wp_get_referer() ?: site_url('/acceder'))); exit;
             }
         }
+        $token = isset($_POST['invite_token']) ? sanitize_text_field($_POST['invite_token']) : '';
+
         $creds = [
             'user_login'    => sanitize_text_field($_POST['email'] ?? ''),
             'user_password' => (string)($_POST['password'] ?? ''),
@@ -25,7 +27,23 @@ class BK_Auth_Handler {
         if (is_wp_error($user)) {
             wp_safe_redirect(add_query_arg('err','credenciales', wp_get_referer() ?: site_url('/acceder'))); exit;
         }
-        wp_safe_redirect(site_url('/panel')); exit;
+        if ($token && class_exists('BK_Invites_Handler')) {
+            $result = BK_Invites_Handler::accept_invite_for_user($token, $user);
+            if (is_wp_error($result)) {
+                wp_logout();
+                $redirect = add_query_arg([
+                    'invite_token' => $token,
+                    'err'          => 'invite_accept',
+                ], BK_Invites_Handler::portal_url());
+                wp_safe_redirect($redirect);
+                exit;
+            }
+            wp_safe_redirect(add_query_arg('ok', 'invite_accepted', site_url('/panel')));
+            exit;
+        }
+
+        wp_safe_redirect(site_url('/panel'));
+        exit;
     }
     public static function do_register() {
         check_admin_referer('bankitos_do_register');
@@ -35,6 +53,8 @@ class BK_Auth_Handler {
                 wp_safe_redirect(add_query_arg('err','recaptcha', wp_get_referer() ?: site_url('/registrarse'))); exit;
             }
         }
+        $token = isset($_POST['invite_token']) ? sanitize_text_field($_POST['invite_token']) : '';
+
         $email = sanitize_email($_POST['email'] ?? ''); $pass  = (string)($_POST['password'] ?? ''); $name  = sanitize_text_field($_POST['name'] ?? '');
         if (!$email || !$pass) { wp_safe_redirect(add_query_arg('err','validacion', wp_get_referer() ?: site_url('/registrarse'))); exit; }
         $username = sanitize_user(current(explode('@', $email)));
@@ -44,6 +64,22 @@ class BK_Auth_Handler {
         wp_update_user(['ID'=>$user_id,'display_name'=>$name ?: $username,'nickname'=>$name ?: $username]);
         $u = new WP_User($user_id); $u->set_role('socio_general');
         wp_set_current_user($user_id); wp_set_auth_cookie($user_id, true);
-        wp_safe_redirect(site_url('/panel')); exit;
+        if ($token && class_exists('BK_Invites_Handler')) {
+            $result = BK_Invites_Handler::accept_invite_for_user($token, $u);
+            if (is_wp_error($result)) {
+                wp_logout();
+                $redirect = add_query_arg([
+                    'invite_token' => $token,
+                    'err'          => 'invite_accept',
+                ], BK_Invites_Handler::portal_url());
+                wp_safe_redirect($redirect);
+                exit;
+            }
+            wp_safe_redirect(add_query_arg('ok', 'invite_accepted', site_url('/panel')));
+            exit;
+        }
+
+        wp_safe_redirect(site_url('/panel'));
+        exit;
     }
 }

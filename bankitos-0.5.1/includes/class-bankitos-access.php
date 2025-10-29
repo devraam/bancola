@@ -38,6 +38,9 @@ class Bankitos_Access {
                     'bankitos_aporte_reject',
                     'bankitos_do_login',
                     'bankitos_do_register',
+                    'bankitos_send_invites',
+                    'bankitos_accept_invite',
+                    'bankitos_reject_invite',
                 ]
             );
             if (in_array($action, $allowed_actions, true)) {

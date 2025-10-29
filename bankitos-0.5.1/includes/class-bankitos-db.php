@@ -6,6 +6,8 @@ class Bankitos_DB {
     /** @var bool|null */
     private static $members_table_exists = null;
 
+    /** @var bool|null */
+    private static $invites_table_exists = null;
     /**
      * Create or update all plugin tables.
      */
@@ -72,6 +74,7 @@ class Bankitos_DB {
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             banco_id BIGINT UNSIGNED NOT NULL,
             email VARCHAR(190) NOT NULL,
+            invitee_name VARCHAR(190) NULL,
             member_role VARCHAR(40) NOT NULL DEFAULT 'socio_general',
             token VARCHAR(64) NOT NULL,
             inviter_id BIGINT UNSIGNED NOT NULL,
@@ -86,11 +89,17 @@ class Bankitos_DB {
         ) $charset;");
 
         self::$members_table_exists = true;
+        self::$invites_table_exists = true;
     }
 
     public static function members_table_name(): string {
         global $wpdb;
         return $wpdb->prefix . 'banco_members';
+    }
+
+    public static function invites_table_name(): string {
+        global $wpdb;
+        return $wpdb->prefix . 'banco_invites';
     }
 
     public static function members_table_exists(): bool {
@@ -105,8 +114,24 @@ class Bankitos_DB {
         return $exists;
     }
 
+    public static function invites_table_exists(): bool {
+        if (self::$invites_table_exists !== null) {
+            return self::$invites_table_exists;
+        }
+
+        global $wpdb;
+        $table = self::invites_table_name();
+        $exists = (bool) $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table));
+        self::$invites_table_exists = $exists;
+        return $exists;
+    }
+
     public static function reset_members_table_cache(): void {
         self::$members_table_exists = null;
+    }
+
+    public static function reset_invites_table_cache(): void {
+        self::$invites_table_exists = null;
     }
 
     private static function migrate_members_role_column(string $members): void {
