@@ -18,6 +18,28 @@
 .bankitos-btn:hover,.bankitos-panel .button:hover{background:var(--bco-azul-osc);}
 .bankitos-btn.is-disabled,.bankitos-form button[disabled]{opacity:.55;cursor:not-allowed;filter:grayscale(15%);}
 
+.bankitos-panel-info{margin:1.5rem 0;padding:1.5rem;border-radius:20px;background:var(--bco-azul-claro);display:grid;gap:1.2rem;color:var(--bco-texto);}
+.bankitos-panel-info__header{display:flex;align-items:center;gap:1rem;}
+.bankitos-panel-info__icon{width:48px;height:48px;display:flex;align-items:center;justify-content:center;border-radius:16px;background:var(--bco-azul);color:var(--bco-blanco);font-size:1.6rem;box-shadow:0 4px 12px rgba(0,115,179,.25);}
+.bankitos-panel-info__title{margin:0;font-size:1.25rem;font-weight:800;color:var(--bco-azul);}
+.bankitos-panel-info__subtitle{margin:.15rem 0 0 0;font-size:.95rem;color:rgba(15,23,42,.75);}
+.bankitos-panel-info__grid{display:grid;gap:1rem 1.5rem;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));}
+.bankitos-panel-info__row{display:flex;flex-direction:column;padding-bottom:.35rem;border-bottom:1px solid rgba(0,115,179,.15);gap:.25rem;}
+.bankitos-panel-info__row:last-of-type{border-bottom:none;padding-bottom:0;}
+.bankitos-panel-info__label{font-size:.78rem;letter-spacing:.05em;text-transform:uppercase;font-weight:800;color:rgba(15,23,42,.55);}
+.bankitos-panel-info__value{margin:0;font-size:1.05rem;font-weight:800;color:var(--bco-texto);word-break:break-word;}
+.bankitos-panel__cta{margin:1rem 0 1.5rem 0;}
+.bankitos-panel__quick-actions ul{margin:.65rem 0 0 1.2rem;padding:0;display:grid;gap:.5rem;}
+.bankitos-panel__quick-actions li{list-style:disc;color:var(--bco-texto);}
+.bankitos-panel__quick-actions a{font-weight:700;color:var(--bco-azul);text-decoration:none;}
+.bankitos-panel__quick-actions a:hover{text-decoration:underline;}
+
+@media (min-width:720px){
+  .bankitos-panel-info{padding:2rem;gap:1.5rem;}
+  .bankitos-panel-info__icon{width:56px;height:56px;font-size:1.8rem;}
+  .bankitos-panel-info__grid{gap:1.2rem 2rem;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));}
+}
+
 .bankitos-error{background:#FEE2E2;border:1px solid #FCA5A5;color:var(--bco-rojo);padding:.8rem 1rem;border-radius:12px;margin-bottom:1rem;font-weight:700;}
 .bankitos-success{background:#DCFCE7;border:1px solid #86EFAC;color:#166534;padding:.8rem 1rem;border-radius:12px;margin-bottom:1rem;font-weight:700;}
 

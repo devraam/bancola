@@ -224,6 +224,137 @@ class Bankitos_Shortcodes {
         return $html;
     }
 
+    private static function get_user_role_label(WP_User $user): string {
+        $map = [
+            'presidente'    => __('Presidente', 'bankitos'),
+            'secretario'    => __('Secretario', 'bankitos'),
+            'veedor'        => __('Veedor', 'bankitos'),
+            'socio_general' => __('Socio general', 'bankitos'),
+            'tesorero'      => __('Tesorero', 'bankitos'),
+        ];
+
+        $role_meta = get_user_meta($user->ID, 'bankitos_rol', true);
+        $role_meta = is_string($role_meta) ? $role_meta : '';
+
+        if ($role_meta && isset($map[$role_meta])) {
+            return $map[$role_meta];
+        }
+
+        foreach ((array) $user->roles as $role) {
+            if (isset($map[$role])) {
+                return $map[$role];
+            }
+        }
+
+        if ($role_meta) {
+            return ucwords(str_replace('_', ' ', $role_meta));
+        }
+
+        $fallback = is_array($user->roles) && $user->roles ? $user->roles[0] : '';
+        return $fallback ? ucwords(str_replace('_', ' ', $fallback)) : __('Socio', 'bankitos');
+    }
+
+    private static function get_banco_meta(int $banco_id): array {
+        return [
+            'cuota'        => (float) get_post_meta($banco_id, '_bk_cuota_monto', true),
+            'periodicidad' => (string) get_post_meta($banco_id, '_bk_periodicidad', true),
+            'tasa'         => (float) get_post_meta($banco_id, '_bk_tasa', true),
+            'duracion'     => (int) get_post_meta($banco_id, '_bk_duracion_meses', true),
+        ];
+    }
+
+    private static function get_period_label(string $period): string {
+        $map = [
+            'semanal'   => __('Semanal', 'bankitos'),
+            'quincenal' => __('Quincenal', 'bankitos'),
+            'mensual'   => __('Mensual', 'bankitos'),
+        ];
+
+        return $map[$period] ?? ucwords(str_replace('_', ' ', $period));
+    }
+
+    private static function format_currency(float $amount): string {
+        $symbol   = apply_filters('bankitos_panel_currency_symbol', '$');
+        $decimals = (int) apply_filters('bankitos_panel_currency_decimals', 0);
+        $formatted = number_format_i18n($amount, $decimals);
+        return sprintf('%s%s', $symbol, $formatted);
+    }
+
+    private static function get_banco_financial_totals(int $banco_id): array {
+        $totals = [
+            'ahorros'    => 0.0,
+            'creditos'   => 0.0,
+            'disponible' => 0.0,
+        ];
+
+        if ($banco_id <= 0) {
+            return $totals;
+        }
+
+        global $wpdb;
+
+        $sum_aportes = $wpdb->get_var($wpdb->prepare(
+            "SELECT SUM(CAST(m_monto.meta_value AS DECIMAL(18,2)))
+             FROM {$wpdb->posts} p
+             INNER JOIN {$wpdb->postmeta} m_banco ON p.ID = m_banco.post_id AND m_banco.meta_key = %s
+             INNER JOIN {$wpdb->postmeta} m_monto ON p.ID = m_monto.post_id AND m_monto.meta_key = %s
+             WHERE p.post_type = %s AND p.post_status = 'publish' AND m_banco.meta_value = %d",
+            '_bankitos_banco_id',
+            '_bankitos_monto',
+            Bankitos_CPT::SLUG_APORTE,
+            $banco_id
+        ));
+
+        if ($sum_aportes) {
+            $totals['ahorros'] = (float) $sum_aportes;
+        }
+
+        $loans_table    = $wpdb->prefix . 'banco_loans';
+        $payments_table = $wpdb->prefix . 'banco_loan_payments';
+        $loan_statuses  = (array) apply_filters('bankitos_panel_active_loan_statuses', ['active', 'pending', 'late']);
+
+        $table_exists = (bool) $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $loans_table));
+        if ($table_exists) {
+            $status_placeholders = $loan_statuses ? implode(',', array_fill(0, count($loan_statuses), '%s')) : '';
+            if ($status_placeholders) {
+                $sql  = "SELECT id, principal FROM {$loans_table} WHERE banco_id = %d AND status IN ({$status_placeholders})";
+                $args = array_merge([$sql, $banco_id], $loan_statuses);
+                $query = call_user_func_array([$wpdb, 'prepare'], $args);
+            } else {
+                $query = $wpdb->prepare("SELECT id, principal FROM {$loans_table} WHERE banco_id = %d", $banco_id);
+            }
+
+            $loans = $wpdb->get_results($query);
+            if ($loans) {
+                $principal_total = 0.0;
+                $loan_ids = [];
+                foreach ($loans as $loan) {
+                    $principal_total += (float) $loan->principal;
+                    $loan_ids[] = (int) $loan->id;
+                }
+
+                $outstanding = $principal_total;
+
+                if ($loan_ids && (bool) $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $payments_table))) {
+                    $placeholders = implode(',', array_fill(0, count($loan_ids), '%d'));
+                    $sql  = "SELECT SUM(amount) FROM {$payments_table} WHERE loan_id IN ({$placeholders})";
+                    $args = array_merge([$sql], $loan_ids);
+                    $payments_query = call_user_func_array([$wpdb, 'prepare'], $args);
+                    $paid = $wpdb->get_var($payments_query);
+                    if ($paid) {
+                        $outstanding = max(0.0, $outstanding - (float) $paid);
+                    }
+                }
+
+                $totals['creditos'] = max(0.0, $outstanding);
+            }
+        }
+
+        $totals['disponible'] = max(0.0, $totals['ahorros'] - $totals['creditos']);
+
+        return (array) apply_filters('bankitos_panel_financial_totals', $totals, $banco_id);
+    }
+
     public static function login() {
         ob_start(); ?>
         <div class="bankitos-login-wrap">
@@ -291,20 +422,83 @@ class Bankitos_Shortcodes {
         <div class="bankitos-panel">
           <?php echo self::top_notice_from_query(); ?>
           <h2><?php echo sprintf(esc_html__('Bienvenido, %s','bankitos'), esc_html($name)); ?></h2>
-          <?php if ($banco_id > 0): $title = get_the_title($banco_id); $ficha = get_permalink($banco_id) ?: '#'; ?>
-            <p><?php echo sprintf(esc_html__('Tu B@nko: %s','bankitos'), '<strong>'.esc_html($title).'</strong>'); ?></p>
-            <p><a class="button bankitos-btn" href="<?php echo esc_url($ficha); ?>"><?php esc_html_e('Ver ficha del B@nko','bankitos'); ?></a></p>
-            <hr style="margin:1rem 0;opacity:.2">
-            <p><strong><?php esc_html_e('Acciones rápidas','bankitos'); ?>:</strong></p>
-            <ul>
-              <li><a href="<?php echo esc_url(site_url('/mi-aporte')); ?>"><?php esc_html_e('Subir aporte','bankitos'); ?></a></li>
-              <?php if (current_user_can('approve_aportes')): ?>
-                <li><a href="<?php echo esc_url(site_url('/tesoreria-aportes')); ?>"><?php esc_html_e('Aprobar aportes (Tesorero)','bankitos'); ?></a></li>
-              <?php endif; ?>
-              <?php if (current_user_can('audit_aportes')): ?>
-                <li><a href="<?php echo esc_url(site_url('/auditoria-aportes')); ?>"><?php esc_html_e('Aportes aprobados (Veedor)','bankitos'); ?></a></li>
-              <?php endif; ?>
-            </ul>
+          <?php if ($banco_id > 0):
+              $title      = get_the_title($banco_id);
+              $ficha      = get_permalink($banco_id) ?: '#';
+              $meta       = self::get_banco_meta($banco_id);
+              $totals     = self::get_banco_financial_totals($banco_id);
+              $role_label = self::get_user_role_label($u);
+              $cuota_text = $meta['cuota'] > 0 ? self::format_currency($meta['cuota']) : esc_html__('No definido', 'bankitos');
+              if ($meta['periodicidad']) {
+                  $cuota_text .= ' / ' . self::get_period_label($meta['periodicidad']);
+              }
+              $tasa_text = $meta['tasa'] > 0 ? sprintf('%s%%', number_format_i18n($meta['tasa'], 2)) : esc_html__('No definida', 'bankitos');
+              $duracion_text = $meta['duracion'] > 0
+                  ? sprintf(_n('%s mes', '%s meses', $meta['duracion'], 'bankitos'), number_format_i18n($meta['duracion']))
+                  : esc_html__('No definida', 'bankitos');
+              $ahorros_text = self::format_currency($totals['ahorros']);
+              $creditos_text = self::format_currency($totals['creditos']);
+              $disponible_text = self::format_currency($totals['disponible']);
+          ?>
+            <div class="bankitos-panel-info" role="group" aria-label="<?php esc_attr_e('Información general del b@nko', 'bankitos'); ?>">
+              <div class="bankitos-panel-info__header">
+                <span class="bankitos-panel-info__icon" aria-hidden="true">🏦</span>
+                <div>
+                  <p class="bankitos-panel-info__title"><?php esc_html_e('Información del b@nko', 'bankitos'); ?></p>
+                  <p class="bankitos-panel-info__subtitle"><?php esc_html_e('Resumen visible para todos los asociados.', 'bankitos'); ?></p>
+                </div>
+              </div>
+              <dl class="bankitos-panel-info__grid">
+                <div class="bankitos-panel-info__row">
+                  <dt class="bankitos-panel-info__label"><?php esc_html_e('Nombre del b@nko', 'bankitos'); ?></dt>
+                  <dd class="bankitos-panel-info__value"><?php echo esc_html($title); ?></dd>
+                </div>
+                <div class="bankitos-panel-info__row">
+                  <dt class="bankitos-panel-info__label"><?php esc_html_e('Rol', 'bankitos'); ?></dt>
+                  <dd class="bankitos-panel-info__value"><?php echo esc_html($role_label); ?></dd>
+                </div>
+                <div class="bankitos-panel-info__row">
+                  <dt class="bankitos-panel-info__label"><?php esc_html_e('Cuota', 'bankitos'); ?></dt>
+                  <dd class="bankitos-panel-info__value"><?php echo esc_html($cuota_text); ?></dd>
+                </div>
+                <div class="bankitos-panel-info__row">
+                  <dt class="bankitos-panel-info__label"><?php esc_html_e('Tasa', 'bankitos'); ?></dt>
+                  <dd class="bankitos-panel-info__value"><?php echo esc_html($tasa_text); ?></dd>
+                </div>
+                <div class="bankitos-panel-info__row">
+                  <dt class="bankitos-panel-info__label"><?php esc_html_e('Duración', 'bankitos'); ?></dt>
+                  <dd class="bankitos-panel-info__value"><?php echo esc_html($duracion_text); ?></dd>
+                </div>
+                <div class="bankitos-panel-info__row">
+                  <dt class="bankitos-panel-info__label"><?php esc_html_e('Ahorros totales', 'bankitos'); ?></dt>
+                  <dd class="bankitos-panel-info__value"><?php echo esc_html($ahorros_text); ?></dd>
+                </div>
+                <div class="bankitos-panel-info__row">
+                  <dt class="bankitos-panel-info__label"><?php esc_html_e('Créditos', 'bankitos'); ?></dt>
+                  <dd class="bankitos-panel-info__value"><?php echo esc_html($creditos_text); ?></dd>
+                </div>
+                <div class="bankitos-panel-info__row">
+                  <dt class="bankitos-panel-info__label"><?php esc_html_e('Disponible', 'bankitos'); ?></dt>
+                  <dd class="bankitos-panel-info__value"><?php echo esc_html($disponible_text); ?></dd>
+                </div>
+              </dl>
+            </div>
+
+            <div class="bankitos-panel__cta">
+              <a class="button bankitos-btn" href="<?php echo esc_url($ficha); ?>"><?php esc_html_e('Ver ficha del B@nko','bankitos'); ?></a>
+            </div>
+            <div class="bankitos-panel__quick-actions">
+              <p><strong><?php esc_html_e('Acciones rápidas','bankitos'); ?>:</strong></p>
+              <ul>
+                <li><a href="<?php echo esc_url(site_url('/mi-aporte')); ?>"><?php esc_html_e('Subir aporte','bankitos'); ?></a></li>
+                <?php if (current_user_can('approve_aportes')): ?>
+                  <li><a href="<?php echo esc_url(site_url('/tesoreria-aportes')); ?>"><?php esc_html_e('Aprobar aportes (Tesorero)','bankitos'); ?></a></li>
+                <?php endif; ?>
+                <?php if (current_user_can('audit_aportes')): ?>
+                  <li><a href="<?php echo esc_url(site_url('/auditoria-aportes')); ?>"><?php esc_html_e('Aportes aprobados (Veedor)','bankitos'); ?></a></li>
+                <?php endif; ?>
+              </ul>
+            </div>
           <?php else: ?>
             <p><?php esc_html_e('Aún no perteneces a un B@nko.','bankitos'); ?></p>
             <p><a class="button bankitos-btn" href="<?php echo esc_url(site_url('/crear-banko')); ?>"><?php esc_html_e('Crear B@nko','bankitos'); ?></a></p>
