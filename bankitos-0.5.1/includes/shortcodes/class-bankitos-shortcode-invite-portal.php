@@ -68,11 +68,12 @@ class Bankitos_Shortcode_Invite_Portal extends Bankitos_Shortcode_Base {
                     </div>
                   <?php endif; ?>
                   <div class="bankitos-invite-portal__reject">
-                    <a class="bankitos-link" href="<?php echo esc_url(add_query_arg([
+                    <?php $reject_url = wp_nonce_url(add_query_arg([
                         'action'      => 'bankitos_reject_invite',
                         'token'       => $token,
-                        'redirect_to' => rawurlencode(BK_Invites_Handler::portal_url($token)),
-                    ], admin_url('admin-post.php'))); ?>"><?php esc_html_e('Rechazar invitación', 'bankitos'); ?></a>
+                        'redirect_to' => BK_Invites_Handler::portal_url($token),
+                    ], admin_url('admin-post.php')), 'bankitos_reject_invite'); ?>
+                    <a class="bankitos-link" href="<?php echo esc_url($reject_url); ?>"><?php esc_html_e('Rechazar invitación', 'bankitos'); ?></a>
                   </div>
                 </div>
               <?php endif; ?>
