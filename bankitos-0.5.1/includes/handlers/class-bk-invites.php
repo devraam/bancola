@@ -404,22 +404,47 @@ class BK_Invites_Handler {
     }
 
     private static function send_invite_email(array $invite): bool {
-        $bank_name   = get_the_title($invite['banco_id']) ?: get_bloginfo('name');
-        $inviter     = get_user_by('id', (int) $invite['inviter_id']);
-        $inviter_name= $inviter ? ($inviter->display_name ?: $inviter->user_login) : get_bloginfo('name');
-        $portal_url  = self::portal_url($invite['token']);
+        $bank_name    = get_the_title($invite['banco_id']) ?: get_bloginfo('name');
+        $inviter      = get_user_by('id', (int) $invite['inviter_id']);
+        $inviter_name = $inviter ? ($inviter->display_name ?: $inviter->user_login) : get_bloginfo('name');
+        $portal_url   = self::portal_url($invite['token']);
+        $register_url = add_query_arg('invite_token', $invite['token'], site_url('/registrarse'));
+        $login_url    = add_query_arg('invite_token', $invite['token'], site_url('/acceder'));
 
         $placeholders = [
-            '{invitee_name}' => $invite['name'],
-            '{invite_url}'   => $portal_url,
-            '{bank_name}'    => $bank_name,
-            '{inviter_name}' => $inviter_name,
-            '{site_name}'    => get_bloginfo('name'),
+            '{invitee_name}' => esc_html($invite['name']),
+            '{invite_url}'   => esc_url($portal_url),
+            '{bank_name}'    => esc_html($bank_name),
+            '{inviter_name}' => esc_html($inviter_name),
+            '{site_name}'    => esc_html(get_bloginfo('name')),
+            '{register_url}' => esc_url($register_url),
+            '{login_url}'    => esc_url($login_url),
+            '{invite_link}'  => sprintf('<a href="%1$s">%2$s</a>', esc_url($portal_url), esc_html__('Ver invitación', 'bankitos')),
+            '{register_link}' => sprintf('<a href="%1$s">%2$s</a>', esc_url($register_url), esc_html__('Crear cuenta', 'bankitos')),
+            '{login_link}'    => sprintf('<a href="%1$s">%2$s</a>', esc_url($login_url), esc_html__('Iniciar sesión', 'bankitos')),
         ];
+
+        $alternate_keys = [];
+        foreach ($placeholders as $key => $value) {
+            if ($key[0] === '{' && substr($key, -1) === '}') {
+                $alternate_keys[str_replace(['{', '}'], ['[', ']'], $key)] = $value;
+            }
+        }
+        $placeholders = array_merge($placeholders, $alternate_keys);
 
         $template = class_exists('Bankitos_Settings') ? Bankitos_Settings::get('email_template_invite', '') : '';
         if ($template) {
             $body = strtr($template, $placeholders);
+            if ($body === strip_tags($body)) {
+                $body = nl2br(esc_html($body));
+            } else {
+                $body  = '<p>' . sprintf(esc_html__('Hola %1$s, te han invitado a unirte al B@nko %2$s.', 'bankitos'), esc_html($invite['name']), esc_html($bank_name)) . '</p>';
+                $body .= '<p><a href="' . esc_url($portal_url) . '">' . esc_html__('Ver invitación', 'bankitos') . '</a></p>';
+                $body .= '<p>' . esc_html__('Si no esperabas este mensaje puedes ignorarlo.', 'bankitos') . '</p>';
+                $body .= '<hr>';
+                $body .= '<p>' . esc_html__('¿Aún no tienes cuenta? Crea una nueva o inicia sesión con los enlaces siguientes.', 'bankitos') . '</p>';
+                $body .= '<p><a href="' . esc_url($register_url) . '">' . esc_html__('Crear cuenta', 'bankitos') . '</a> · <a href="' . esc_url($login_url) . '">' . esc_html__('Iniciar sesión', 'bankitos') . '</a></p>';
+            }
         } else {
             $body = sprintf(
                 "%s\n\n%s\n%s",
@@ -436,7 +461,7 @@ class BK_Invites_Handler {
             $placeholders
         );
 
-        $headers = [];
+        $headers = ['Content-Type: text/html; charset=UTF-8'];
         if (class_exists('Bankitos_Settings')) {
             $from_name  = Bankitos_Settings::get('from_name', get_bloginfo('name'));
             $from_email = Bankitos_Settings::get('from_email', get_bloginfo('admin_email'));

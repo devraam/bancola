@@ -13,7 +13,7 @@ class Bankitos_Shortcode_Panel_Members extends Bankitos_Shortcode_Panel_Base {
         }
         $context = self::get_panel_context();
         if ($context['banco_id'] <= 0) {
-            return '';
+          return self::render_guest_message();
         }
         return self::render_section($context);
     }
@@ -155,5 +155,14 @@ class Bankitos_Shortcode_Panel_Members extends Bankitos_Shortcode_Panel_Base {
             'removeLabel'      => __('Eliminar fila', 'bankitos'),
         ];
         wp_localize_script('bankitos-panel', 'bankitosPanelInvites', $data);
+    }
+
+    protected static function render_guest_message(): string {
+        ob_start(); ?>
+        <div class="bankitos-members bankitos-members--empty-state">
+          <p class="bankitos-members__empty"><?php esc_html_e('Debes pertenecer a un B@nko para gestionar miembros e invitaciones.', 'bankitos'); ?></p>
+        </div>
+        <?php
+        return ob_get_clean();
     }
 }
