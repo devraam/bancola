@@ -4,9 +4,6 @@ if (!defined('ABSPATH')) exit;
 abstract class Bankitos_Shortcode_Panel_Base extends Bankitos_Shortcode_Base {
 
     protected static function is_general_member(array $context): bool {
-        if (isset($context['is_general_member']) && is_bool($context['is_general_member'])) {
-            return $context['is_general_member'];
-        }
 
         if (isset($context['user']) && $context['user'] instanceof WP_User) {
             $user = $context['user'];
@@ -126,9 +123,6 @@ abstract class Bankitos_Shortcode_Panel_Base extends Bankitos_Shortcode_Base {
     }
 
     protected static function is_president(array $context): bool {
-        if (isset($context['is_president']) && is_bool($context['is_president'])) {
-            return $context['is_president'];
-        }
 
         if (isset($context['user']) && $context['user'] instanceof WP_User) {
             $user = $context['user'];
@@ -154,6 +148,7 @@ abstract class Bankitos_Shortcode_Panel_Base extends Bankitos_Shortcode_Base {
             'number'     => apply_filters('bankitos_panel_members_limit', 200),
             'orderby'    => 'display_name',
             'order'      => 'ASC',
+            'exclude'    => [get_current_user_id()],
         ]);
 
         $members = [];

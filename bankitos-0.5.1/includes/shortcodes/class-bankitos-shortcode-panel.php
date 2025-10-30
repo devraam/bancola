@@ -25,11 +25,7 @@ class Bankitos_Shortcode_Panel extends Bankitos_Shortcode_Panel_Base {
           <?php echo self::top_notice_from_query(); ?>
           <h2><?php echo sprintf(esc_html__('Bienvenido, %s', 'bankitos'), esc_html($name)); ?></h2>
           <p class="bankitos-panel__message"><?php echo $welcome_message; ?></p>
-          <?php if ($context['banco_id'] > 0): ?>
-            <div class="bankitos-panel__cta">
-              <a class="button bankitos-btn" href="<?php echo esc_url($context['banco_link']); ?>"><?php esc_html_e('Ver ficha del B@nko', 'bankitos'); ?></a>
-            </div>
-          <?php elseif ($can_create_bank): ?>
+          <?php if ($can_create_bank): ?>
             <div class="bankitos-panel__cta">
               <a class="button bankitos-btn" href="<?php echo esc_url(site_url('/crear-banko')); ?>"><?php esc_html_e('Crear B@nko', 'bankitos'); ?></a>
             </div>
