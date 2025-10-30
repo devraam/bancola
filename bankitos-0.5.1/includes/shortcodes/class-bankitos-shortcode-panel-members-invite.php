@@ -25,7 +25,6 @@ class Bankitos_Shortcode_Panel_Members_Invite extends Bankitos_Shortcode_Panel_M
     }
 
     protected static function render_invite_section(array $context): string {
-        self::enqueue_invite_assets($context);
 
         $min_required = max(1, (int) $context['min_invites']);
         $initial_needed = max(0, (int) ($context['initial_invites_needed'] ?? 0));

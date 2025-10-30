@@ -19,7 +19,6 @@ class Bankitos_Shortcode_Panel_Members extends Bankitos_Shortcode_Panel_Base {
     }
 
     public static function render_section(array $context): string {
-        self::enqueue_invite_assets($context);
 
         $rows = self::merge_members_and_invites($context['members'], $context['invites']);
         $can_manage = $context['can_manage_invites'];
@@ -155,32 +154,6 @@ class Bankitos_Shortcode_Panel_Members extends Bankitos_Shortcode_Panel_Base {
         </div>
         <?php
         return ob_get_clean();
-    }
-
-    protected static function enqueue_invite_assets(array $context): void {
-        if (!is_user_logged_in() || !$context['can_manage_invites']) {
-            return;
-        }
-        if (!wp_script_is('bankitos-panel', 'registered')) {
-            wp_register_script(
-                'bankitos-panel',
-                BANKITOS_URL . 'assets/js/panel.js',
-                [],
-                defined('BANKITOS_VERSION') ? BANKITOS_VERSION : '1.0.0',
-                true
-            );
-        }
-
-        wp_enqueue_script('bankitos-panel');
-        $data = [
-            'minRequiredError' => __('Debes completar al menos el mínimo de invitaciones requerido.', 'bankitos'),
-            'invalidEmailError' => __('Ingresa correos electrónicos válidos.', 'bankitos'),
-            'missingFieldsError'=> __('Completa nombre y correo en cada fila.', 'bankitos'),
-            'nameLabel'        => __('Nombre', 'bankitos'),
-            'emailLabel'       => __('Correo electrónico', 'bankitos'),
-            'removeLabel'      => __('Eliminar fila', 'bankitos'),
-        ];
-        wp_localize_script('bankitos-panel', 'bankitosPanelInvites', $data);
     }
 
     protected static function render_guest_message(): string {
