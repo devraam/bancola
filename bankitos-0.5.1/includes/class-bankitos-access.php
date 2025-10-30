@@ -41,6 +41,9 @@ class Bankitos_Access {
                     'bankitos_send_invites',
                     'bankitos_accept_invite',
                     'bankitos_reject_invite',
+                    'bankitos_resend_invite',   
+                    'bankitos_update_invite',   
+                    'bankitos_cancel_invite',
                 ]
             );
             if (in_array($action, $allowed_actions, true)) {
