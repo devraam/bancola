@@ -43,8 +43,14 @@ class Bankitos_Shortcode_Panel_Members_Invite extends Bankitos_Shortcode_Panel_M
             $first_message = __('Puedes invitar a uno o varios miembros cuando lo necesites.', 'bankitos');
         }
 
+        $section_attributes = ['data-bankitos-invite'];
+        if ($initial_needed > 0) {
+            $section_attributes[] = 'data-bankitos-invite-initial-open';
+        }
+        $section_attributes = implode(' ', array_map('esc_attr', $section_attributes));
+
         ob_start(); ?>
-        <div class="bankitos-members" data-bankitos-invite>
+        <div class="bankitos-members" <?php echo $section_attributes; ?>>
           <div class="bankitos-members__header">
             <div class="bankitos-members__heading">
               <div class="bankitos-members__icon" aria-hidden="true">👥</div>
