@@ -18,6 +18,11 @@ class Bankitos_Shortcode_Panel_Members extends Bankitos_Shortcode_Panel_Base {
           }
           return self::render_guest_message();
         }
+
+        if (empty($context['is_president'])) {
+          return '';
+        }
+        
         return self::render_section($context);
     }
 

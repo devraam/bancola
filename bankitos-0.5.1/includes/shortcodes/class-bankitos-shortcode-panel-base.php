@@ -48,6 +48,7 @@ abstract class Bankitos_Shortcode_Panel_Base extends Bankitos_Shortcode_Base {
             'is_first_invite'     => false,
             'can_manage_invites'  => false,
             'is_general_member'   => false,
+            'is_president'        => false,
         ];
 
         if (!is_user_logged_in()) {
@@ -58,6 +59,7 @@ abstract class Bankitos_Shortcode_Panel_Base extends Bankitos_Shortcode_Base {
         $context['user'] = $user;
         $context['name'] = $user->display_name ?: $user->user_login;
         $context['can_manage_invites'] = current_user_can('manage_bank_invites');
+        $context['is_president'] = self::is_president($context);
 
         $banco_id = class_exists('Bankitos_Handlers') ? Bankitos_Handlers::get_user_banco_id($user->ID) : 0;
         $context['banco_id'] = $banco_id;
@@ -118,10 +120,33 @@ abstract class Bankitos_Shortcode_Panel_Base extends Bankitos_Shortcode_Base {
         }
 
         $context['is_general_member'] = self::is_general_member($context);
-        
+        $context['is_president'] = self::is_president($context);
+
         return $context;
     }
 
+    protected static function is_president(array $context): bool {
+        if (isset($context['is_president']) && is_bool($context['is_president'])) {
+            return $context['is_president'];
+        }
+
+        if (isset($context['user']) && $context['user'] instanceof WP_User) {
+            $user = $context['user'];
+        } elseif (is_user_logged_in()) {
+            $user = wp_get_current_user();
+        } else {
+            return false;
+        }
+
+        $roles = is_array($user->roles) ? $user->roles : [];
+        if (in_array('presidente', $roles, true)) {
+            return true;
+        }
+
+        $meta_role = get_user_meta($user->ID, 'bankitos_rol', true);
+        return is_string($meta_role) && $meta_role === 'presidente';
+    }
+    
     protected static function get_banco_members(int $banco_id): array {
         $users = get_users([
             'meta_key'   => 'bankitos_banco_id',
