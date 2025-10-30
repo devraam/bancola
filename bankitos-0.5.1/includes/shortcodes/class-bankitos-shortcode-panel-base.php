@@ -3,6 +3,28 @@ if (!defined('ABSPATH')) exit;
 
 abstract class Bankitos_Shortcode_Panel_Base extends Bankitos_Shortcode_Base {
 
+    protected static function is_general_member(array $context): bool {
+        if (isset($context['is_general_member']) && is_bool($context['is_general_member'])) {
+            return $context['is_general_member'];
+        }
+
+        if (isset($context['user']) && $context['user'] instanceof WP_User) {
+            $user = $context['user'];
+        } elseif (is_user_logged_in()) {
+            $user = wp_get_current_user();
+        } else {
+            return false;
+        }
+
+        $roles = is_array($user->roles) ? $user->roles : [];
+        if (in_array('socio_general', $roles, true)) {
+            return true;
+        }
+
+        $meta_role = get_user_meta($user->ID, 'bankitos_rol', true);
+        return is_string($meta_role) && $meta_role === 'socio_general';
+    }
+
     protected static function get_panel_context(): array {
         $context = [
             'user'                => null,
@@ -25,6 +47,7 @@ abstract class Bankitos_Shortcode_Panel_Base extends Bankitos_Shortcode_Base {
             'min_invites'         => 1,
             'is_first_invite'     => false,
             'can_manage_invites'  => false,
+            'is_general_member'   => false,
         ];
 
         if (!is_user_logged_in()) {
@@ -40,6 +63,7 @@ abstract class Bankitos_Shortcode_Panel_Base extends Bankitos_Shortcode_Base {
         $context['banco_id'] = $banco_id;
 
         if ($banco_id <= 0) {
+            $context['is_general_member'] = self::is_general_member($context);
             return $context;
         }
 
@@ -93,6 +117,8 @@ abstract class Bankitos_Shortcode_Panel_Base extends Bankitos_Shortcode_Base {
             $context['initial_invites_needed'] = $initial_needed;
         }
 
+        $context['is_general_member'] = self::is_general_member($context);
+        
         return $context;
     }
 

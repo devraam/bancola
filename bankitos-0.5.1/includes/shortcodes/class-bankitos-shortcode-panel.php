@@ -22,6 +22,8 @@ class Bankitos_Shortcode_Panel extends Bankitos_Shortcode_Panel_Base {
             )
             : esc_html__('Aún no perteneces a un B@nko. Puedes crear uno nuevo o esperar a recibir una invitación.', 'bankitos');
 
+        $can_create_bank = $context['banco_id'] <= 0 && !empty($context['is_general_member']);
+
         ob_start(); ?>
         <div class="bankitos-panel">
           <?php echo self::top_notice_from_query(); ?>
@@ -31,7 +33,7 @@ class Bankitos_Shortcode_Panel extends Bankitos_Shortcode_Panel_Base {
             <div class="bankitos-panel__cta">
               <a class="button bankitos-btn" href="<?php echo esc_url($context['banco_link']); ?>"><?php esc_html_e('Ver ficha del B@nko', 'bankitos'); ?></a>
             </div>
-          <?php else: ?>
+          <?php elseif ($can_create_bank): ?>
             <p><a class="button bankitos-btn" href="<?php echo esc_url(site_url('/crear-banko')); ?>"><?php esc_html_e('Crear B@nko', 'bankitos'); ?></a></p>
           <?php endif; ?>
         </div>
