@@ -74,16 +74,27 @@ abstract class Bankitos_Shortcode_Panel_Base extends Bankitos_Shortcode_Base {
         $context['disponible_text'] = self::format_currency($totals['disponible']);
 
         $context['members'] = self::get_banco_members($banco_id);
+        $members_count = count($context['members']);
 
         if (class_exists('BK_Invites_Handler')) {
             $invites_data = BK_Invites_Handler::get_bank_invites($banco_id);
             $context['invites']      = $invites_data['rows'];
             $context['invite_stats'] = $invites_data['stats'];
-            $context['is_first_invite'] = $invites_data['stats']['total'] < 1;
-            $context['min_invites'] = $context['is_first_invite'] ? 4 : 1;
+            $context['is_first_invite'] = ($members_count < 4) && ($invites_data['stats']['total'] < 1);
         } else {
             $context['is_first_invite'] = true;
             $context['min_invites'] = 4;
+        }
+
+        $initial_needed = max(0, 4 - $members_count);
+        $context['initial_invites_needed'] = $initial_needed;
+        if (!isset($context['min_invites']) || $context['min_invites'] < 1) {
+            $context['min_invites'] = 1;
+        }
+        if ($initial_needed > 0) {
+            $context['min_invites'] = max($context['min_invites'], $initial_needed);
+        } else {
+            $context['min_invites'] = 1;
         }
 
         return $context;

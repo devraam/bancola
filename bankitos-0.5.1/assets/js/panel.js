@@ -34,7 +34,7 @@
     return wrapper;
   }
 
-  function togglePanel(panel, show){
+  function togglePanel(panel, show, toggleBtn){
     if (!panel) return;
     if (show){
       panel.removeAttribute('hidden');
@@ -46,6 +46,9 @@
     } else {
       panel.setAttribute('hidden','');
       panel.classList.remove('is-visible');
+    }
+    if (toggleBtn){
+      toggleBtn.setAttribute('aria-expanded', show ? 'true' : 'false');
     }
   }
 
@@ -122,22 +125,27 @@
       const closeElements = panel.querySelectorAll(selectors.close);
 
       if (toggleBtn){
-        toggleBtn.addEventListener('click', () => {
+        toggleBtn.addEventListener('click', (event) => {
+          event.preventDefault();
           const willShow = panel.hasAttribute('hidden');
-          togglePanel(panel, willShow);
-          toggleBtn.setAttribute('aria-expanded', willShow ? 'true' : 'false');
+          togglePanel(panel, willShow, toggleBtn);
         });
       }
       closeElements.forEach(el => {
-          el.addEventListener('click', () => {
-            togglePanel(panel, false);
-            if (toggleBtn){
-              toggleBtn.setAttribute('aria-expanded', 'false');
-              toggleBtn.focus();
-            }
-          });
+          el.addEventListener('click', (event) => {
+          event.preventDefault();
+          togglePanel(panel, false, toggleBtn);
+          if (toggleBtn){
+            toggleBtn.focus();
+          }
         });
-    if (addBtn && rowsContainer){
+     });
+
+      if (section.hasAttribute('data-bankitos-invite-initial-open')){
+        togglePanel(panel, true, toggleBtn);
+      }
+
+      if (addBtn && rowsContainer){
         addBtn.addEventListener('click', (event) => {
           event.preventDefault();
           rowsContainer.appendChild(createRow());
@@ -157,7 +165,7 @@
         });
       }
 
-    if (form){
+      if (form){
         form.addEventListener('submit', (event) => {
           const result = validateForm(form);
           if (!result.valid) {

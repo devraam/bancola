@@ -28,12 +28,29 @@ class Bankitos_Shortcode_Panel_Members_Invite extends Bankitos_Shortcode_Panel_M
         self::enqueue_invite_assets($context);
 
         $min_required = max(1, (int) $context['min_invites']);
-        $first_message = $context['is_first_invite']
-            ? sprintf(__('La primera vez debes invitar al menos a %d personas.', 'bankitos'), $min_required)
-            : __('Puedes invitar a uno o varios miembros cuando lo necesites.', 'bankitos');
+        $initial_needed = max(0, (int) ($context['initial_invites_needed'] ?? 0));
+        if ($initial_needed > 0) {
+            $first_message = sprintf(
+                _n(
+                    'Debes invitar al menos a %d persona para completar tu B@nko.',
+                    'Debes invitar al menos a %d personas para completar tu B@nko.',
+                    $initial_needed,
+                    'bankitos'
+                ),
+                $initial_needed
+            );
+        } else {
+            $first_message = __('Puedes invitar a uno o varios miembros cuando lo necesites.', 'bankitos');
+        }
+
+        $section_attributes = ['data-bankitos-invite'];
+        if ($initial_needed > 0) {
+            $section_attributes[] = 'data-bankitos-invite-initial-open';
+        }
+        $section_attributes = implode(' ', array_map('esc_attr', $section_attributes));
 
         ob_start(); ?>
-        <div class="bankitos-members" data-bankitos-invite>
+        <div class="bankitos-members" <?php echo $section_attributes; ?>>
           <div class="bankitos-members__header">
             <div class="bankitos-members__heading">
               <div class="bankitos-members__icon" aria-hidden="true">👥</div>
