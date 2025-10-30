@@ -14,16 +14,17 @@ class Bankitos_Shortcode_Invite_Portal extends Bankitos_Shortcode_Base {
             $token = sanitize_text_field(wp_unslash($_GET['invite_token']));
         }
 
-        $user          = null;
+        if (!is_user_logged_in()) {
+            return '';
+        }
+
+        $user          = wp_get_current_user();
         $user_banco_id = 0;
-        if (is_user_logged_in()) {
-            $user = wp_get_current_user();
-            if (in_array('presidente', (array) $user->roles, true)) {
-                return '';
-            }
-            if (class_exists('Bankitos_Handlers')) {
-                $user_banco_id = Bankitos_Handlers::get_user_banco_id($user->ID);
-            }
+        if (in_array('presidente', (array) $user->roles, true)) {
+            return '';
+        }
+        if (class_exists('Bankitos_Handlers')) {
+            $user_banco_id = Bankitos_Handlers::get_user_banco_id($user->ID);
         }
         
         $contexts    = [];
