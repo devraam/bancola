@@ -23,6 +23,9 @@ abstract class Bankitos_Shortcode_Base {
                 'aporte_aprobado'   => __('Aporte aprobado.', 'bankitos'),
                 'aporte_rechazado'  => __('Aporte rechazado.', 'bankitos'),
                 'invite_sent'       => __('Invitaciones enviadas correctamente.', 'bankitos'),
+                'invite_resent'     => __('Invitación reenviada correctamente.', 'bankitos'),
+                'invite_updated'    => __('Invitación actualizada correctamente.', 'bankitos'),
+                'invite_cancelled'  => __('Invitación cancelada.', 'bankitos'),
                 'invite_accepted'   => __('¡Bienvenido! Invitación aceptada.', 'bankitos'),
                 'invite_rejected'   => __('La invitación fue rechazada.', 'bankitos'),
             ];
@@ -57,6 +60,9 @@ abstract class Bankitos_Shortcode_Base {
             'invite_min'      => __('Debes invitar al menos la cantidad mínima requerida.', 'bankitos'),
             'invite_accept'   => __('No fue posible aceptar la invitación con este usuario.', 'bankitos'),
             'invite_token'    => __('La invitación no es válida o ha expirado.', 'bankitos'),
+            'invite_resend'   => __('No pudimos reenviar la invitación.', 'bankitos'),
+            'invite_update'   => __('No pudimos actualizar la invitación.', 'bankitos'),
+            'invite_cancel'   => __('No pudimos cancelar la invitación.', 'bankitos'),
         ];
         $msg = $map[$err] ?? __('Ha ocurrido un error. Intenta nuevamente.', 'bankitos');
         return '<div class="bankitos-error">' . esc_html($msg) . '</div>';
