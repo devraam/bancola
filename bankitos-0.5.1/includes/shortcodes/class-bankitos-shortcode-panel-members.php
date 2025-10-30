@@ -161,9 +161,17 @@ class Bankitos_Shortcode_Panel_Members extends Bankitos_Shortcode_Panel_Base {
         if (!is_user_logged_in() || !$context['can_manage_invites']) {
             return;
         }
-        if (!wp_script_is('bankitos-panel', 'enqueued')) {
-            wp_enqueue_script('bankitos-panel');
+        if (!wp_script_is('bankitos-panel', 'registered')) {
+            wp_register_script(
+                'bankitos-panel',
+                BANKITOS_URL . 'assets/js/panel.js',
+                [],
+                defined('BANKITOS_VERSION') ? BANKITOS_VERSION : '1.0.0',
+                true
+            );
         }
+
+        wp_enqueue_script('bankitos-panel');
         $data = [
             'minRequiredError' => __('Debes completar al menos el mínimo de invitaciones requerido.', 'bankitos'),
             'invalidEmailError' => __('Ingresa correos electrónicos válidos.', 'bankitos'),
