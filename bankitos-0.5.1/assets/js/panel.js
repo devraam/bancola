@@ -124,10 +124,22 @@
       const errorBox = panel.querySelector(selectors.error);
       const closeElements = panel.querySelectorAll(selectors.close);
 
+      function ensureRows(){
+        if (!rowsContainer) return;
+        if (!rowsContainer.querySelector('[data-bankitos-invite-row]')){
+          rowsContainer.appendChild(createRow());
+        }
+      }
+
+      ensureRows();
+
       if (toggleBtn){
         toggleBtn.addEventListener('click', (event) => {
           event.preventDefault();
           const willShow = panel.hasAttribute('hidden');
+          if (willShow){
+            ensureRows();
+          }
           togglePanel(panel, willShow, toggleBtn);
         });
       }
@@ -141,7 +153,8 @@
         });
      });
 
-      if (section.hasAttribute('data-bankitos-invite-initial-open')){
+      if (section.hasAttribute('data-bankitos-invite-initial-open')) {
+        ensureRows();
         togglePanel(panel, true, toggleBtn);
       }
 
