@@ -23,55 +23,9 @@ class Bankitos_Shortcode_Panel_Members extends Bankitos_Shortcode_Panel_Base {
 
         $rows = self::merge_members_and_invites($context['members'], $context['invites']);
         $can_manage = $context['can_manage_invites'];
-        $min_required = max(1, (int) $context['min_invites']);
-        $first_message = $context['is_first_invite']
-            ? sprintf(__('La primera vez debes invitar al menos a %d personas.', 'bankitos'), $min_required)
-            : __('Puedes invitar a uno o varios miembros cuando lo necesites.', 'bankitos');
+        $current_url = self::get_current_url();
 
         ob_start(); ?>
-        <div class="bankitos-members" data-bankitos-members>
-          <div class="bankitos-members__header">
-            <div class="bankitos-members__heading">
-              <div class="bankitos-members__icon" aria-hidden="true">👥</div>
-              <div>
-                <p class="bankitos-members__title"><?php esc_html_e('Miembros', 'bankitos'); ?></p>
-                <p class="bankitos-members__subtitle"><?php esc_html_e('Gestiona invitaciones y seguimiento de tu equipo.', 'bankitos'); ?></p>
-              </div>
-            </div>
-            <?php if ($can_manage): ?>
-              <button type="button" class="bankitos-btn bankitos-btn--secondary" data-bankitos-invite-open aria-expanded="false">
-                <?php esc_html_e('Invitar miembros', 'bankitos'); ?>
-              </button>
-            <?php endif; ?>
-          </div>
-
-          <?php if ($can_manage): ?>
-            <div class="bankitos-members__invite" data-bankitos-invite-panel hidden>
-              <p class="bankitos-members__invite-intro"><?php echo esc_html($first_message); ?></p>
-              <div class="bankitos-members__invite-error" data-bankitos-invite-error aria-live="assertive"></div>
-              <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" data-bankitos-invite-form data-min-required="<?php echo esc_attr($min_required); ?>">
-                <?php echo wp_nonce_field('bankitos_send_invites', '_wpnonce', true, false); ?>
-                <input type="hidden" name="action" value="bankitos_send_invites">
-                <input type="hidden" name="banco_id" value="<?php echo esc_attr($context['banco_id']); ?>">
-                <div class="bankitos-invite-rows" data-bankitos-invite-rows>
-                  <?php echo self::render_invite_rows($min_required); ?>
-                </div>
-                <div class="bankitos-members__invite-actions">
-                  <button type="button" class="bankitos-btn bankitos-btn--ghost" data-bankitos-invite-add>
-                    <?php esc_html_e('Agregar otra invitación', 'bankitos'); ?>
-                  </button>
-                  <div class="bankitos-members__invite-buttons">
-                    <button type="submit" class="bankitos-btn"><?php esc_html_e('Enviar invitaciones', 'bankitos'); ?></button>
-                    <button type="button" class="bankitos-btn bankitos-btn--ghost" data-bankitos-invite-close>
-                      <?php esc_html_e('Cancelar', 'bankitos'); ?>
-                    </button>
-                  </div>
-                </div>
-              </form>
-            </div>
-            <?php endif; ?>
-        </div>
-
         <div class="bankitos-members-table">
           <div class="bankitos-members-table__header">
             <h3 class="bankitos-members-table__title"><?php esc_html_e('Invitaciones enviadas', 'bankitos'); ?></h3>
@@ -87,6 +41,7 @@ class Bankitos_Shortcode_Panel_Members extends Bankitos_Shortcode_Panel_Base {
                     <th scope="col"><?php esc_html_e('Nombre', 'bankitos'); ?></th>
                     <th scope="col"><?php esc_html_e('Correo', 'bankitos'); ?></th>
                     <th scope="col"><?php esc_html_e('Estado', 'bankitos'); ?></th>
+                    <th scope="col"><?php esc_html_e('Acciones', 'bankitos'); ?></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -94,12 +49,57 @@ class Bankitos_Shortcode_Panel_Members extends Bankitos_Shortcode_Panel_Base {
                     <?php
                     $display_name = $row['name'] ?: $row['email'];
                     $display_email = $row['email'] ?: __('No registrado', 'bankitos');
+                    $row_id = isset($row['id']) ? (int) $row['id'] : 0;
+                    $can_update_invite = $can_manage && $row['type'] === 'invite' && $row['status'] !== 'accepted' && $row_id > 0;
                     ?>
                     <tr>
                       <td data-title="<?php esc_attr_e('Nombre', 'bankitos'); ?>"><?php echo esc_html($display_name); ?></td>
                       <td data-title="<?php esc_attr_e('Correo', 'bankitos'); ?>"><?php echo esc_html($display_email); ?></td>
                       <td data-title="<?php esc_attr_e('Estado', 'bankitos'); ?>">
                         <span class="bankitos-pill bankitos-pill--<?php echo esc_attr($row['status']); ?>"><?php echo esc_html($row['status_label']); ?></span>
+                      </td>
+                      <td data-title="<?php esc_attr_e('Acciones', 'bankitos'); ?>">
+                        <?php if ($can_update_invite): ?>
+                          <div class="bankitos-invite-actions">
+                            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="bankitos-invite-actions__form">
+                              <?php echo wp_nonce_field('bankitos_resend_invite_' . $row_id, '_wpnonce', true, false); ?>
+                              <input type="hidden" name="action" value="bankitos_resend_invite">
+                              <input type="hidden" name="invite_id" value="<?php echo esc_attr($row_id); ?>">
+                              <input type="hidden" name="redirect_to" value="<?php echo esc_url($current_url); ?>">
+                              <button type="submit" class="bankitos-btn bankitos-btn--small bankitos-btn--ghost"><?php esc_html_e('Reenviar', 'bankitos'); ?></button>
+                            </form>
+
+                            <button type="button" class="bankitos-link bankitos-link--button" data-bankitos-invite-edit-toggle aria-expanded="false" aria-controls="bankitos-edit-<?php echo esc_attr($row_id); ?>">
+                              <?php esc_html_e('Editar', 'bankitos'); ?>
+                            </button>
+                            <form id="bankitos-edit-<?php echo esc_attr($row_id); ?>" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="bankitos-invite-actions__form" data-bankitos-invite-edit-form hidden>
+                              <?php echo wp_nonce_field('bankitos_update_invite_' . $row_id, '_wpnonce', true, false); ?>
+                              <input type="hidden" name="action" value="bankitos_update_invite">
+                              <input type="hidden" name="invite_id" value="<?php echo esc_attr($row_id); ?>">
+                              <input type="hidden" name="redirect_to" value="<?php echo esc_url($current_url); ?>">
+                              <label class="screen-reader-text" for="bankitos-edit-name-<?php echo esc_attr($row_id); ?>"><?php esc_html_e('Nombre del invitado', 'bankitos'); ?></label>
+                              <input id="bankitos-edit-name-<?php echo esc_attr($row_id); ?>" type="text" name="invite_name" value="<?php echo esc_attr($row['name']); ?>" required>
+                              <label class="screen-reader-text" for="bankitos-edit-email-<?php echo esc_attr($row_id); ?>"><?php esc_html_e('Correo del invitado', 'bankitos'); ?></label>
+                              <input id="bankitos-edit-email-<?php echo esc_attr($row_id); ?>" type="email" name="invite_email" value="<?php echo esc_attr($row['email']); ?>" required>
+                              <div class="bankitos-invite-actions__buttons">
+                                <button type="submit" class="bankitos-btn bankitos-btn--small"><?php esc_html_e('Guardar cambios', 'bankitos'); ?></button>
+                                <button type="button" class="bankitos-btn bankitos-btn--small bankitos-btn--ghost" data-bankitos-invite-edit-cancel>
+                                  <?php esc_html_e('Cancelar', 'bankitos'); ?>
+                                </button>
+                              </div>
+                            </form>
+
+                            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="bankitos-invite-actions__form">
+                              <?php echo wp_nonce_field('bankitos_cancel_invite_' . $row_id, '_wpnonce', true, false); ?>
+                              <input type="hidden" name="action" value="bankitos_cancel_invite">
+                              <input type="hidden" name="invite_id" value="<?php echo esc_attr($row_id); ?>">
+                              <input type="hidden" name="redirect_to" value="<?php echo esc_url($current_url); ?>">
+                              <button type="submit" class="bankitos-btn bankitos-btn--small bankitos-btn--danger" onclick="return confirm('<?php echo esc_js(__('¿Cancelar esta invitación?', 'bankitos')); ?>');"><?php esc_html_e('Cancelar', 'bankitos'); ?></button>
+                            </form>
+                          </div>
+                        <?php else: ?>
+                          <span class="bankitos-text-muted">—</span>
+                        <?php endif; ?>
                       </td>
                     </tr>
                   <?php endforeach; ?>
@@ -120,6 +120,7 @@ class Bankitos_Shortcode_Panel_Members extends Bankitos_Shortcode_Panel_Base {
             }
             $rows[] = [
                 'type'         => 'invite',
+                'id'           => (int) ($invite['id'] ?? 0),
                 'name'         => $invite['name'] ?? '',
                 'email'        => $invite['email'] ?? '',
                 'status'       => $invite['status'] ?? 'pending',

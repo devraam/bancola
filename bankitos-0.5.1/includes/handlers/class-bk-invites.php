@@ -14,6 +14,9 @@ class BK_Invites_Handler {
         add_action('admin_post_nopriv_bankitos_accept_invite',[__CLASS__, 'accept_invite']);
         add_action('admin_post_bankitos_reject_invite',       [__CLASS__, 'reject_invite']);
         add_action('admin_post_nopriv_bankitos_reject_invite',[__CLASS__, 'reject_invite']);
+        add_action('admin_post_bankitos_resend_invite',       [__CLASS__, 'resend_invite']);
+        add_action('admin_post_bankitos_update_invite',       [__CLASS__, 'update_invite']);
+        add_action('admin_post_bankitos_cancel_invite',       [__CLASS__, 'cancel_invite']);
     }
 
     public static function portal_url(string $token = ''): string {
@@ -104,6 +107,145 @@ class BK_Invites_Handler {
         }
 
         self::redirect_with('ok', 'invite_sent', $redirect);
+    }
+
+    public static function resend_invite(): void {
+        if (!is_user_logged_in()) {
+            wp_safe_redirect(site_url('/acceder'));
+            exit;
+        }
+
+        $invite_id = isset($_POST['invite_id']) ? absint($_POST['invite_id']) : 0;
+        $redirect  = site_url('/panel');
+        if ($invite_id <= 0) {
+            self::redirect_with('err', 'invite_resend', $redirect);
+        }
+
+        check_admin_referer('bankitos_resend_invite_' . $invite_id);
+
+        if (!current_user_can('manage_bank_invites')) {
+            self::redirect_with('err', 'permiso', $redirect);
+        }
+
+        $invite = self::get_invite_by_id($invite_id);
+        if (!$invite || (int) $invite['banco_id'] <= 0) {
+            self::redirect_with('err', 'invite_resend', $redirect);
+        }
+
+        $user_id    = get_current_user_id();
+        $user_banco = class_exists('Bankitos_Handlers') ? Bankitos_Handlers::get_user_banco_id($user_id) : 0;
+        if ($user_banco !== (int) $invite['banco_id']) {
+            self::redirect_with('err', 'permiso', $redirect);
+        }
+
+        if ($invite['status'] === self::STATUS_ACCEPTED) {
+            self::redirect_with('err', 'invite_resend', $redirect);
+        }
+
+        $regen = self::regenerate_invite($invite, $user_id);
+        if (is_wp_error($regen)) {
+            self::redirect_with('err', 'invite_resend', $redirect);
+        }
+
+        if (!self::send_invite_email($regen)) {
+            self::redirect_with('err', 'invite_resend', $redirect);
+        }
+
+        self::redirect_with('ok', 'invite_resent', $redirect);
+    }
+
+    public static function update_invite(): void {
+        if (!is_user_logged_in()) {
+            wp_safe_redirect(site_url('/acceder'));
+            exit;
+        }
+
+        $invite_id = isset($_POST['invite_id']) ? absint($_POST['invite_id']) : 0;
+        $redirect  = site_url('/panel');
+        if ($invite_id <= 0) {
+            self::redirect_with('err', 'invite_update', $redirect);
+        }
+
+        check_admin_referer('bankitos_update_invite_' . $invite_id);
+
+        if (!current_user_can('manage_bank_invites')) {
+            self::redirect_with('err', 'permiso', $redirect);
+        }
+
+        $invite = self::get_invite_by_id($invite_id);
+        if (!$invite || (int) $invite['banco_id'] <= 0) {
+            self::redirect_with('err', 'invite_update', $redirect);
+        }
+
+        $user_id    = get_current_user_id();
+        $user_banco = class_exists('Bankitos_Handlers') ? Bankitos_Handlers::get_user_banco_id($user_id) : 0;
+        if ($user_banco !== (int) $invite['banco_id']) {
+            self::redirect_with('err', 'permiso', $redirect);
+        }
+
+        if ($invite['status'] === self::STATUS_ACCEPTED) {
+            self::redirect_with('err', 'invite_update', $redirect);
+        }
+
+        $name  = isset($_POST['invite_name']) ? sanitize_text_field(wp_unslash($_POST['invite_name'])) : '';
+        $email = isset($_POST['invite_email']) ? sanitize_email(wp_unslash($_POST['invite_email'])) : '';
+
+        if (!$name || !$email || !is_email($email)) {
+            self::redirect_with('err', 'invite_update', $redirect);
+        }
+
+        $data = [
+            'invitee_name' => $name,
+            'email'        => strtolower($email),
+        ];
+
+        $result = self::update_invite_row($invite_id, $data);
+        if (is_wp_error($result)) {
+            self::redirect_with('err', 'invite_update', $redirect);
+        }
+
+        self::redirect_with('ok', 'invite_updated', $redirect);
+    }
+
+    public static function cancel_invite(): void {
+        if (!is_user_logged_in()) {
+            wp_safe_redirect(site_url('/acceder'));
+            exit;
+        }
+
+        $invite_id = isset($_POST['invite_id']) ? absint($_POST['invite_id']) : 0;
+        $redirect  = site_url('/panel');
+        if ($invite_id <= 0) {
+            self::redirect_with('err', 'invite_cancel', $redirect);
+        }
+
+        check_admin_referer('bankitos_cancel_invite_' . $invite_id);
+
+        if (!current_user_can('manage_bank_invites')) {
+            self::redirect_with('err', 'permiso', $redirect);
+        }
+
+        $invite = self::get_invite_by_id($invite_id);
+        if (!$invite || (int) $invite['banco_id'] <= 0) {
+            self::redirect_with('err', 'invite_cancel', $redirect);
+        }
+
+        $user_id    = get_current_user_id();
+        $user_banco = class_exists('Bankitos_Handlers') ? Bankitos_Handlers::get_user_banco_id($user_id) : 0;
+        if ($user_banco !== (int) $invite['banco_id']) {
+            self::redirect_with('err', 'permiso', $redirect);
+        }
+
+        if ($invite['status'] === self::STATUS_ACCEPTED) {
+            self::redirect_with('err', 'invite_cancel', $redirect);
+        }
+
+        $deleted = self::delete_invite_row($invite_id);
+        if (is_wp_error($deleted)) {
+            self::redirect_with('err', 'invite_cancel', $redirect);
+        }
+
+        self::redirect_with('ok', 'invite_cancelled', $redirect);
     }
 
     public static function accept_invite(): void {
@@ -488,6 +630,97 @@ class BK_Invites_Handler {
             $formats[] = is_int($value) ? '%d' : '%s';
         }
         $wpdb->update($table, $data, ['id' => $invite_id], $formats, ['%d']);
+    }
+
+    private static function get_invite_by_id(int $invite_id): ?array {
+        if ($invite_id <= 0 || !class_exists('Bankitos_DB') || !Bankitos_DB::invites_table_exists()) {
+            return null;
+        }
+
+        global $wpdb;
+        $table = Bankitos_DB::invites_table_name();
+        $row   = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $invite_id), ARRAY_A);
+
+        return $row ?: null;
+    }
+
+    private static function regenerate_invite(array $invite, int $inviter_id) {
+        if (!class_exists('Bankitos_DB') || !Bankitos_DB::invites_table_exists()) {
+            return new WP_Error('bankitos_invite_resend', __('No pudimos reenviar la invitación.', 'bankitos'));
+        }
+
+        global $wpdb;
+        $table = Bankitos_DB::invites_table_name();
+        $token = self::generate_unique_token();
+        $now   = current_time('mysql');
+
+        $updated = $wpdb->update(
+            $table,
+            [
+                'token'        => $token,
+                'status'       => self::STATUS_PENDING,
+                'inviter_id'   => $inviter_id,
+                'created_at'   => $now,
+            ],
+            ['id' => (int) $invite['id']],
+            ['%s', '%s', '%d', '%s'],
+            ['%d']
+        );
+
+        if ($updated === false) {
+            return new WP_Error('bankitos_invite_resend', __('No pudimos reenviar la invitación.', 'bankitos'));
+        }
+
+        $wpdb->query($wpdb->prepare("UPDATE {$table} SET accepted_at = NULL, user_id = NULL WHERE id = %d", (int) $invite['id']));
+
+        return [
+            'id'         => (int) $invite['id'],
+            'token'      => $token,
+            'banco_id'   => (int) $invite['banco_id'],
+            'email'      => sanitize_email($invite['email']),
+            'name'       => isset($invite['invitee_name']) ? $invite['invitee_name'] : '',
+            'inviter_id' => $inviter_id,
+        ];
+    }
+
+    private static function update_invite_row(int $invite_id, array $data) {
+        if (!class_exists('Bankitos_DB') || !Bankitos_DB::invites_table_exists()) {
+            return new WP_Error('bankitos_invite_update', __('No pudimos actualizar la invitación.', 'bankitos'));
+        }
+
+        if (!$data) {
+            return true;
+        }
+
+        global $wpdb;
+        $table = Bankitos_DB::invites_table_name();
+        $formats = [];
+        foreach ($data as $value) {
+            $formats[] = is_int($value) ? '%d' : '%s';
+        }
+
+        $updated = $wpdb->update($table, $data, ['id' => $invite_id], $formats, ['%d']);
+        if ($updated === false) {
+            return new WP_Error('bankitos_invite_update', __('No pudimos actualizar la invitación.', 'bankitos'));
+        }
+
+        return true;
+    }
+
+    private static function delete_invite_row(int $invite_id) {
+        if (!class_exists('Bankitos_DB') || !Bankitos_DB::invites_table_exists()) {
+            return new WP_Error('bankitos_invite_cancel', __('No pudimos cancelar la invitación.', 'bankitos'));
+        }
+
+        global $wpdb;
+        $table = Bankitos_DB::invites_table_name();
+        $deleted = $wpdb->delete($table, ['id' => $invite_id], ['%d']);
+
+        if ($deleted === false) {
+            return new WP_Error('bankitos_invite_cancel', __('No pudimos cancelar la invitación.', 'bankitos'));
+        }
+
+        return true;
     }
 
     private static function generate_unique_token(): string {

@@ -14,6 +14,13 @@ class Bankitos_Shortcode_Invite_Portal extends Bankitos_Shortcode_Base {
             $token = sanitize_text_field(wp_unslash($_GET['invite_token']));
         }
 
+        if (is_user_logged_in()) {
+            $user = wp_get_current_user();
+            if (in_array('presidente', (array) $user->roles, true)) {
+                return '';
+            }
+        }
+        
         ob_start(); ?>
         <div class="bankitos-invite-portal">
           <h2><?php esc_html_e('Invitación al B@nko', 'bankitos'); ?></h2>

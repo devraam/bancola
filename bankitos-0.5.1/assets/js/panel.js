@@ -1,7 +1,7 @@
 (function(){
   const doc = document;
   const selectors = {
-    section: '[data-bankitos-members]',
+    section: '[data-bankitos-invite]',
     open: '[data-bankitos-invite-open]',
     panel: '[data-bankitos-invite-panel]',
     close: '[data-bankitos-invite-close]',
@@ -9,7 +9,10 @@
     rows: '[data-bankitos-invite-rows]',
     add: '[data-bankitos-invite-add]',
     remove: '[data-bankitos-invite-remove]',
-    error: '[data-bankitos-invite-error]'
+    error: '[data-bankitos-invite-error]',
+    editToggle: '[data-bankitos-invite-edit-toggle]',
+    editForm: '[data-bankitos-invite-edit-form]',
+    editCancel: '[data-bankitos-invite-edit-cancel]'
   };
 
   const messages = window.bankitosPanelInvites || {};
@@ -103,7 +106,7 @@
     return { valid: true };
   }
 
-  function init(){
+  function initInvitePanels(){
     const sections = doc.querySelectorAll(selectors.section);
     if (!sections.length) return;
 
@@ -166,6 +169,46 @@
         });
       }
     });
+  }
+
+  function initEditForms(){
+    const toggles = doc.querySelectorAll(selectors.editToggle);
+    if (!toggles.length) return;
+
+    toggles.forEach(toggle => {
+      const targetId = toggle.getAttribute('aria-controls');
+      const form = targetId ? doc.getElementById(targetId) : null;
+      if (!form) return;
+
+      toggle.addEventListener('click', () => {
+        const willShow = form.hasAttribute('hidden');
+        if (willShow) {
+          form.removeAttribute('hidden');
+          const firstInput = form.querySelector('input[type="text"], input[type="email"], input');
+          if (firstInput) {
+            firstInput.focus();
+          }
+        } else {
+          form.setAttribute('hidden', '');
+        }
+        toggle.setAttribute('aria-expanded', willShow ? 'true' : 'false');
+      });
+
+      form.addEventListener('click', event => {
+        const target = event.target;
+        if (target && target.matches(selectors.editCancel)) {
+          event.preventDefault();
+          form.setAttribute('hidden', '');
+          toggle.setAttribute('aria-expanded', 'false');
+          toggle.focus();
+        }
+      });
+    });
+  }
+
+  function init(){
+    initInvitePanels();
+    initEditForms();
   }
 
   if (document.readyState === 'loading'){
