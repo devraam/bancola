@@ -43,4 +43,8 @@ class Bankitos_Shortcode_Login extends Bankitos_Shortcode_Base {
         <?php
         return ob_get_clean();
     }
+
+    protected static function should_render_for_current_user($atts = [], $content = null): bool {
+        return true;
+    }
 }

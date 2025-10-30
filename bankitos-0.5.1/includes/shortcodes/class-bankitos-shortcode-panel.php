@@ -8,10 +8,6 @@ class Bankitos_Shortcode_Panel extends Bankitos_Shortcode_Panel_Base {
     }
 
     public static function render($atts = [], $content = null): string {
-        if (!is_user_logged_in()) {
-            return '<div class="bankitos-panel"><p>' . esc_html__('Debes iniciar sesión para ver tu panel.', 'bankitos') . ' <a href="' . esc_url(site_url('/acceder')) . '">' . esc_html__('Acceder', 'bankitos') . '</a></p></div>';
-        }
-
         $context = self::get_panel_context();
         $name    = $context['name'];
 
@@ -36,6 +32,15 @@ class Bankitos_Shortcode_Panel extends Bankitos_Shortcode_Panel_Base {
           <?php elseif ($can_create_bank): ?>
             <p><a class="button bankitos-btn" href="<?php echo esc_url(site_url('/crear-banko')); ?>"><?php esc_html_e('Crear B@nko', 'bankitos'); ?></a></p>
           <?php endif; ?>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+    protected static function render_for_guest($atts = [], $content = null): string {
+        ob_start(); ?>
+        <div class="bankitos-panel">
+          <?php echo self::top_notice_from_query(); ?>
+          <p><?php echo esc_html__('Debes iniciar sesión para ver tu panel.', 'bankitos'); ?> <a href="<?php echo esc_url(site_url('/acceder')); ?>"><?php esc_html_e('Acceder', 'bankitos'); ?></a></p>
         </div>
         <?php
         return ob_get_clean();

@@ -88,6 +88,10 @@ class Bankitos_Shortcode_Invite_Portal extends Bankitos_Shortcode_Base {
         return ob_get_clean();
     }
 
+    protected static function should_render_for_current_user($atts = [], $content = null): bool {
+        return true;
+    }
+    
     protected static function render_invite_card(array $context, ?WP_User $user = null): string {
         $token   = $context['token'] ?? '';
         $status  = $context['status'] ?? BK_Invites_Handler::STATUS_PENDING;
