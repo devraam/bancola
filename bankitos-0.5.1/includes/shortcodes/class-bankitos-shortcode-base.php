@@ -4,7 +4,21 @@ if (!defined('ABSPATH')) exit;
 abstract class Bankitos_Shortcode_Base {
 
     public static function register_shortcode(string $tag): void {
-        add_shortcode($tag, [static::class, 'render']);
+        add_shortcode($tag, [static::class, 'maybe_render']);
+    }
+
+    /**
+     * Wrapper executed by WordPress before delegating to the concrete render method.
+     *
+     * @param array|string $atts
+     * @param string|null  $content
+     */
+    public static function maybe_render($atts = [], $content = null, string $shortcode = ''): string {
+        if (!static::should_render_for_current_user($atts, $content)) {
+            return static::render_for_guest($atts, $content);
+        }
+
+        return static::render($atts, $content);
     }
 
     /**
@@ -13,9 +27,32 @@ abstract class Bankitos_Shortcode_Base {
      */
     abstract public static function render($atts = [], $content = null): string;
 
+    /**
+     * Determine whether the shortcode should be visible for the current visitor.
+     *
+     * @param array|string $atts
+     * @param string|null  $content
+     */
+    protected static function should_render_for_current_user($atts = [], $content = null): bool {
+        return is_user_logged_in();
+    }
+
+    /**
+     * Output rendered when the shortcode should not be visible for the current visitor.
+     *
+     * @param array|string $atts
+     * @param string|null  $content
+     */
+    protected static function render_for_guest($atts = [], $content = null): string {
+        return '';
+    }
+
     protected static function top_notice_from_query(): string {
         $html = '';
+        $has_notice = false;
+        $should_cleanup = false;
         if (!empty($_GET['ok'])) {
+            $should_cleanup = true;
             $ok = sanitize_key($_GET['ok']);
             $map_ok = [
                 'creado'            => __('¡Listo! Tu B@nko se creó correctamente.', 'bankitos'),
@@ -32,11 +69,17 @@ abstract class Bankitos_Shortcode_Base {
             ];
             if (!empty($map_ok[$ok])) {
                 $html .= '<div class="bankitos-success">' . esc_html($map_ok[$ok]) . '</div>';
+                $has_notice = true;
             }
         }
         if (empty($_GET['err'])) {
-            return $html;
+            if (!$has_notice && !$should_cleanup) {
+                return $html;
+            }
+            
+            return $html . ($should_cleanup ? self::notice_cleanup_script() : '');
         }
+        $should_cleanup = true;
         $err = sanitize_key($_GET['err']);
         $map = [
             'recaptcha'       => __('No pudimos verificar que no eres un robot.', 'bankitos'),
@@ -66,7 +109,13 @@ abstract class Bankitos_Shortcode_Base {
             'invite_cancel'   => __('No pudimos cancelar la invitación.', 'bankitos'),
         ];
         $msg = $map[$err] ?? __('Ha ocurrido un error. Intenta nuevamente.', 'bankitos');
-        return '<div class="bankitos-error">' . esc_html($msg) . '</div>';
+        $html .= '<div class="bankitos-error">' . esc_html($msg) . '</div>';
+
+        return $html . self::notice_cleanup_script();
+    }
+
+    protected static function notice_cleanup_script(): string {
+        return '<script>(function(){if(!window.history||!window.history.replaceState){return;}try{var url=new URL(window.location.href);var params=url.searchParams;var removed=false;["ok","err"].forEach(function(key){if(params.has(key)){params.delete(key);removed=true;}});if(!removed){return;}var newQuery=params.toString();var newUrl=url.pathname+(newQuery?"?"+newQuery:"")+url.hash;window.history.replaceState({},document.title,newUrl);}catch(e){}})();</script>';
     }
 
     protected static function enqueue_create_banco_assets(): void {

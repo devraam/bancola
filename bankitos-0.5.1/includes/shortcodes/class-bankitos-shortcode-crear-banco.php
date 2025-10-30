@@ -8,9 +8,6 @@ class Bankitos_Shortcode_Crear_Banco extends Bankitos_Shortcode_Base {
     }
 
     public static function render($atts = [], $content = null): string {
-        if (!is_user_logged_in()) {
-            return '<div class="bankitos-form"><p>' . esc_html__('Debes iniciar sesión para crear un B@nko.', 'bankitos') . ' <a href="' . esc_url(site_url('/acceder')) . '">' . esc_html__('Acceder', 'bankitos') . '</a></p></div>';
-        }
         if (class_exists('Bankitos_Handlers') && Bankitos_Handlers::get_user_banco_id(get_current_user_id()) > 0) {
             return '<div class="bankitos-form"><p>' . esc_html__('Ya perteneces a un B@nko.', 'bankitos') . ' <a href="' . esc_url(site_url('/panel')) . '">' . esc_html__('Ir al panel', 'bankitos') . '</a></p></div>';
         }
