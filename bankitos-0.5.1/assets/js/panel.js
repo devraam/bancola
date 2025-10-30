@@ -232,9 +232,8 @@
     initEditForms();
   }
 
-  if (document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+  // Corrección: Forzar la espera a DOMContentLoaded SIEMPRE.
+  // Esto garantiza que el HTML de los shortcodes exista
+  // antes de que el script intente buscar los botones.
+  document.addEventListener('DOMContentLoaded', init);
 })();
