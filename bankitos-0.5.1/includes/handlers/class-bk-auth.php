@@ -67,11 +67,7 @@ class BK_Auth_Handler {
         if ($token && class_exists('BK_Invites_Handler')) {
             $result = BK_Invites_Handler::accept_invite_for_user($token, $u);
             if (is_wp_error($result)) {
-                wp_logout();
-                $redirect = add_query_arg([
-                    'invite_token' => $token,
-                    'err'          => 'invite_accept',
-                ], BK_Invites_Handler::portal_url());
+                $redirect = add_query_arg('err', 'invite_accept', site_url('/panel'));
                 wp_safe_redirect($redirect);
                 exit;
             }
