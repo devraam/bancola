@@ -66,6 +66,7 @@ abstract class Bankitos_Shortcode_Base {
                 'invite_accepted'   => __('¡Bienvenido! Invitación aceptada.', 'bankitos'),
                 'invite_rejected'   => __('La invitación fue rechazada.', 'bankitos'),
                 'invite_updated_sent' => __('Invitación actualizada y reenviada correctamente.', 'bankitos'),
+                'role_updated'      => __('El rol del miembro ha sido actualizado.', 'bankitos'),
             ];
             if (!empty($map_ok[$ok])) {
                 $html .= '<div class="bankitos-success">' . esc_html($map_ok[$ok]) . '</div>';

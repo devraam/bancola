@@ -155,11 +155,14 @@ abstract class Bankitos_Shortcode_Panel_Base extends Bankitos_Shortcode_Base {
         foreach ($users as $user) {
             $members[] = [
                 'type'         => 'member',
+                'id'           => $user->ID,
                 'name'         => $user->display_name ?: $user->user_login,
                 'email'        => $user->user_email,
                 'status'       => 'accepted',
                 'status_label' => esc_html__('Aceptada', 'bankitos'),
                 'avatar'       => get_avatar_url($user->ID, ['size' => 64]),
+                'role_label'   => self::get_user_role_label($user),
+                'role_key'     => (string) get_user_meta($user->ID, 'bankitos_rol', true) ?: 'socio_general',
             ];
         }
 

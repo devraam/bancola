@@ -12,7 +12,9 @@
     error: '[data-bankitos-invite-error]',
     editToggle: '[data-bankitos-invite-edit-toggle]',
     editForm: '[data-bankitos-invite-edit-form]',
-    editCancel: '[data-bankitos-invite-edit-cancel]'
+    editCancel: '[data-bankitos-invite-edit-cancel]',
+    defaultActions: '[data-bankitos-invite-default-actions]',
+    actionsCell: '[data-invite-actions-cell]'
   };
 
   const messages = window.bankitosPanelInvites || {};
@@ -201,16 +203,27 @@
       const form = targetId ? doc.getElementById(targetId) : null;
       if (!form) return;
 
+      // Encontrar los elementos relativos
+      const actionsWrapper = toggle.closest(selectors.actionsCell); // Contenedor <td>
+      if (!actionsWrapper) return;
+      
+      const defaultActions = actionsWrapper.querySelector(selectors.defaultActions);
+      
       toggle.addEventListener('click', () => {
         const willShow = form.hasAttribute('hidden');
         if (willShow) {
           form.removeAttribute('hidden');
+          if (defaultActions) defaultActions.setAttribute('hidden', ''); // Ocultar acciones
+          toggle.setAttribute('hidden', ''); // Ocultar el botón "Editar"
+          
           const firstInput = form.querySelector('input[type="text"], input[type="email"], input');
           if (firstInput) {
             firstInput.focus();
           }
         } else {
           form.setAttribute('hidden', '');
+          if (defaultActions) defaultActions.removeAttribute('hidden'); // Mostrar acciones
+          toggle.removeAttribute('hidden'); // Mostrar el botón "Editar"
         }
         toggle.setAttribute('aria-expanded', willShow ? 'true' : 'false');
       });
@@ -220,6 +233,8 @@
         if (target && target.matches(selectors.editCancel)) {
           event.preventDefault();
           form.setAttribute('hidden', '');
+          if (defaultActions) defaultActions.removeAttribute('hidden'); // Mostrar acciones
+          toggle.removeAttribute('hidden'); // Mostrar el botón "Editar"
           toggle.setAttribute('aria-expanded', 'false');
           toggle.focus();
         }

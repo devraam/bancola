@@ -2,10 +2,13 @@
 if (!defined('ABSPATH')) exit;
 
 class BK_Banco_Handler {
+
     public static function init() {
         add_action('admin_post_nopriv_bankitos_front_create',[__CLASS__,'front_create_denied']);
         add_action('admin_post_bankitos_front_create',       [__CLASS__,'front_create_banco']);
+        add_action('admin_post_bankitos_assign_role',        [__CLASS__,'assign_role']);
     }
+
     public static function front_create_denied(){ wp_safe_redirect(site_url('/acceder')); exit; }
 
     private static function redir_err($code){ wp_safe_redirect(add_query_arg('err',$code, site_url('/crear-banko'))); exit; }
@@ -62,4 +65,76 @@ class BK_Banco_Handler {
         }
         wp_safe_redirect(add_query_arg('ok','creado', site_url('/panel'))); exit;
     }
+
+    public static function assign_role() {
+        if (!is_user_logged_in()) {
+            wp_safe_redirect(site_url('/acceder'));
+            exit;
+        }
+        
+        // 1. Validar Nonce y Permisos
+        $member_user_id = isset($_POST['member_user_id']) ? absint($_POST['member_user_id']) : 0;
+        $redirect_to = isset($_POST['redirect_to']) ? esc_url_raw(wp_unslash($_POST['redirect_to'])) : site_url('/panel');
+        
+        check_admin_referer('bankitos_assign_role_' . $member_user_id);
+
+        if (!current_user_can('manage_bank_invites')) { // Re-usamos este permiso
+            wp_safe_redirect(add_query_arg('err', 'permiso', $redirect_to));
+            exit;
+        }
+
+        // 2. Validar Datos
+        $new_role = isset($_POST['member_role']) ? sanitize_key($_POST['member_role']) : '';
+        $allowed_roles = ['socio_general', 'secretario', 'tesorero', 'veedor']; // Presidente no puede asignar a otro presidente
+        
+        if (!$member_user_id || empty($new_role) || !in_array($new_role, $allowed_roles, true)) {
+            wp_safe_redirect(add_query_arg('err', 'validacion', $redirect_to));
+            exit;
+        }
+
+        // 3. Validar que el Presidente y el Miembro estén en el mismo banco
+        $president_id = get_current_user_id();
+        $banco_id = class_exists('Bankitos_Handlers') ? Bankitos_Handlers::get_user_banco_id($president_id) : 0;
+        $member_banco_id = class_exists('Bankitos_Handlers') ? Bankitos_Handlers::get_user_banco_id($member_user_id) : 0;
+
+        if ($banco_id <= 0 || $banco_id !== $member_banco_id) {
+            wp_safe_redirect(add_query_arg('err', 'permiso', $redirect_to));
+            exit;
+        }
+
+        // 4. Asignar el Rol
+        // Primero, actualizar el meta 'bankitos_rol'
+        update_user_meta($member_user_id, 'bankitos_rol', $new_role);
+
+        // Segundo, actualizar el rol de WordPress
+        $user = new WP_User($member_user_id);
+        if ($user) {
+            // Quitar todos los roles del plugin para evitar duplicados
+            $user->remove_role('socio_general');
+            $user->remove_role('secretario');
+            $user->remove_role('tesorero');
+            $user->remove_role('veedor');
+            
+            // Añadir el nuevo rol
+            $user->add_role($new_role);
+        }
+        
+        // Tercero, actualizar la tabla 'wp_banco_members'
+        if (class_exists('Bankitos_DB') && Bankitos_DB::members_table_exists()) {
+            global $wpdb;
+            $table = Bankitos_DB::members_table_name();
+            $wpdb->update(
+                $table,
+                ['member_role' => $new_role],
+                ['banco_id' => $banco_id, 'user_id' => $member_user_id],
+                ['%s'],
+                ['%d', '%d']
+            );
+        }
+
+        // 5. Redirigir
+        wp_safe_redirect(add_query_arg('ok', 'role_updated', $redirect_to));
+        exit;
+    }
+
 }
