@@ -11,15 +11,16 @@ class Bankitos_Shortcode_Panel_Members extends Bankitos_Shortcode_Panel_Base {
         if (!is_user_logged_in()) {
             return '';
         }
+        
         $context = self::get_panel_context();
-        if ($context['banco_id'] <= 0) {
-          if (!empty($context['is_general_member'])) {
-            return '';
-          }
-          return self::render_guest_message();
+
+        // Si no es presidente, no mostrar nada.
+        if (empty($context['is_president'])) {
+          return '';
         }
 
-        if (empty($context['is_president'])) {
+        // Si es presidente pero no tiene banco (raro, pero posible), no mostrar nada.
+        if ($context['banco_id'] <= 0) {
           return '';
         }
         

@@ -13,14 +13,14 @@ class Bankitos_Shortcode_Panel_Members_Invite extends Bankitos_Shortcode_Panel_M
         }
 
         $context = self::get_panel_context();
-        if ($context['banco_id'] <= 0) {
-          if (!empty($context['is_general_member'])) {
-            return '';
-          }
-          return self::render_guest_message();
-        }
 
+        // Si no es presidente, no mostrar nada.
         if (empty($context['is_president'])) {
+          return '';
+        }
+        
+        // Si es presidente pero no tiene banco, no mostrar nada.
+        if ($context['banco_id'] <= 0) {
           return '';
         }
 
