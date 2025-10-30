@@ -305,7 +305,11 @@ class BK_Invites_Handler {
             self::redirect_with('err', 'invite_token', $portal);
         }
 
-        self::update_invite_status((int) $context['id'], self::STATUS_REJECTED);
+        $deleted = self::delete_invite_row((int) $context['id']);
+        if (is_wp_error($deleted)) {
+            self::redirect_with('err', 'invite_cancel', $portal);
+        }
+
         self::redirect_with('ok', 'invite_rejected', $portal);
     }
 
@@ -436,10 +440,40 @@ class BK_Invites_Handler {
             'status'         => $status,
             'status_label'   => $status_labels[$status] ?? $status,
             'status_message' => $status_messages[$status] ?? '',
+            'member_role'    => $row['member_role'] ?? 'socio_general',
+            'created_at'     => $created_at,
             'expires_at'     => $expires_at,
         ]);
 
         return $context;
+    }
+
+    public static function get_pending_invites_for_email(string $email): array {
+        $invites = [];
+        $email = strtolower(sanitize_email($email));
+
+        if (!$email || !class_exists('Bankitos_DB') || !Bankitos_DB::invites_table_exists()) {
+            return $invites;
+        }
+
+        global $wpdb;
+        $table = Bankitos_DB::invites_table_name();
+        $tokens = $wpdb->get_col(
+            $wpdb->prepare(
+                "SELECT token FROM {$table} WHERE LOWER(email) = %s AND status = %s ORDER BY created_at DESC",
+                $email,
+                self::STATUS_PENDING
+            )
+        );
+
+        foreach ($tokens as $token) {
+            $context = self::get_invite_context($token);
+            if (!empty($context['exists']) && $context['status'] === self::STATUS_PENDING) {
+                $invites[] = $context;
+            }
+        }
+
+        return $invites;
     }
 
     public static function get_bank_invites(int $banco_id): array {
@@ -504,6 +538,8 @@ class BK_Invites_Handler {
         $token = self::generate_unique_token();
         $now   = current_time('mysql');
 
+        $email = strtolower(sanitize_email($email));
+
         $existing = $wpdb->get_row(
             $wpdb->prepare(
                 "SELECT id FROM {$table} WHERE banco_id = %d AND email = %s ORDER BY id DESC LIMIT 1",
@@ -518,13 +554,14 @@ class BK_Invites_Handler {
                 $table,
                 [
                     'invitee_name' => $name,
+                    'email'        => $email,
                     'token'        => $token,
                     'inviter_id'   => $inviter_id,
                     'status'       => self::STATUS_PENDING,
                     'created_at'   => $now,
                 ],
                 ['id' => (int) $existing['id']],
-                ['%s', '%s', '%d', '%s', '%s'],
+                ['%s', '%s', '%s', '%d', '%s', '%s'],
                 ['%d']
             );
             if ($updated === false) {
@@ -559,6 +596,7 @@ class BK_Invites_Handler {
             'email'      => $email,
             'name'       => $name,
             'inviter_id' => $inviter_id,
+            'created_at' => $now,
         ];
     }
 
@@ -570,17 +608,44 @@ class BK_Invites_Handler {
         $register_url = add_query_arg('invite_token', $invite['token'], site_url('/registrarse'));
         $login_url    = add_query_arg('invite_token', $invite['token'], site_url('/acceder'));
 
+        $created_at  = !empty($invite['created_at']) ? strtotime($invite['created_at']) : current_time('timestamp');
+        $expiry_days = self::get_expiry_days();
+        $expires_at  = $created_at ? strtotime('+' . $expiry_days . ' days', $created_at) : 0;
+
+        $expiry_datetime = $expires_at ? date_i18n(get_option('date_format') . ' ' . get_option('time_format'), $expires_at) : '';
+        $expiry_date     = $expires_at ? date_i18n(get_option('date_format'), $expires_at) : '';
+        $expiry_time     = $expires_at ? date_i18n(get_option('time_format'), $expires_at) : '';
+        $expiry_relative = '';
+        if ($expires_at && $expires_at > time()) {
+            /* translators: %s: human readable time diff (e.g. "3 días") */
+            $expiry_relative = sprintf(__('en %s', 'bankitos'), human_time_diff(time(), $expires_at));
+        }
+
+        $portal_link   = sprintf('<a href="%1$s" target="_blank" rel="noopener">%2$s</a>', esc_url($portal_url), esc_html__('Ver invitación', 'bankitos'));
+        $register_link = sprintf('<a href="%1$s" target="_blank" rel="noopener">%2$s</a>', esc_url($register_url), esc_html__('Crear cuenta', 'bankitos'));
+        $login_link    = sprintf('<a href="%1$s" target="_blank" rel="noopener">%2$s</a>', esc_url($login_url), esc_html__('Iniciar sesión', 'bankitos'));
+
         $placeholders = [
-            '{invitee_name}' => esc_html($invite['name']),
-            '{invite_url}'   => esc_url($portal_url),
-            '{bank_name}'    => esc_html($bank_name),
-            '{inviter_name}' => esc_html($inviter_name),
-            '{site_name}'    => esc_html(get_bloginfo('name')),
-            '{register_url}' => esc_url($register_url),
-            '{login_url}'    => esc_url($login_url),
-            '{invite_link}'  => sprintf('<a href="%1$s">%2$s</a>', esc_url($portal_url), esc_html__('Ver invitación', 'bankitos')),
-            '{register_link}' => sprintf('<a href="%1$s">%2$s</a>', esc_url($register_url), esc_html__('Crear cuenta', 'bankitos')),
-            '{login_link}'    => sprintf('<a href="%1$s">%2$s</a>', esc_url($login_url), esc_html__('Iniciar sesión', 'bankitos')),
+            '{invitee_name}'          => esc_html($invite['name']),
+            '{invite_url}'            => esc_url($portal_url),
+            '{bank_name}'             => esc_html($bank_name),
+            '{inviter_name}'          => esc_html($inviter_name),
+            '{site_name}'             => esc_html(get_bloginfo('name')),
+            '{register_url}'          => esc_url($register_url),
+            '{login_url}'             => esc_url($login_url),
+            '{invite_link}'           => $portal_link,
+            '{register_link}'         => $register_link,
+            '{login_link}'            => $login_link,
+            '{invite_link_portal}'    => $portal_link,
+            '{invite_link_register}'  => $register_link,
+            '{invite_link_login}'     => $login_link,
+            '{invite_token}'          => esc_html($invite['token']),
+            '{invite_expiry}'         => esc_html($expiry_datetime),
+            '{invite_expiry_date}'    => esc_html($expiry_date),
+            '{invite_expiry_time}'    => esc_html($expiry_time),
+            '{invite_expiry_days}'    => (string) $expiry_days,
+            '{invite_expiry_relative}' => esc_html($expiry_relative),
+            '{token_expiry}'          => esc_html($expiry_datetime),
         ];
 
         $alternate_keys = [];
@@ -595,21 +660,37 @@ class BK_Invites_Handler {
         if ($template) {
             $body = strtr($template, $placeholders);
             if ($body === strip_tags($body)) {
-                $body = nl2br(esc_html($body));
+                $body = wpautop(esc_html($body));
             } else {
-                $body  = '<p>' . sprintf(esc_html__('Hola %1$s, te han invitado a unirte al B@nko %2$s.', 'bankitos'), esc_html($invite['name']), esc_html($bank_name)) . '</p>';
-                $body .= '<p><a href="' . esc_url($portal_url) . '">' . esc_html__('Ver invitación', 'bankitos') . '</a></p>';
-                $body .= '<p>' . esc_html__('Si no esperabas este mensaje puedes ignorarlo.', 'bankitos') . '</p>';
-                $body .= '<hr>';
-                $body .= '<p>' . esc_html__('¿Aún no tienes cuenta? Crea una nueva o inicia sesión con los enlaces siguientes.', 'bankitos') . '</p>';
-                $body .= '<p><a href="' . esc_url($register_url) . '">' . esc_html__('Crear cuenta', 'bankitos') . '</a> · <a href="' . esc_url($login_url) . '">' . esc_html__('Iniciar sesión', 'bankitos') . '</a></p>';
+                $allowed = [
+                    'a'      => [
+                        'href'   => [],
+                        'target' => [],
+                        'rel'    => [],
+                        'class'  => [],
+                    ],
+                    'br'     => [],
+                    'em'     => ['class' => []],
+                    'strong' => ['class' => []],
+                    'p'      => ['class' => []],
+                    'span'   => ['class' => []],
+                    'ul'     => ['class' => []],
+                    'ol'     => ['class' => []],
+                    'li'     => ['class' => []],
+                ];
+                $body = wp_kses($body, $allowed);
+                if (stripos($body, '<p') === false && stripos($body, '<br') === false) {
+                    $body = wpautop($body);
+                }
             }
         } else {
             $body = sprintf(
-                "%s\n\n%s\n%s",
-                sprintf(__('Hola %s, te han invitado a unirte al B@nko %s.', 'bankitos'), $invite['name'], $bank_name),
-                sprintf(__('Haz clic en el siguiente enlace para ver la invitación: %s', 'bankitos'), $portal_url),
-                __('Si no esperabas este mensaje puedes ignorarlo.', 'bankitos')
+                '<p>%1$s</p><p>%2$s %3$s</p><p>%4$s</p><p>%5$s</p>',
+                sprintf(esc_html__('Hola %1$s, te han invitado a unirte al B@nko %2$s.', 'bankitos'), esc_html($invite['name']), esc_html($bank_name)),
+                esc_html__('Utiliza este enlace para ver tu invitación:', 'bankitos'),
+                $portal_link,
+                esc_html__('También puedes crear una cuenta o iniciar sesión con los enlaces siguientes.', 'bankitos'),
+                sprintf('%1$s · %2$s', $register_link, $login_link)
             );
         }
 
@@ -629,6 +710,11 @@ class BK_Invites_Handler {
             }
         }
 
+        if ($inviter && is_email($inviter->user_email)) {
+            $headers[] = 'Reply-To: ' . sprintf('%s <%s>', $inviter_name, $inviter->user_email);
+        }
+        $headers[] = 'List-Unsubscribe: <' . esc_url_raw($portal_url) . '>';
+        
         $body = apply_filters('bankitos_invite_email_body', $body, $invite, $placeholders);
 
         return (bool) wp_mail($invite['email'], $subject, $body, $headers);
