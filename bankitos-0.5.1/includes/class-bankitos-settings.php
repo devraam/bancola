@@ -62,6 +62,7 @@ class Bankitos_Settings {
             <form method="post" action="options.php">
                 <?php settings_fields('bankitos'); do_settings_sections(self::PAGE_SLUG); submit_button('Guardar cambios'); ?>
             </form>
+            <?php self::render_shortcodes_help(); ?>
         </div>
     <?php }
 
@@ -85,5 +86,38 @@ class Bankitos_Settings {
         if ($hook === 'settings_page_' . self::PAGE_SLUG) {
             wp_enqueue_style('bankitos-admin', plugins_url('assets/css/bankitos.css', dirname(__FILE__)), [], '1.0');
         }
+    }
+
+    protected static function render_shortcodes_help() : void {
+        $shortcodes = [
+            'bankitos_login' => __('Muestra el formulario de acceso para miembros.', 'bankitos'),
+            'bankitos_register' => __('Despliega el formulario de registro para nuevos miembros.', 'bankitos'),
+            'bankitos_panel' => __('Panel principal del usuario con acceso rápido a su B@nko.', 'bankitos'),
+            'bankitos_panel_info' => __('Resumen financiero y datos clave del B@nko del usuario.', 'bankitos'),
+            'bankitos_panel_members' => __('Tabla de miembros e invitaciones del B@nko (solo Presidente).', 'bankitos'),
+            'bankitos_panel_members_invite' => __('Formulario para gestionar invitaciones de miembros (solo Presidente).', 'bankitos'),
+            'bankitos_panel_quick_actions' => __('Accesos directos a las acciones más usadas dentro del B@nko.', 'bankitos'),
+            'bankitos_crear_banco_form' => __('Formulario para crear un nuevo B@nko.', 'bankitos'),
+            'bankitos_aporte_form' => __('Formulario de registro de aportes de capital.', 'bankitos'),
+            'bankitos_tesorero_aportes' => __('Listado de aportes pendientes para el rol de Tesorero.', 'bankitos'),
+            'bankitos_veedor_aportes' => __('Listado de aportes para seguimiento desde el rol de Veedor.', 'bankitos'),
+            'bankitos_invite_portal' => __('Portal para aceptar o rechazar invitaciones recibidas.', 'bankitos'),
+        ];
+
+        echo '<div class="bankitos-shortcodes-doc">';
+        echo '<h2>' . esc_html__('Documentación de shortcodes', 'bankitos') . '</h2>';
+        echo '<p>' . esc_html__('Utiliza los siguientes shortcodes en tus páginas para habilitar las funciones principales de Bankitos.', 'bankitos') . '</p>';
+        echo '<table class="widefat striped">';
+        echo '<thead><tr><th>' . esc_html__('Shortcode', 'bankitos') . '</th><th>' . esc_html__('Descripción', 'bankitos') . '</th></tr></thead>';
+        echo '<tbody>';
+        foreach ($shortcodes as $tag => $description) {
+            echo '<tr>';
+            echo '<td><code>[' . esc_html($tag) . ']</code></td>';
+            echo '<td>' . esc_html($description) . '</td>';
+            echo '</tr>';
+        }
+        echo '</tbody>';
+        echo '</table>';
+        echo '</div>';
     }
 }

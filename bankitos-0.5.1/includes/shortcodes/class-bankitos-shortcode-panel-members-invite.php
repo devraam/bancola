@@ -20,6 +20,10 @@ class Bankitos_Shortcode_Panel_Members_Invite extends Bankitos_Shortcode_Panel_M
           return self::render_guest_message();
         }
 
+        if (empty($context['is_president'])) {
+          return '';
+        }
+
         if (!$context['can_manage_invites']) {
           return '';
         }
