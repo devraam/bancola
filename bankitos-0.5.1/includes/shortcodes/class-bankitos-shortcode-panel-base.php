@@ -80,21 +80,17 @@ abstract class Bankitos_Shortcode_Panel_Base extends Bankitos_Shortcode_Base {
             $invites_data = BK_Invites_Handler::get_bank_invites($banco_id);
             $context['invites']      = $invites_data['rows'];
             $context['invite_stats'] = $invites_data['stats'];
+             $requirements = method_exists('BK_Invites_Handler', 'get_invite_requirements')
+                ? BK_Invites_Handler::get_invite_requirements($banco_id, $members_count, $invites_data)
+                : ['min_required' => 1, 'initial_needed' => max(0, 4 - $members_count)];
+            $context['min_invites'] = $requirements['min_required'];
+            $context['initial_invites_needed'] = $requirements['initial_needed'];
             $context['is_first_invite'] = ($members_count < 4) && ($invites_data['stats']['total'] < 1);
         } else {
+            $initial_needed = max(0, 4 - $members_count);
             $context['is_first_invite'] = true;
-            $context['min_invites'] = 4;
-        }
-
-        $initial_needed = max(0, 4 - $members_count);
-        $context['initial_invites_needed'] = $initial_needed;
-        if (!isset($context['min_invites']) || $context['min_invites'] < 1) {
-            $context['min_invites'] = 1;
-        }
-        if ($initial_needed > 0) {
-            $context['min_invites'] = max($context['min_invites'], $initial_needed);
-        } else {
-            $context['min_invites'] = 1;
+            $context['min_invites'] = $initial_needed > 0 ? max(1, $initial_needed) : 1;
+            $context['initial_invites_needed'] = $initial_needed;
         }
 
         return $context;

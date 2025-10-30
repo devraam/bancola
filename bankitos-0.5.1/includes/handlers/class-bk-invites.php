@@ -75,15 +75,12 @@ class BK_Invites_Handler {
             self::redirect_with('err', 'invite_min', $redirect);
         }
 
-        $existing_data = self::get_bank_invites($banco_id);
-        $min_required  = (int) apply_filters(
-            'bankitos_min_invites_required',
-            $existing_data['stats']['total'] < 1 ? 4 : 1,
-            $banco_id,
-            $existing_data
-        );
+        $existing_data  = self::get_bank_invites($banco_id);
+        $members_count  = self::count_banco_members($banco_id);
+        $requirements   = self::get_invite_requirements($banco_id, $members_count, $existing_data);
+        $min_required   = $requirements['min_required'];
 
-        if (count($invites) < max(1, $min_required)) {
+        if (count($invites) < $min_required) {
             self::redirect_with('err', 'invite_min', $redirect);
         }
 
@@ -736,6 +733,45 @@ class BK_Invites_Handler {
         return $token;
     }
 
+    private static function count_banco_members(int $banco_id): int {
+        if ($banco_id <= 0) {
+            return 0;
+        }
+
+        $query = new WP_User_Query([
+            'meta_key'     => 'bankitos_banco_id',
+            'meta_value'   => $banco_id,
+            'fields'       => 'ID',
+            'number'       => 1,
+            'count_total'  => true,
+        ]);
+
+        if (method_exists($query, 'get_total')) {
+            return (int) $query->get_total();
+        }
+
+        return (int) $query->total_users;
+    }
+
+    public static function get_invite_requirements(int $banco_id, int $members_count, array $existing_data = []): array {
+        $stats = isset($existing_data['stats']) && is_array($existing_data['stats']) ? $existing_data['stats'] : [];
+        $total_invites = isset($stats['total']) ? (int) $stats['total'] : 0;
+
+        $default_min = $total_invites < 1 ? 4 : 1;
+        $min_required = (int) apply_filters('bankitos_min_invites_required', $default_min, $banco_id, $existing_data);
+        $min_required = max(1, $min_required);
+
+        $initial_needed = max(0, 4 - max(0, $members_count));
+        if ($initial_needed > 0) {
+            $min_required = max($min_required, $initial_needed);
+        }
+
+        return [
+            'min_required'   => $min_required,
+            'initial_needed' => $initial_needed,
+        ];
+    }
+    
     private static function status_label(string $status): string {
         switch ($status) {
             case self::STATUS_ACCEPTED:
