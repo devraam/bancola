@@ -196,12 +196,32 @@ class BK_Invites_Handler {
             'email'        => strtolower($email),
         ];
 
+        // 1. Actualizar el nombre/correo en la BD
         $result = self::update_invite_row($invite_id, $data);
         if (is_wp_error($result)) {
             self::redirect_with('err', 'invite_update', $redirect);
         }
 
-        self::redirect_with('ok', 'invite_updated', $redirect);
+        // 2. Obtener la invitación recién actualizada
+        $updated_invite = self::get_invite_by_id($invite_id);
+        if (!$updated_invite) {
+             self::redirect_with('err', 'invite_update', $redirect);
+        }
+
+        // 3. Regenerar token y reenviar (misma lógica que resend_invite)
+        // $user_id ya estaba definido al inicio de esta función
+        $regen = self::regenerate_invite($updated_invite, $user_id);
+        if (is_wp_error($regen)) {
+            self::redirect_with('err', 'invite_resend', $redirect);
+        }
+
+        // 4. Enviar el correo
+        if (!self::send_invite_email($regen)) {
+            self::redirect_with('err', 'invite_resend', $redirect);
+        }
+
+        // 5. Redirigir con un nuevo mensaje de éxito
+        self::redirect_with('ok', 'invite_updated_sent', $redirect);
     }
 
     public static function cancel_invite(): void {

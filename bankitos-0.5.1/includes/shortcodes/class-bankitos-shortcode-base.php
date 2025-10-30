@@ -28,6 +28,7 @@ abstract class Bankitos_Shortcode_Base {
                 'invite_cancelled'  => __('Invitación cancelada.', 'bankitos'),
                 'invite_accepted'   => __('¡Bienvenido! Invitación aceptada.', 'bankitos'),
                 'invite_rejected'   => __('La invitación fue rechazada.', 'bankitos'),
+                'invite_updated_sent' => __('Invitación actualizada y reenviada correctamente.', 'bankitos'),
             ];
             if (!empty($map_ok[$ok])) {
                 $html .= '<div class="bankitos-success">' . esc_html($map_ok[$ok]) . '</div>';
