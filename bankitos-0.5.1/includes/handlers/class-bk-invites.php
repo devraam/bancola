@@ -305,10 +305,7 @@ class BK_Invites_Handler {
             self::redirect_with('err', 'invite_token', $portal);
         }
 
-        $deleted = self::delete_invite_row((int) $context['id']);
-        if (is_wp_error($deleted)) {
-            self::redirect_with('err', 'invite_cancel', $portal);
-        }
+        self::update_invite_status((int) $context['id'], self::STATUS_REJECTED);
 
         self::redirect_with('ok', 'invite_rejected', $portal);
     }
