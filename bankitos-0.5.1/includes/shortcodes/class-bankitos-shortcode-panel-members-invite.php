@@ -28,9 +28,20 @@ class Bankitos_Shortcode_Panel_Members_Invite extends Bankitos_Shortcode_Panel_M
         self::enqueue_invite_assets($context);
 
         $min_required = max(1, (int) $context['min_invites']);
-        $first_message = $context['is_first_invite']
-            ? sprintf(__('La primera vez debes invitar al menos a %d personas.', 'bankitos'), $min_required)
-            : __('Puedes invitar a uno o varios miembros cuando lo necesites.', 'bankitos');
+        $initial_needed = max(0, (int) ($context['initial_invites_needed'] ?? 0));
+        if ($initial_needed > 0) {
+            $first_message = sprintf(
+                _n(
+                    'Debes invitar al menos a %d persona para completar tu B@nko.',
+                    'Debes invitar al menos a %d personas para completar tu B@nko.',
+                    $initial_needed,
+                    'bankitos'
+                ),
+                $initial_needed
+            );
+        } else {
+            $first_message = __('Puedes invitar a uno o varios miembros cuando lo necesites.', 'bankitos');
+        }
 
         ob_start(); ?>
         <div class="bankitos-members" data-bankitos-invite>
