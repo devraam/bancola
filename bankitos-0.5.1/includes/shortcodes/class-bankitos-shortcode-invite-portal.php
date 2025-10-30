@@ -111,10 +111,6 @@ class Bankitos_Shortcode_Invite_Portal extends Bankitos_Shortcode_Base {
               <dd><?php echo esc_html($context['bank_name'] ?: __('Sin nombre', 'bankitos')); ?></dd>
             </div>
             <div>
-              <dt><?php esc_html_e('Correo invitado', 'bankitos'); ?></dt>
-              <dd><?php echo esc_html($context['email']); ?></dd>
-            </div>
-            <div>
               <dt><?php esc_html_e('Invitado por', 'bankitos'); ?></dt>
               <dd><?php echo esc_html($context['inviter_name']); ?></dd>
             </div>
@@ -148,8 +144,8 @@ class Bankitos_Shortcode_Invite_Portal extends Bankitos_Shortcode_Base {
                   </form>
                 <?php endif; ?>
               <?php else: ?>
-                <p><?php esc_html_e('Para aceptar la invitación inicia sesión o crea una cuenta con el mismo correo invitado.', 'bankitos'); ?></p>
                 <div class="bankitos-invite-portal__cta">
+                  <p><?php esc_html_e('Para aceptar la invitación inicia sesión o crea una cuenta con el mismo correo invitado.', 'bankitos'); ?></p>
                   <a class="bankitos-btn" href="<?php echo esc_url(add_query_arg('invite_token', $token, site_url('/acceder'))); ?>"><?php esc_html_e('Iniciar sesión', 'bankitos'); ?></a>
                   <a class="bankitos-btn bankitos-btn--secondary" href="<?php echo esc_url(add_query_arg('invite_token', $token, site_url('/registrarse'))); ?>"><?php esc_html_e('Crear cuenta', 'bankitos'); ?></a>
                 </div>
@@ -160,7 +156,7 @@ class Bankitos_Shortcode_Invite_Portal extends Bankitos_Shortcode_Base {
                       'token'       => $token,
                       'redirect_to' => BK_Invites_Handler::portal_url($token),
                   ], admin_url('admin-post.php')), 'bankitos_reject_invite'); ?>
-                  <a class="bankitos-link" href="<?php echo esc_url($reject_url); ?>"><?php esc_html_e('Rechazar invitación', 'bankitos'); ?></a>
+                  <a class="bankitos-btn bankitos-btn--ghost" href="<?php echo esc_url($reject_url); ?>"><?php esc_html_e('Rechazar invitación', 'bankitos'); ?></a>
                 </div>
               </div>
           <?php endif; ?>

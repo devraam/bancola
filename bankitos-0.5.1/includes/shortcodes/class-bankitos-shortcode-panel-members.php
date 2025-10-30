@@ -13,6 +13,9 @@ class Bankitos_Shortcode_Panel_Members extends Bankitos_Shortcode_Panel_Base {
         }
         $context = self::get_panel_context();
         if ($context['banco_id'] <= 0) {
+          if (!empty($context['is_general_member'])) {
+            return '';
+          }
           return self::render_guest_message();
         }
         return self::render_section($context);

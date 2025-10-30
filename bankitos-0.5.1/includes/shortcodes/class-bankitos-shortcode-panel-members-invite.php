@@ -14,11 +14,14 @@ class Bankitos_Shortcode_Panel_Members_Invite extends Bankitos_Shortcode_Panel_M
 
         $context = self::get_panel_context();
         if ($context['banco_id'] <= 0) {
-            return self::render_guest_message();
+          if (!empty($context['is_general_member'])) {
+            return '';
+          }
+          return self::render_guest_message();
         }
 
         if (!$context['can_manage_invites']) {
-            return '';
+          return '';
         }
 
         return self::render_invite_section($context);
