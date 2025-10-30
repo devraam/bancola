@@ -26,6 +26,10 @@ class Bankitos_Shortcode_Invite_Portal extends Bankitos_Shortcode_Base {
         if (class_exists('Bankitos_Handlers')) {
             $user_banco_id = Bankitos_Handlers::get_user_banco_id($user->ID);
         }
+
+        if ($user_banco_id > 0) {
+            return '';
+        }
         
         $contexts    = [];
         $token_error = '';
@@ -156,11 +160,14 @@ class Bankitos_Shortcode_Invite_Portal extends Bankitos_Shortcode_Base {
                 </div>
               <?php endif; ?>
                 <div class="bankitos-invite-portal__reject">
-                  <?php $reject_url = wp_nonce_url(add_query_arg([
+                  <?php 
+                  $redirect_url = $user ? site_url('/panel') : BK_Invites_Handler::portal_url($token);
+                  $reject_url = wp_nonce_url(add_query_arg([
                       'action'      => 'bankitos_reject_invite',
                       'token'       => $token,
-                      'redirect_to' => BK_Invites_Handler::portal_url($token),
-                  ], admin_url('admin-post.php')), 'bankitos_reject_invite'); ?>
+                      'redirect_to' => $redirect_url, // <-- Usamos la variable corregida
+                  ], admin_url('admin-post.php')), 'bankitos_reject_invite'); 
+                  ?>
                   <a class="bankitos-btn bankitos-btn--ghost" href="<?php echo esc_url($reject_url); ?>"><?php esc_html_e('Rechazar invitación', 'bankitos'); ?></a>
                 </div>
               </div>

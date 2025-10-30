@@ -133,3 +133,48 @@
 .bankitos-field.has-error input,.bankitos-field.has-error select,.bankitos-field.has-error textarea{
   border-color:#ef4444 !important;background:#fff !important;box-shadow:0 0 0 4px rgba(239,68,68,.14) !important;
 }
+
+/* === Corrección de Layout de Acciones (Paso 7) === */
+.bankitos-invite-actions {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+  align-items: flex-start;
+}
+.bankitos-invite-actions__group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+.bankitos-invite-actions__group .bankitos-invite-actions__form {
+  margin: 0;
+  padding: 0;
+  gap: 0;
+}
+.bankitos-invite-actions__form--edit {
+  width: 100%;
+  max-width: 280px; /* Evita que el formulario sea demasiado ancho */
+}
+.bankitos-link--button[hidden] {
+  display: none;
+}
+
+/* === Estilos para Gestor de Roles (Paso 7) === */
+.bankitos-role-manager__form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  align-items: center;
+}
+.bankitos-role-manager__form select {
+  width: auto;
+  min-width: 150px;
+  margin: 0;
+  padding: .5rem .9rem;
+  font-size: .9rem;
+  line-height: 1.2;
+  background-position: right .75rem center; /* Ajustar flecha de select */
+}
+.bankitos-role-manager__form .bankitos-btn {
+  margin: 0;
+}
