@@ -698,13 +698,20 @@ class BK_Invites_Handler {
             $placeholders
         );
 
-        $headers = ['Content-Type: text/html; charset=UTF-8'];
+        $from_name  = get_bloginfo('name');
+        $from_email = get_bloginfo('admin_email');
+        $mailjet_api_key    = '';
+        $mailjet_secret_key = '';
         if (class_exists('Bankitos_Settings')) {
-            $from_name  = Bankitos_Settings::get('from_name', get_bloginfo('name'));
-            $from_email = Bankitos_Settings::get('from_email', get_bloginfo('admin_email'));
-            if ($from_email) {
-                $headers[] = 'From: ' . sprintf('%s <%s>', $from_name, $from_email);
-            }
+            $from_name         = Bankitos_Settings::get('from_name', $from_name);
+            $from_email        = Bankitos_Settings::get('from_email', $from_email);
+            $mailjet_api_key    = Bankitos_Settings::get('mailjet_api_key', '');
+            $mailjet_secret_key = Bankitos_Settings::get('mailjet_secret_key', '');
+        }
+
+        $headers = ['Content-Type: text/html; charset=UTF-8'];
+        if ($from_email) {
+            $headers[] = 'From: ' . sprintf('%s <%s>', $from_name, $from_email);
         }
 
         if ($inviter && is_email($inviter->user_email)) {
@@ -714,7 +721,65 @@ class BK_Invites_Handler {
         
         $body = apply_filters('bankitos_invite_email_body', $body, $invite, $placeholders);
 
+        $mailjet_message = [
+            'From'       => ['Email' => $from_email, 'Name' => $from_name],
+            'To'         => [[
+                'Email' => $invite['email'],
+                'Name'  => $invite['name'] ?: $invite['email'],
+            ]],
+            'Subject'    => wp_strip_all_tags($subject),
+            'HTMLPart'   => $body,
+            'TextPart'   => trim(wp_specialchars_decode(wp_strip_all_tags($body))) ?: $portal_url,
+            'Headers'    => ['List-Unsubscribe' => esc_url_raw($portal_url)],
+            'CustomID'   => 'bankitos_invite_' . $invite['id'],
+        ];
+
+        if ($inviter && is_email($inviter->user_email)) {
+            $mailjet_message['ReplyTo'] = [
+                'Email' => $inviter->user_email,
+                'Name'  => $inviter_name,
+            ];
+        }
+
+        if ($mailjet_api_key && $mailjet_secret_key && is_email($from_email)) {
+            $sent = self::send_invite_via_mailjet($mailjet_message, $mailjet_api_key, $mailjet_secret_key);
+            if ($sent) {
+                return true;
+            }
+        }
+
         return (bool) wp_mail($invite['email'], $subject, $body, $headers);
+    }
+
+    private static function send_invite_via_mailjet(array $message, string $api_key, string $secret_key): bool {
+        if (!$api_key || !$secret_key) {
+            return false;
+        }
+
+        $response = wp_remote_post('https://api.mailjet.com/v3.1/send', [
+            'timeout' => 15,
+            'headers' => [
+                'Authorization' => 'Basic ' . base64_encode($api_key . ':' . $secret_key),
+                'Content-Type'  => 'application/json',
+            ],
+            'body'    => wp_json_encode(['Messages' => [$message]]),
+        ]);
+
+        if (is_wp_error($response)) {
+            return false;
+        }
+
+        $code = wp_remote_retrieve_response_code($response);
+        if ($code < 200 || $code >= 300) {
+            return false;
+        }
+
+        $body = json_decode(wp_remote_retrieve_body($response), true);
+        if (!is_array($body) || empty($body['Messages'][0]['Status'])) {
+            return false;
+        }
+
+        return strtoupper($body['Messages'][0]['Status']) === 'SUCCESS';
     }
 
     private static function update_invite_status(int $invite_id, string $status, array $extra = []): void {

@@ -41,6 +41,8 @@ class Bankitos_Settings {
         add_settings_field('invite_expiry_days','Caducidad de invitaciones (días)',[__CLASS__,'field_number'], self::PAGE_SLUG,'bankitos_section_main',['key'=>'invite_expiry_days','min'=>1,'step'=>1,'placeholder'=>7]);
         add_settings_field('from_name','Nombre remitente',[__CLASS__,'field_text'], self::PAGE_SLUG,'bankitos_section_main',['key'=>'from_name','placeholder'=>get_bloginfo('name')]);
         add_settings_field('from_email','Correo remitente',[__CLASS__,'field_text'], self::PAGE_SLUG,'bankitos_section_main',['key'=>'from_email','placeholder'=>get_bloginfo('admin_email')]);
+        add_settings_field('mailjet_api_key','Mailjet API Key',[__CLASS__,'field_text'], self::PAGE_SLUG,'bankitos_section_main',['key'=>'mailjet_api_key','placeholder'=>'public key']);
+        add_settings_field('mailjet_secret_key','Mailjet Secret Key',[__CLASS__,'field_text'], self::PAGE_SLUG,'bankitos_section_main',['key'=>'mailjet_secret_key','placeholder'=>'private key','type'=>'password']);
         add_settings_field('email_template_invite','Plantilla de correo (Invitación)',[__CLASS__,'field_textarea'], self::PAGE_SLUG,'bankitos_section_main',['key'=>'email_template_invite']);
     }
 
@@ -51,6 +53,8 @@ class Bankitos_Settings {
         $out['invite_expiry_days'] = isset($input['invite_expiry_days']) ? max(1, intval($input['invite_expiry_days'])) : 7;
         $out['from_name']          = isset($input['from_name']) ? sanitize_text_field($input['from_name']) : get_bloginfo('name');
         $out['from_email']         = isset($input['from_email']) ? sanitize_email($input['from_email']) : get_bloginfo('admin_email');
+        $out['mailjet_api_key']       = isset($input['mailjet_api_key']) ? sanitize_text_field($input['mailjet_api_key']) : '';
+        $out['mailjet_secret_key']    = isset($input['mailjet_secret_key']) ? sanitize_text_field($input['mailjet_secret_key']) : '';
         $out['email_template_invite'] = isset($input['email_template_invite']) ? wp_kses_post($input['email_template_invite']) : '';
         return $out;
     }
@@ -67,11 +71,12 @@ class Bankitos_Settings {
     <?php }
 
     public static function field_text($args) : void {
-        $key = $args['key'];
-        $ph  = isset($args['placeholder']) ? $args['placeholder'] : '';
-        $val = self::get($key, '');
-        printf('<input type="text" class="regular-text" name="%1$s[%2$s]" value="%3$s" placeholder="%4$s" />',
-            esc_attr(self::OPTION_KEY), esc_attr($key), esc_attr($val), esc_attr($ph));
+        $key  = $args['key'];
+        $ph   = isset($args['placeholder']) ? $args['placeholder'] : '';
+        $type = isset($args['type']) && in_array($args['type'], ['text','password'], true) ? $args['type'] : 'text';
+        $val  = self::get($key, '');
+        printf('<input type="%5$s" class="regular-text" name="%1$s[%2$s]" value="%3$s" placeholder="%4$s" autocomplete="off" />',
+            esc_attr(self::OPTION_KEY), esc_attr($key), esc_attr($val), esc_attr($ph), esc_attr($type));
     }
     public static function field_number($args) : void {
         $key=$args['key']; $min=intval($args['min']??1); $step=intval($args['step']??1); $ph=$args['placeholder']??''; $val=self::get($key,'');
