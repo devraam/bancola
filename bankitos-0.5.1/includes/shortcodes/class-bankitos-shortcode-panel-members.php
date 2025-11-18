@@ -133,7 +133,13 @@ class Bankitos_Shortcode_Panel_Members extends Bankitos_Shortcode_Panel_Base {
                                 </form>
                             </div>
 
-                            <button type="button" class="bankitos-link bankitos-link--button" data-bankitos-invite-edit-toggle aria-expanded="false" aria-controls="<?php echo esc_attr($edit_form_id); ?>">
+                            <button
+                              type="button"
+                              class="bankitos-btn bankitos-btn--small bankitos-btn--ghost"
+                              data-bankitos-invite-edit-toggle
+                              aria-expanded="false"
+                              aria-controls="<?php echo esc_attr($edit_form_id); ?>"
+                            >
                               <?php esc_html_e('Editar', 'bankitos'); ?>
                             </button>
 
