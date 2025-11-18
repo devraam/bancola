@@ -703,10 +703,20 @@ class BK_Invites_Handler {
         $mailjet_api_key    = '';
         $mailjet_secret_key = '';
         if (class_exists('Bankitos_Settings')) {
-            $from_name         = Bankitos_Settings::get('from_name', $from_name);
-            $from_email        = Bankitos_Settings::get('from_email', $from_email);
+            $custom_from_name  = Bankitos_Settings::get('from_name', $from_name);
+            $custom_from_email = Bankitos_Settings::get('from_email', $from_email);
+            if ($custom_from_name !== '') {
+                $from_name = $custom_from_name;
+            }
+            if (is_email($custom_from_email)) {
+                $from_email = $custom_from_email;
+            }
             $mailjet_api_key    = Bankitos_Settings::get('mailjet_api_key', '');
             $mailjet_secret_key = Bankitos_Settings::get('mailjet_secret_key', '');
+        }
+
+        if (!is_email($from_email)) {
+            $from_email = get_bloginfo('admin_email');
         }
 
         $headers = ['Content-Type: text/html; charset=UTF-8'];
