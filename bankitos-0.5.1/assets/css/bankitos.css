@@ -61,6 +61,10 @@
 .bankitos-table th{font-size:.85rem;text-transform:uppercase;letter-spacing:.05em;font-weight:800;color:rgba(15,23,42,.6);background:var(--bco-gris);}
 .bankitos-table tbody tr:last-child td{border-bottom:none;}
 .bankitos-table td[data-title]{position:relative;}
+.bankitos-table__value[hidden]{display:none;}
+.bankitos-table__edit-field{margin-top:.5rem;display:flex;flex-direction:column;gap:.35rem;}
+.bankitos-table__edit-field input{width:100%;padding:.55rem .75rem;border-radius:10px;border:1px solid rgba(15,23,42,.2);}
+.bankitos-table__edit-field[hidden]{display:none;}
 .bankitos-invite-actions{display:flex;flex-direction:column;gap:.75rem;}
 .bankitos-invite-actions__form{display:flex;flex-direction:column;gap:.5rem;}
 .bankitos-invite-actions__form input{width:100%;padding:.65rem .75rem;border:1px solid rgba(15,23,42,.15);border-radius:10px;}

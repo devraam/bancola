@@ -67,9 +67,46 @@ class Bankitos_Shortcode_Panel_Members extends Bankitos_Shortcode_Panel_Base {
                     $row_id = isset($row['id']) ? (int) $row['id'] : 0;
                     $can_update_invite = $can_manage && $row['type'] === 'invite' && $row['status'] !== 'accepted' && $row_id > 0;
                     ?>
+                    <?php $edit_form_id = 'bankitos-edit-' . $row_id; ?>
                     <tr>
-                      <td data-title="<?php esc_attr_e('Nombre', 'bankitos'); ?>"><?php echo esc_html($display_name); ?></td>
-                      <td data-title="<?php esc_attr_e('Correo', 'bankitos'); ?>"><?php echo esc_html($display_email); ?></td>
+                      <td data-title="<?php esc_attr_e('Nombre', 'bankitos'); ?>">
+                        <span class="bankitos-table__value" data-bankitos-invite-display>
+                          <?php echo esc_html($display_name); ?>
+                        </span>
+                        <div class="bankitos-table__edit-field" data-bankitos-invite-edit-field hidden>
+                          <label class="screen-reader-text" for="bankitos-edit-name-<?php echo esc_attr($row_id); ?>">
+                            <?php esc_html_e('Nombre del invitado', 'bankitos'); ?>
+                          </label>
+                          <input
+                            data-bankitos-invite-edit-input="<?php echo esc_attr($edit_form_id); ?>"
+                            id="bankitos-edit-name-<?php echo esc_attr($row_id); ?>"
+                            form="<?php echo esc_attr($edit_form_id); ?>"
+                            type="text"
+                            name="invite_name"
+                            value="<?php echo esc_attr($row['name']); ?>"
+                            required
+                          >
+                        </div>
+                      </td>
+                      <td data-title="<?php esc_attr_e('Correo', 'bankitos'); ?>">
+                        <span class="bankitos-table__value" data-bankitos-invite-display>
+                          <?php echo esc_html($display_email); ?>
+                        </span>
+                        <div class="bankitos-table__edit-field" data-bankitos-invite-edit-field hidden>
+                          <label class="screen-reader-text" for="bankitos-edit-email-<?php echo esc_attr($row_id); ?>">
+                            <?php esc_html_e('Correo del invitado', 'bankitos'); ?>
+                          </label>
+                          <input
+                            data-bankitos-invite-edit-input="<?php echo esc_attr($edit_form_id); ?>"
+                            id="bankitos-edit-email-<?php echo esc_attr($row_id); ?>"
+                            form="<?php echo esc_attr($edit_form_id); ?>"
+                            type="email"
+                            name="invite_email"
+                            value="<?php echo esc_attr($row['email']); ?>"
+                            required
+                          >
+                        </div>
+                      </td>
                       <td data-title="<?php esc_attr_e('Estado', 'bankitos'); ?>">
                         <span class="bankitos-pill bankitos-pill--<?php echo esc_attr($row['status']); ?>"><?php echo esc_html($row['status_label']); ?></span>
                       </td>
@@ -96,19 +133,15 @@ class Bankitos_Shortcode_Panel_Members extends Bankitos_Shortcode_Panel_Base {
                                 </form>
                             </div>
 
-                            <button type="button" class="bankitos-link bankitos-link--button" data-bankitos-invite-edit-toggle aria-expanded="false" aria-controls="bankitos-edit-<?php echo esc_attr($row_id); ?>">
+                            <button type="button" class="bankitos-link bankitos-link--button" data-bankitos-invite-edit-toggle aria-expanded="false" aria-controls="<?php echo esc_attr($edit_form_id); ?>">
                               <?php esc_html_e('Editar', 'bankitos'); ?>
                             </button>
 
-                            <form id="bankitos-edit-<?php echo esc_attr($row_id); ?>" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="bankitos-invite-actions__form bankitos-invite-actions__form--edit" data-bankitos-invite-edit-form hidden>
+                            <form id="<?php echo esc_attr($edit_form_id); ?>" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="bankitos-invite-actions__form bankitos-invite-actions__form--edit" data-bankitos-invite-edit-form hidden>
                               <?php echo wp_nonce_field('bankitos_update_invite_' . $row_id, '_wpnonce', true, false); ?>
                               <input type="hidden" name="action" value="bankitos_update_invite">
                               <input type="hidden" name="invite_id" value="<?php echo esc_attr($row_id); ?>">
                               <input type="hidden" name="redirect_to" value="<?php echo esc_url($current_url); ?>">
-                              <label class="screen-reader-text" for="bankitos-edit-name-<?php echo esc_attr($row_id); ?>"><?php esc_html_e('Nombre del invitado', 'bankitos'); ?></label>
-                              <input id="bankitos-edit-name-<?php echo esc_attr($row_id); ?>" type="text" name="invite_name" value="<?php echo esc_attr($row['name']); ?>" required>
-                              <label class="screen-reader-text" for="bankitos-edit-email-<?php echo esc_attr($row_id); ?>"><?php esc_html_e('Correo del invitado', 'bankitos'); ?></label>
-                              <input id="bankitos-edit-email-<?php echo esc_attr($row_id); ?>" type="email" name="invite_email" value="<?php echo esc_attr($row['email']); ?>" required>
                               <div class="bankitos-invite-actions__buttons">
                                 <button type="submit" class="bankitos-btn bankitos-btn--small"><?php esc_html_e('Guardar cambios', 'bankitos'); ?></button>
                                 <button type="button" class="bankitos-btn bankitos-btn--small bankitos-btn--ghost" data-bankitos-invite-edit-cancel>
