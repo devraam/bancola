@@ -214,6 +214,9 @@
       const editFields = row ? row.querySelectorAll(selectors.editField) : [];
       const displayFields = row ? row.querySelectorAll(selectors.editDisplay) : [];
       const inlineInputs = row ? row.querySelectorAll(`[data-bankitos-invite-edit-input="${targetId}"]`) : [];
+      
+      let originalName = ''; // Almacenar el valor original del nombre
+      let originalEmail = ''; // Almacenar el valor original del correo
 
       function toggleInlineFields(show){
         editFields.forEach(field => {
@@ -235,10 +238,26 @@
       toggle.addEventListener('click', () => {
         const willShow = form.hasAttribute('hidden');
         if (willShow) {
+          
+          // --- NUEVO: Capturar valores de la vista y setear a los inputs ---
+          const nameDisplay = row.querySelector('.bankitos-table__value:not([hidden]):nth-of-type(1)'); // Asume el primer display
+          const emailDisplay = row.querySelector('.bankitos-table__value:not([hidden]):nth-of-type(2)'); // Asume el segundo display
+          
+          // Capturar el valor original del texto
+          originalName = nameDisplay ? nameDisplay.textContent.trim() : ''; 
+          originalEmail = emailDisplay ? emailDisplay.textContent.trim() : ''; 
+
+          // Setear el valor capturado a los inputs
+          const nameInput = row.querySelector('input[name="invite_name"]');
+          const emailInput = row.querySelector('input[name="invite_email"]');
+          if (nameInput) nameInput.value = originalName;
+          if (emailInput) emailInput.value = originalEmail;
+          // --- FIN NUEVO ---
+
           form.removeAttribute('hidden');
-          if (defaultActions) defaultActions.setAttribute('hidden', ''); // Ocultar acciones
+          if (defaultActions) defaultActions.setAttribute('hidden', ''); // Ocultar acciones (Reenviar/Cancelar)
           toggle.setAttribute('hidden', ''); // Ocultar el botón "Editar"
-          toggleInlineFields(true);
+          toggleInlineFields(true); // Mostrar campos de edición
 
           const firstInput = inlineInputs.length
             ? inlineInputs[0]
@@ -250,7 +269,7 @@
           form.setAttribute('hidden', '');
           if (defaultActions) defaultActions.removeAttribute('hidden'); // Mostrar acciones
           toggle.removeAttribute('hidden'); // Mostrar el botón "Editar"
-          toggleInlineFields(false);
+          toggleInlineFields(false); // Ocultar campos de edición
         }
         toggle.setAttribute('aria-expanded', willShow ? 'true' : 'false');
       });
@@ -259,10 +278,18 @@
         const target = event.target;
         if (target && target.matches(selectors.editCancel)) {
           event.preventDefault();
+          
+          // --- NUEVO: Restaurar valores originales al cancelar edición ---
+          const nameInput = row.querySelector('input[name="invite_name"]');
+          const emailInput = row.querySelector('input[name="invite_email"]');
+          if (nameInput) nameInput.value = originalName;
+          if (emailInput) emailInput.value = originalEmail;
+          // --- FIN NUEVO ---
+
           form.setAttribute('hidden', '');
           if (defaultActions) defaultActions.removeAttribute('hidden'); // Mostrar acciones
           toggle.removeAttribute('hidden'); // Mostrar el botón "Editar"
-          toggleInlineFields(false);
+          toggleInlineFields(false); // Ocultar campos de edición
           toggle.setAttribute('aria-expanded', 'false');
           toggle.focus();
         }
