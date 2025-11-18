@@ -51,11 +51,18 @@ class Bankitos_Settings {
         $out['recaptcha_site']     = isset($input['recaptcha_site']) ? sanitize_text_field($input['recaptcha_site']) : '';
         $out['recaptcha_secret']   = isset($input['recaptcha_secret']) ? sanitize_text_field($input['recaptcha_secret']) : '';
         $out['invite_expiry_days'] = isset($input['invite_expiry_days']) ? max(1, intval($input['invite_expiry_days'])) : 7;
-        $out['from_name']          = isset($input['from_name']) ? sanitize_text_field($input['from_name']) : get_bloginfo('name');
-        $out['from_email']         = isset($input['from_email']) ? sanitize_email($input['from_email']) : get_bloginfo('admin_email');
+        $default_name  = get_bloginfo('name');
+        $default_email = get_bloginfo('admin_email');
+
+        $from_name = isset($input['from_name']) ? sanitize_text_field($input['from_name']) : '';
+        $from_email = isset($input['from_email']) ? sanitize_email($input['from_email']) : '';
+
+        $out['from_name']  = $from_name !== '' ? $from_name : $default_name;
+        $out['from_email'] = is_email($from_email) ? $from_email : $default_email;
         $out['mailjet_api_key']       = isset($input['mailjet_api_key']) ? sanitize_text_field($input['mailjet_api_key']) : '';
         $out['mailjet_secret_key']    = isset($input['mailjet_secret_key']) ? sanitize_text_field($input['mailjet_secret_key']) : '';
         $out['email_template_invite'] = isset($input['email_template_invite']) ? wp_kses_post($input['email_template_invite']) : '';
+        
         return $out;
     }
 
