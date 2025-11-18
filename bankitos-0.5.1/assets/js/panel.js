@@ -14,7 +14,9 @@
     editForm: '[data-bankitos-invite-edit-form]',
     editCancel: '[data-bankitos-invite-edit-cancel]',
     defaultActions: '[data-bankitos-invite-default-actions]',
-    actionsCell: '[data-invite-actions-cell]'
+    actionsCell: '[data-invite-actions-cell]',
+    editField: '[data-bankitos-invite-edit-field]',
+    editDisplay: '[data-bankitos-invite-display]'
   };
 
   const messages = window.bankitosPanelInvites || {};
@@ -208,15 +210,39 @@
       if (!actionsWrapper) return;
       
       const defaultActions = actionsWrapper.querySelector(selectors.defaultActions);
-      
+      const row = toggle.closest('tr');
+      const editFields = row ? row.querySelectorAll(selectors.editField) : [];
+      const displayFields = row ? row.querySelectorAll(selectors.editDisplay) : [];
+      const inlineInputs = row ? row.querySelectorAll(`[data-bankitos-invite-edit-input="${targetId}"]`) : [];
+
+      function toggleInlineFields(show){
+        editFields.forEach(field => {
+          if (show) {
+            field.removeAttribute('hidden');
+          } else {
+            field.setAttribute('hidden', '');
+          }
+        });
+        displayFields.forEach(field => {
+          if (show) {
+            field.setAttribute('hidden', '');
+          } else {
+            field.removeAttribute('hidden');
+          }
+        });
+      }
+
       toggle.addEventListener('click', () => {
         const willShow = form.hasAttribute('hidden');
         if (willShow) {
           form.removeAttribute('hidden');
           if (defaultActions) defaultActions.setAttribute('hidden', ''); // Ocultar acciones
           toggle.setAttribute('hidden', ''); // Ocultar el botón "Editar"
-          
-          const firstInput = form.querySelector('input[type="text"], input[type="email"], input');
+          toggleInlineFields(true);
+
+          const firstInput = inlineInputs.length
+            ? inlineInputs[0]
+            : form.querySelector('input[type="text"], input[type="email"], input');
           if (firstInput) {
             firstInput.focus();
           }
@@ -224,6 +250,7 @@
           form.setAttribute('hidden', '');
           if (defaultActions) defaultActions.removeAttribute('hidden'); // Mostrar acciones
           toggle.removeAttribute('hidden'); // Mostrar el botón "Editar"
+          toggleInlineFields(false);
         }
         toggle.setAttribute('aria-expanded', willShow ? 'true' : 'false');
       });
@@ -235,6 +262,7 @@
           form.setAttribute('hidden', '');
           if (defaultActions) defaultActions.removeAttribute('hidden'); // Mostrar acciones
           toggle.removeAttribute('hidden'); // Mostrar el botón "Editar"
+          toggleInlineFields(false);
           toggle.setAttribute('aria-expanded', 'false');
           toggle.focus();
         }
@@ -246,9 +274,11 @@
     initInvitePanels();
     initEditForms();
   }
-
-  // Corrección: Forzar la espera a DOMContentLoaded SIEMPRE.
-  // Esto garantiza que el HTML de los shortcodes exista
-  // antes de que el script intente buscar los botones.
-  document.addEventListener('DOMContentLoaded', init);
+// Si el DOM ya está listo ejecutamos inmediatamente,
+  // de lo contrario esperamos a DOMContentLoaded.
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 })();
