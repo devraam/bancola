@@ -11,6 +11,10 @@ class Bankitos_Shortcode_Crear_Banco extends Bankitos_Shortcode_Base {
         if (class_exists('Bankitos_Handlers') && Bankitos_Handlers::get_user_banco_id(get_current_user_id()) > 0) {
             return '<div class="bankitos-form"><p>' . esc_html__('Ya perteneces a un B@nko.', 'bankitos') . ' <a href="' . esc_url(site_url('/panel')) . '">' . esc_html__('Ir al panel', 'bankitos') . '</a></p></div>';
         }
+        if (class_exists('Bankitos_Recaptcha') && !Bankitos_Recaptcha::is_enabled()) {
+            return '<div class="bankitos-form"><p>' . esc_html__('No es posible crear un B@nko hasta que el administrador configure reCAPTCHA.', 'bankitos') . '</p></div>';
+        }
+        
         self::enqueue_create_banco_assets();
         ob_start(); ?>
         <div class="bankitos-form">

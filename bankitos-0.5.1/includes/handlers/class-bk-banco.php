@@ -16,7 +16,8 @@ class BK_Banco_Handler {
     public static function front_create_banco() {
         if (!is_user_logged_in()) { self::front_create_denied(); }
         check_admin_referer('bankitos_front_create');
-        if (class_exists('Bankitos_Recaptcha') && Bankitos_Recaptcha::is_enabled()) {
+        if (class_exists('Bankitos_Recaptcha')) {
+            if (!Bankitos_Recaptcha::is_enabled()) { self::redir_err('recaptcha_config'); }
             $token = sanitize_text_field($_POST['g-recaptcha-response'] ?? '');
             if (!$token || !Bankitos_Recaptcha::verify_token($token)) { self::redir_err('recaptcha'); }
         }

@@ -19,6 +19,10 @@ class Bankitos_Shortcode_Register extends Bankitos_Shortcode_Base {
             $token = sanitize_text_field(wp_unslash($_GET['invite_token']));
         }
 
+        if (class_exists('Bankitos_Recaptcha') && !Bankitos_Recaptcha::is_enabled()) {
+            return '<div class="bankitos-form"><p>' . esc_html__('El registro está temporalmente deshabilitado hasta que el administrador configure reCAPTCHA.', 'bankitos') . '</p></div>';
+        }
+        
         ob_start(); ?>
         <div class="bankitos-register-wrap">
           <h2><?php esc_html_e('Crear cuenta', 'bankitos'); ?></h2>

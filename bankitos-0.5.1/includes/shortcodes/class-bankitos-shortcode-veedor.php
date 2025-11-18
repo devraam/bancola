@@ -50,12 +50,12 @@ class Bankitos_Shortcode_Veedor_List extends Bankitos_Shortcode_Base {
                   $aporte_id = get_the_ID();
                   $monto     = get_post_meta($aporte_id, '_bankitos_monto', true);
                   $author    = get_userdata(get_post_field('post_author', $aporte_id));
-                  $thumb     = get_the_post_thumbnail_url($aporte_id, 'medium');
+                  $thumb     = class_exists('BK_Aportes_Handler') ? BK_Aportes_Handler::get_comprobante_download_url($aporte_id) : '';
               ?>
                 <tr>
                   <td><?php echo esc_html($author ? ($author->display_name ?: $author->user_login) : '—'); ?></td>
                   <td><strong><?php echo esc_html(number_format((float) $monto, 2, ',', '.')); ?></strong></td>
-                  <td><?php if ($thumb): ?><a href="<?php echo esc_url($thumb); ?>" target="_blank"><?php esc_html_e('Ver imagen', 'bankitos'); ?></a><?php else: ?>—<?php endif; ?></td>
+                  <td><?php if ($thumb): ?><a href="<?php echo esc_url($thumb); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e('Ver comprobante', 'bankitos'); ?></a><?php else: ?>—<?php endif; ?></td>
                   <td><?php echo esc_html(get_the_date()); ?></td>
                 </tr>
               <?php endwhile; wp_reset_postdata(); ?>

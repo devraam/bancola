@@ -6,6 +6,7 @@ class BK_Aportes_Handler {
         add_action('admin_post_bankitos_aporte_submit',      [__CLASS__,'aporte_submit']);
         add_action('admin_post_bankitos_aporte_approve',     [__CLASS__,'aporte_approve']);
         add_action('admin_post_bankitos_aporte_reject',      [__CLASS__,'aporte_reject']);
+        add_action('admin_post_bankitos_aporte_download',    [__CLASS__,'aporte_download']);
     }
 
     private static function get_redirect_target(string $fallback): string {
@@ -79,8 +80,27 @@ class BK_Aportes_Handler {
                 self::redirect_with('err','archivo_subida', site_url('/panel'));
             }
             set_post_thumbnail($aporte_id,$attach_id);
+            if (class_exists('Bankitos_Secure_Files') && !Bankitos_Secure_Files::protect_attachment($attach_id)) {
+                wp_delete_post($aporte_id, true);
+                self::redirect_with('err','archivo_seguro', site_url('/panel'));
+            }
         }
         self::redirect_with('ok','aporte_enviado', site_url('/panel'));
+    }
+
+    public static function get_comprobante_download_url(int $aporte_id): string {
+        $attachment_id = get_post_thumbnail_id($aporte_id);
+        if (!$attachment_id || !class_exists('Bankitos_Secure_Files')) {
+            return '';
+        }
+        $path = Bankitos_Secure_Files::get_protected_path($attachment_id);
+        if (!$path) {
+            return '';
+        }
+        return wp_nonce_url(add_query_arg([
+            'action'  => 'bankitos_aporte_download',
+            'aporte'  => $aporte_id,
+        ], admin_url('admin-post.php')), 'bankitos_aporte_download_' . $aporte_id);
     }
 
     private static function check_same_banco($aporte_id, $user_id): bool {
@@ -108,5 +128,36 @@ class BK_Aportes_Handler {
         if (!self::check_same_banco($aporte_id,get_current_user_id())){ self::redirect_with('err','permiso', site_url('/panel')); }
         wp_update_post(['ID'=>$aporte_id,'post_status'=>'private']);
         self::redirect_with('ok','aporte_rechazado', site_url('/panel'));
+    }
+
+    public static function aporte_download() {
+        if (!is_user_logged_in()) { wp_safe_redirect(site_url('/acceder')); exit; }
+        $aporte_id = intval($_GET['aporte'] ?? 0);
+        if ($aporte_id <= 0) { wp_die(__('Solicitud inválida.', 'bankitos'), 400); }
+        $nonce = isset($_GET['_wpnonce']) ? sanitize_text_field($_GET['_wpnonce']) : '';
+        if (!$nonce || !wp_verify_nonce($nonce, 'bankitos_aporte_download_' . $aporte_id)) {
+            wp_die(__('No tienes permisos para ver este comprobante.', 'bankitos'), 403);
+        }
+        if (!current_user_can('approve_aportes') && !current_user_can('audit_aportes')) {
+            wp_die(__('No tienes permisos para ver este comprobante.', 'bankitos'), 403);
+        }
+        if (!self::check_same_banco($aporte_id, get_current_user_id())) {
+            wp_die(__('No tienes permisos para ver este comprobante.', 'bankitos'), 403);
+        }
+        $attachment_id = get_post_thumbnail_id($aporte_id);
+        if (!$attachment_id || !class_exists('Bankitos_Secure_Files')) {
+            wp_die(__('El comprobante no está disponible.', 'bankitos'), 404);
+        }
+        $path = Bankitos_Secure_Files::get_protected_path($attachment_id);
+        if (!$path) {
+            wp_die(__('El comprobante no está disponible.', 'bankitos'), 404);
+        }
+        $mime = wp_check_filetype($path);
+        $filename = Bankitos_Secure_Files::get_download_filename($attachment_id);
+        header('Content-Type: ' . ($mime['type'] ?: 'application/octet-stream'));
+        header('Content-Disposition: inline; filename="' . basename($filename) . '"');
+        header('Content-Length: ' . filesize($path));
+        readfile($path);
+        exit;
     }
 }

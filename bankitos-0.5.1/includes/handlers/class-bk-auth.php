@@ -10,7 +10,10 @@ class BK_Auth_Handler {
     }
     public static function do_login() {
         check_admin_referer('bankitos_do_login');
-        if (class_exists('Bankitos_Recaptcha') && Bankitos_Recaptcha::is_enabled()) {
+        if (class_exists('Bankitos_Recaptcha')) {
+            if (!Bankitos_Recaptcha::is_enabled()) {
+                wp_safe_redirect(add_query_arg('err','recaptcha_config', wp_get_referer() ?: site_url('/acceder'))); exit;
+            }
             $token = sanitize_text_field($_POST['g-recaptcha-response'] ?? '');
             if (!$token || !Bankitos_Recaptcha::verify_token($token)) {
                 wp_safe_redirect(add_query_arg('err','recaptcha', wp_get_referer() ?: site_url('/acceder'))); exit;
@@ -47,7 +50,10 @@ class BK_Auth_Handler {
     }
     public static function do_register() {
         check_admin_referer('bankitos_do_register');
-        if (class_exists('Bankitos_Recaptcha') && Bankitos_Recaptcha::is_enabled()) {
+        if (class_exists('Bankitos_Recaptcha')) {
+            if (!Bankitos_Recaptcha::is_enabled()) {
+                wp_safe_redirect(add_query_arg('err','recaptcha_config', wp_get_referer() ?: site_url('/registrarse'))); exit;
+            }
             $token = sanitize_text_field($_POST['g-recaptcha-response'] ?? '');
             if (!$token || !Bankitos_Recaptcha::verify_token($token)) {
                 wp_safe_redirect(add_query_arg('err','recaptcha', wp_get_referer() ?: site_url('/registrarse'))); exit;

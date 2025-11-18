@@ -84,6 +84,7 @@ abstract class Bankitos_Shortcode_Base {
         $err = sanitize_key($_GET['err']);
         $map = [
             'recaptcha'       => __('No pudimos verificar que no eres un robot.', 'bankitos'),
+            'recaptcha_config'=> __('Esta acción requiere que reCAPTCHA esté configurado por un administrador.', 'bankitos'),
             'validacion'      => __('Revisa los campos obligatorios.', 'bankitos'),
             'crear_post'      => __('Ocurrió un problema creando el B@nko.', 'bankitos'),
             'ya_miembro'      => __('Ya perteneces a un B@nko.', 'bankitos'),
@@ -101,6 +102,7 @@ abstract class Bankitos_Shortcode_Base {
             'archivo_tipo'    => __('El comprobante debe ser una imagen válida.', 'bankitos'),
             'archivo_tamano'  => __('El comprobante excede el tamaño permitido.', 'bankitos'),
             'archivo_subida'  => __('Hubo un problema subiendo el comprobante.', 'bankitos'),
+            'archivo_seguro'  => __('No pudimos proteger el comprobante subido.', 'bankitos'),
             'invite_send'     => __('No pudimos enviar las invitaciones. Intenta nuevamente.', 'bankitos'),
             'invite_min'      => __('Debes invitar al menos la cantidad mínima requerida.', 'bankitos'),
             'invite_accept'   => __('No fue posible aceptar la invitación con este usuario.', 'bankitos'),
