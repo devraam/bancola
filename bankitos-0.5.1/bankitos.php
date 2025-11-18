@@ -22,6 +22,7 @@ require_once BANKITOS_PATH . 'includes/class-bankitos-settings.php';
 require_once BANKITOS_PATH . 'includes/class-bankitos-cpt.php';
 require_once BANKITOS_PATH . 'includes/class-bankitos-access.php';
 require_once BANKITOS_PATH . 'includes/class-bankitos-recaptcha.php';
+require_once BANKITOS_PATH . 'includes/class-bankitos-secure-files.php';
 require_once BANKITOS_PATH . 'includes/class-bankitos-shortcodes.php';
 require_once BANKITOS_PATH . 'includes/class-bankitos-handlers.php';
 
@@ -36,4 +37,7 @@ function bankitos() {
 bankitos();
 
 Bankitos_Settings::init();
+if (class_exists('Bankitos_Secure_Files')) {
+    Bankitos_Secure_Files::init();
+}
 add_action('init', ['Bankitos_CPT', 'init'], 5);

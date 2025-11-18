@@ -14,6 +14,10 @@ class Bankitos_Shortcode_Login extends Bankitos_Shortcode_Base {
             $token = sanitize_text_field(wp_unslash($_GET['invite_token']));
         }
 
+        if (class_exists('Bankitos_Recaptcha') && !Bankitos_Recaptcha::is_enabled()) {
+            return '<div class="bankitos-form"><p>' . esc_html__('El acceso está temporalmente deshabilitado hasta que el administrador configure reCAPTCHA.', 'bankitos') . '</p></div>';
+        }
+        
         ob_start(); ?>
         <div class="bankitos-login-wrap">
           <h2><?php esc_html_e('Iniciar sesión', 'bankitos'); ?></h2>
