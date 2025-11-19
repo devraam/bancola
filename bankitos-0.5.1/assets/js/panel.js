@@ -200,6 +200,37 @@
     const toggles = doc.querySelectorAll(selectors.editToggle);
     if (!toggles.length) return;
 
+    const editRowStates = [];
+
+    function closeEditRow(state, options = {}) {
+      if (!state || state.form.hasAttribute('hidden')) return;
+      const { focusToggle = false, restoreValues = true } = options;
+
+      if (restoreValues) {
+        const nameInput = state.row.querySelector('input[name="invite_name"]');
+        const emailInput = state.row.querySelector('input[name="invite_email"]');
+        if (nameInput) nameInput.value = state.originalName;
+        if (emailInput) emailInput.value = state.originalEmail;
+      }
+
+      state.form.setAttribute('hidden', '');
+      if (state.defaultActions) state.defaultActions.removeAttribute('hidden');
+      state.toggle.removeAttribute('hidden');
+      state.toggleInlineFields(false);
+      state.toggle.setAttribute('aria-expanded', 'false');
+      if (focusToggle) {
+        state.toggle.focus();
+      }
+    }
+
+    function closeOtherRows(currentState){
+      editRowStates.forEach(state => {
+        if (state !== currentState) {
+          closeEditRow(state);
+        }
+      });
+    }
+
     toggles.forEach(toggle => {
       const targetId = toggle.getAttribute('aria-controls');
       const form = targetId ? doc.getElementById(targetId) : null;
@@ -214,9 +245,6 @@
       const editFields = row ? row.querySelectorAll(selectors.editField) : [];
       const displayFields = row ? row.querySelectorAll(selectors.editDisplay) : [];
       const inlineInputs = row ? row.querySelectorAll(`[data-bankitos-invite-edit-input="${targetId}"]`) : [];
-      
-      let originalName = ''; // Almacenar el valor original del nombre
-      let originalEmail = ''; // Almacenar el valor original del correo
 
       function toggleInlineFields(show){
         editFields.forEach(field => {
@@ -235,23 +263,37 @@
         });
       }
 
+      const rowState = {
+        form,
+        toggle,
+        defaultActions,
+        row,
+        inlineInputs,
+        toggleInlineFields,
+        originalName: '',
+        originalEmail: ''
+      };
+
+      editRowStates.push(rowState);
+
       toggle.addEventListener('click', () => {
         const willShow = form.hasAttribute('hidden');
         if (willShow) {
+          closeOtherRows(rowState);
           
           // --- NUEVO: Capturar valores de la vista y setear a los inputs ---
           const nameDisplay = row.querySelector('.bankitos-table__value:not([hidden]):nth-of-type(1)'); // Asume el primer display
           const emailDisplay = row.querySelector('.bankitos-table__value:not([hidden]):nth-of-type(2)'); // Asume el segundo display
           
           // Capturar el valor original del texto
-          originalName = nameDisplay ? nameDisplay.textContent.trim() : ''; 
-          originalEmail = emailDisplay ? emailDisplay.textContent.trim() : ''; 
+          rowState.originalName = nameDisplay ? nameDisplay.textContent.trim() : '';
+          rowState.originalEmail = emailDisplay ? emailDisplay.textContent.trim() : '';
 
           // Setear el valor capturado a los inputs
           const nameInput = row.querySelector('input[name="invite_name"]');
           const emailInput = row.querySelector('input[name="invite_email"]');
-          if (nameInput) nameInput.value = originalName;
-          if (emailInput) emailInput.value = originalEmail;
+          if (nameInput) nameInput.value = rowState.originalName;
+          if (emailInput) emailInput.value = rowState.originalEmail;
           // --- FIN NUEVO ---
 
           form.removeAttribute('hidden');
@@ -266,10 +308,7 @@
             firstInput.focus();
           }
         } else {
-          form.setAttribute('hidden', '');
-          if (defaultActions) defaultActions.removeAttribute('hidden'); // Mostrar acciones
-          toggle.removeAttribute('hidden'); // Mostrar el botón "Editar"
-          toggleInlineFields(false); // Ocultar campos de edición
+          closeEditRow(rowState);
         }
         toggle.setAttribute('aria-expanded', willShow ? 'true' : 'false');
       });
@@ -278,20 +317,7 @@
         const target = event.target;
         if (target && target.matches(selectors.editCancel)) {
           event.preventDefault();
-          
-          // --- NUEVO: Restaurar valores originales al cancelar edición ---
-          const nameInput = row.querySelector('input[name="invite_name"]');
-          const emailInput = row.querySelector('input[name="invite_email"]');
-          if (nameInput) nameInput.value = originalName;
-          if (emailInput) emailInput.value = originalEmail;
-          // --- FIN NUEVO ---
-
-          form.setAttribute('hidden', '');
-          if (defaultActions) defaultActions.removeAttribute('hidden'); // Mostrar acciones
-          toggle.removeAttribute('hidden'); // Mostrar el botón "Editar"
-          toggleInlineFields(false); // Ocultar campos de edición
-          toggle.setAttribute('aria-expanded', 'false');
-          toggle.focus();
+          closeEditRow(rowState, { focusToggle: true });
         }
       });
     });
