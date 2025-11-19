@@ -196,12 +196,10 @@
   gap: 1.25rem;
   max-width: 760px;
 }
-.bankitos-credit-request__hero {
+.bankitos-credit-request__header {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: center;
+  flex-direction: column;
+  gap: .35rem;
 }
 .bankitos-credit-request__badge {
   margin: 0;
@@ -210,86 +208,32 @@
   text-transform: uppercase;
   letter-spacing: .08em;
 }
-.bankitos-credit-request__date {
+.bankitos-credit-request__intro {
   margin: 0;
-  font-weight: 600;
   color: rgba(15,23,42,.7);
 }
-.bankitos-credit-request__grid {
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
-}
-.bankitos-credit-request__label {
-  font-weight: 700;
-  color: rgba(15,23,42,.75);
-}
-.bankitos-credit-request__value {
-  padding: .85rem 1rem;
-  border-radius: 12px;
-  background: var(--bco-gris);
-  font-weight: 700;
-}
-.bankitos-credit-request__fieldset {
-  border: 1px solid rgba(0,115,179,.15);
-  border-radius: 16px;
-  padding: 1rem 1.25rem;
-}
-.bankitos-credit-request__fieldset legend {
-  font-weight: 800;
-  color: var(--bco-azul);
-}
-.bankitos-credit-request__radios {
-  display: flex;
-  flex-wrap: wrap;
-  gap: .75rem;
-  margin-top: .5rem;
-}
-.bankitos-credit-request__radio {
-  display: inline-flex;
-  align-items: center;
-  gap: .4rem;
-  padding: .35rem .85rem;
-  border-radius: 999px;
-  border: 1px solid rgba(0,115,179,.2);
-  cursor: pointer;
-}
-.bankitos-credit-request__note {
-  margin: .35rem 0 0;
-  font-size: .9rem;
-  color: rgba(15,23,42,.7);
-}
-.bankitos-credit-request__field {
+.bankitos-credit-request__form {
   display: flex;
   flex-direction: column;
-  gap: .35rem;
+  gap: 1.25rem;
+}
+.bankitos-credit-request__group {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit,minmax(200px,1fr));
 }
 .bankitos-credit-request__signature {
   display: flex;
-  gap: .5rem;
+  align-items: flex-start;
+  gap: .6rem;
   font-weight: 600;
   color: rgba(15,23,42,.85);
 }
-.bankitos-credit-request__totals {
-  display: grid;
-  grid-template-columns: repeat(auto-fit,minmax(180px,1fr));
-  gap: 1rem;
-  padding: 1rem;
-  border-radius: 16px;
-  background: var(--bco-azul-claro);
-}
-.bankitos-credit-request__totals span {
-  display: block;
-  font-size: .85rem;
-  text-transform: uppercase;
-  letter-spacing: .05em;
-  color: rgba(15,23,42,.6);
-}
-.bankitos-credit-request__totals strong {
-  font-size: 1.25rem;
+.bankitos-credit-request__signature input {
+  margin-top: .2rem;
 }
 .bankitos-credit-request__actions {
-  margin-top: 1rem;
+  margin-top: .5rem;
 }
 
 .bankitos-credit-review__header {
