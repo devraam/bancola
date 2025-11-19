@@ -65,6 +65,8 @@
 .bankitos-table__edit-field{margin-top:.5rem;display:flex;flex-direction:column;gap:.35rem;}
 .bankitos-table__edit-field input{width:100%;padding:.55rem .75rem;border-radius:10px;border:1px solid rgba(15,23,42,.2);}
 .bankitos-table__edit-field[hidden]{display:none;}
+.bankitos-invite-actions__form[hidden],
+.bankitos-invite-actions__buttons[hidden]{display:none;}
 .bankitos-invite-actions{display:flex;flex-direction:column;gap:.75rem;}
 .bankitos-invite-actions__form{display:flex;flex-direction:column;gap:.5rem;}
 .bankitos-invite-actions__form input{width:100%;padding:.65rem .75rem;border:1px solid rgba(15,23,42,.15);border-radius:10px;}

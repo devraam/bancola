@@ -16,7 +16,8 @@
     defaultActions: '[data-bankitos-invite-default-actions]',
     actionsCell: '[data-invite-actions-cell]',
     editField: '[data-bankitos-invite-edit-field]',
-    editDisplay: '[data-bankitos-invite-display]'
+    editDisplay: '[data-bankitos-invite-display]',
+    editButtons: '[data-bankitos-invite-edit-buttons]'
   };
 
   const messages = window.bankitosPanelInvites || {};
@@ -207,13 +208,12 @@
       const { focusToggle = false, restoreValues = true } = options;
 
       if (restoreValues) {
-        const nameInput = state.row.querySelector('input[name="invite_name"]');
-        const emailInput = state.row.querySelector('input[name="invite_email"]');
-        if (nameInput) nameInput.value = state.originalName;
-        if (emailInput) emailInput.value = state.originalEmail;
+        if (state.nameInput) state.nameInput.value = state.originalName;
+        if (state.emailInput) state.emailInput.value = state.originalEmail;
       }
 
       state.form.setAttribute('hidden', '');
+      if (state.editButtons) state.editButtons.setAttribute('hidden', '');
       if (state.defaultActions) state.defaultActions.removeAttribute('hidden');
       state.toggle.removeAttribute('hidden');
       state.toggleInlineFields(false);
@@ -245,6 +245,11 @@
       const editFields = row ? row.querySelectorAll(selectors.editField) : [];
       const displayFields = row ? row.querySelectorAll(selectors.editDisplay) : [];
       const inlineInputs = row ? row.querySelectorAll(`[data-bankitos-invite-edit-input="${targetId}"]`) : [];
+      const editButtons = actionsWrapper.querySelector(selectors.editButtons);
+      const nameInput = row ? row.querySelector('input[name="invite_name"]') : null;
+      const emailInput = row ? row.querySelector('input[name="invite_email"]') : null;
+      const nameDisplay = row ? row.querySelector('[data-bankitos-invite-display][data-bankitos-invite-field="name"]') : null;
+      const emailDisplay = row ? row.querySelector('[data-bankitos-invite-display][data-bankitos-invite-field="email"]') : null;
 
       function toggleInlineFields(show){
         editFields.forEach(field => {
@@ -269,6 +274,11 @@
         defaultActions,
         row,
         inlineInputs,
+        editButtons,
+        nameInput,
+        emailInput,
+        nameDisplay,
+        emailDisplay,
         toggleInlineFields,
         originalName: '',
         originalEmail: ''
@@ -281,22 +291,18 @@
         if (willShow) {
           closeOtherRows(rowState);
           
-          // --- NUEVO: Capturar valores de la vista y setear a los inputs ---
-          const nameDisplay = row.querySelector('.bankitos-table__value:not([hidden]):nth-of-type(1)'); // Asume el primer display
-          const emailDisplay = row.querySelector('.bankitos-table__value:not([hidden]):nth-of-type(2)'); // Asume el segundo display
-          
-          // Capturar el valor original del texto
-          rowState.originalName = nameDisplay ? nameDisplay.textContent.trim() : '';
-          rowState.originalEmail = emailDisplay ? emailDisplay.textContent.trim() : '';
+          rowState.originalName = rowState.nameDisplay
+            ? rowState.nameDisplay.textContent.trim()
+            : (rowState.nameInput ? rowState.nameInput.value : '');
+          rowState.originalEmail = rowState.emailDisplay
+            ? rowState.emailDisplay.textContent.trim()
+            : (rowState.emailInput ? rowState.emailInput.value : '');
 
-          // Setear el valor capturado a los inputs
-          const nameInput = row.querySelector('input[name="invite_name"]');
-          const emailInput = row.querySelector('input[name="invite_email"]');
-          if (nameInput) nameInput.value = rowState.originalName;
-          if (emailInput) emailInput.value = rowState.originalEmail;
-          // --- FIN NUEVO ---
+          if (rowState.nameInput) rowState.nameInput.value = rowState.originalName;
+          if (rowState.emailInput) rowState.emailInput.value = rowState.originalEmail;
 
           form.removeAttribute('hidden');
+          if (editButtons) editButtons.removeAttribute('hidden');
           if (defaultActions) defaultActions.setAttribute('hidden', ''); // Ocultar acciones (Reenviar/Cancelar)
           toggle.setAttribute('hidden', ''); // Ocultar el botón "Editar"
           toggleInlineFields(true); // Mostrar campos de edición
