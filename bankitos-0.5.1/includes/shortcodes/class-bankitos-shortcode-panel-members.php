@@ -70,7 +70,7 @@ class Bankitos_Shortcode_Panel_Members extends Bankitos_Shortcode_Panel_Base {
                     <?php $edit_form_id = 'bankitos-edit-' . $row_id; ?>
                     <tr>
                       <td data-title="<?php esc_attr_e('Nombre', 'bankitos'); ?>">
-                        <span class="bankitos-table__value" data-bankitos-invite-display>
+                        <span class="bankitos-table__value" data-bankitos-invite-display data-bankitos-invite-field="name">
                           <?php echo esc_html($display_name); ?>
                         </span>
                         <div class="bankitos-table__edit-field" data-bankitos-invite-edit-field hidden>
@@ -89,7 +89,7 @@ class Bankitos_Shortcode_Panel_Members extends Bankitos_Shortcode_Panel_Base {
                         </div>
                       </td>
                       <td data-title="<?php esc_attr_e('Correo', 'bankitos'); ?>">
-                        <span class="bankitos-table__value" data-bankitos-invite-display>
+                        <span class="bankitos-table__value" data-bankitos-invite-display data-bankitos-invite-field="email">
                           <?php echo esc_html($display_email); ?>
                         </span>
                         <div class="bankitos-table__edit-field" data-bankitos-invite-edit-field hidden>
@@ -129,9 +129,9 @@ class Bankitos_Shortcode_Panel_Members extends Bankitos_Shortcode_Panel_Base {
                                   <input type="hidden" name="action" value="bankitos_cancel_invite">
                                   <input type="hidden" name="invite_id" value="<?php echo esc_attr($row_id); ?>">
                                   <input type="hidden" name="redirect_to" value="<?php echo esc_url($current_url); ?>">
-                                  <button type="submit" class="bankitos-btn bankitos-btn--small bankitos-btn--danger" onclick="return confirm('<?php echo esc_js(__('¿Cancelar esta invitación?', 'bankitos')); ?>');"><?php esc_html_e('Cancelar', 'bankitos'); ?></button>
+                                  <button type="submit" class="bankitos-btn bankitos-btn--small bankitos-btn--danger" onclick="return confirm('<?php echo esc_js(__('¿Cancelar esta invitación?', 'bankitos')); ?>');"><?php esc_html_e('Cancelar invitación', 'bankitos'); ?></button>
                                 </form>
-                            </div>
+                              </div>
 
                             <button
                               type="button"
@@ -148,10 +148,10 @@ class Bankitos_Shortcode_Panel_Members extends Bankitos_Shortcode_Panel_Base {
                               <input type="hidden" name="action" value="bankitos_update_invite">
                               <input type="hidden" name="invite_id" value="<?php echo esc_attr($row_id); ?>">
                               <input type="hidden" name="redirect_to" value="<?php echo esc_url($current_url); ?>">
-                              <div class="bankitos-invite-actions__buttons">
+                              <div class="bankitos-invite-actions__buttons" data-bankitos-invite-edit-buttons hidden>
                                 <button type="submit" class="bankitos-btn bankitos-btn--small"><?php esc_html_e('Guardar cambios', 'bankitos'); ?></button>
                                 <button type="button" class="bankitos-btn bankitos-btn--small bankitos-btn--ghost" data-bankitos-invite-edit-cancel>
-                                  <?php esc_html_e('Cancelar', 'bankitos'); // Este es el cancelar del formulario de edición ?>
+                                  <?php esc_html_e('Cerrar', 'bankitos'); // Este es el botón para cerrar el formulario de edición ?>
                                 </button>
                               </div>
                             </form>
