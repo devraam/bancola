@@ -45,6 +45,8 @@ class Bankitos_Access {
                     'bankitos_update_invite',   
                     'bankitos_cancel_invite',
                     'bankitos_assign_role',
+                    'bankitos_credito_solicitar',
+                    'bankitos_credito_resolver',
                 ]
             );
             if (in_array($action, $allowed_actions, true)) {

@@ -67,6 +67,8 @@ abstract class Bankitos_Shortcode_Base {
                 'invite_rejected'   => __('La invitación fue rechazada.', 'bankitos'),
                 'invite_updated_sent' => __('Invitación actualizada y reenviada correctamente.', 'bankitos'),
                 'role_updated'      => __('El rol del miembro ha sido actualizado.', 'bankitos'),
+                'credito_solicitado'=> __('Solicitud de crédito enviada al comité.', 'bankitos'),
+                'credito_actualizado'=> __('Decisión registrada correctamente.', 'bankitos'),
             ];
             if (!empty($map_ok[$ok])) {
                 $html .= '<div class="bankitos-success">' . esc_html($map_ok[$ok]) . '</div>';
@@ -110,6 +112,14 @@ abstract class Bankitos_Shortcode_Base {
             'invite_resend'   => __('No pudimos reenviar la invitación.', 'bankitos'),
             'invite_update'   => __('No pudimos actualizar la invitación.', 'bankitos'),
             'invite_cancel'   => __('No pudimos cancelar la invitación.', 'bankitos'),
+            'credito_datos'   => __('Completa todos los campos obligatorios de la solicitud.', 'bankitos'),
+            'credito_firma'   => __('Debes firmar la solicitud antes de enviarla.', 'bankitos'),
+            'credito_sin_fondos'=> __('No hay fondos suficientes para nuevos créditos.', 'bankitos'),
+            'credito_monto'   => __('Debes ingresar un monto válido.', 'bankitos'),
+            'credito_limite'  => __('El monto solicitado supera el límite permitido.', 'bankitos'),
+            'credito_guardar' => __('No fue posible guardar la solicitud de crédito.', 'bankitos'),
+            'credito_permiso' => __('No tienes permisos para realizar esta acción.', 'bankitos'),
+            'credito_decision'=> __('No pudimos actualizar el estado del crédito.', 'bankitos'),
         ];
         $msg = $map[$err] ?? __('Ha ocurrido un error. Intenta nuevamente.', 'bankitos');
         $html .= '<div class="bankitos-error">' . esc_html($msg) . '</div>';
@@ -345,14 +355,14 @@ abstract class Bankitos_Shortcode_Base {
         return $map[$period] ?? ucwords(str_replace('_', ' ', $period));
     }
 
-    protected static function format_currency(float $amount): string {
+    public static function format_currency(float $amount): string {
         $symbol   = apply_filters('bankitos_panel_currency_symbol', '$');
         $decimals = (int) apply_filters('bankitos_panel_currency_decimals', 0);
         $formatted = number_format_i18n($amount, $decimals);
         return sprintf('%s%s', $symbol, $formatted);
     }
 
-    protected static function get_banco_financial_totals(int $banco_id): array {
+    public static function get_banco_financial_totals(int $banco_id): array {
         $totals = [
             'ahorros'    => 0.0,
             'creditos'   => 0.0,

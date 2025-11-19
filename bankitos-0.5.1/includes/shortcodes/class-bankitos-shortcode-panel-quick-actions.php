@@ -24,11 +24,15 @@ class Bankitos_Shortcode_Panel_Quick_Actions extends Bankitos_Shortcode_Panel_Ba
           <p><strong><?php esc_html_e('Acciones rápidas', 'bankitos'); ?>:</strong></p>
           <ul>
             <li><a href="<?php echo esc_url(site_url('/mi-aporte')); ?>"><?php esc_html_e('Subir aporte', 'bankitos'); ?></a></li>
+            <li><a href="<?php echo esc_url(site_url('/solicitud-credito')); ?>"><?php esc_html_e('Solicitar crédito', 'bankitos'); ?></a></li>
             <?php if (current_user_can('approve_aportes')): ?>
               <li><a href="<?php echo esc_url(site_url('/tesoreria-aportes')); ?>"><?php esc_html_e('Aprobar aportes (Tesorero)', 'bankitos'); ?></a></li>
             <?php endif; ?>
             <?php if (current_user_can('audit_aportes')): ?>
               <li><a href="<?php echo esc_url(site_url('/auditoria-aportes')); ?>"><?php esc_html_e('Aportes aprobados (Veedor)', 'bankitos'); ?></a></li>
+            <?php endif; ?>
+            <?php if (class_exists('Bankitos_Credit_Requests') && Bankitos_Credit_Requests::user_can_review()): ?>
+              <li><a href="<?php echo esc_url(site_url('/solicitudes-credito')); ?>"><?php esc_html_e('Revisar solicitudes de crédito', 'bankitos'); ?></a></li>
             <?php endif; ?>
           </ul>
         </div>

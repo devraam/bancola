@@ -21,6 +21,7 @@ class Bankitos_DB {
         $loans   = $wpdb->prefix . 'banco_loans';
         $pays    = $wpdb->prefix . 'banco_loan_payments';
         $invites = $wpdb->prefix . 'banco_invites';
+        $credits = $wpdb->prefix . 'banco_credit_requests';
 
         dbDelta("CREATE TABLE $members (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -86,6 +87,34 @@ class Bankitos_DB {
             UNIQUE KEY token (token),
             KEY banco_email (banco_id,email),
             KEY banco_status (banco_id,status)
+        ) $charset;");
+
+        dbDelta("CREATE TABLE $credits (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            banco_id BIGINT UNSIGNED NOT NULL,
+            user_id BIGINT UNSIGNED NOT NULL,
+            request_date DATETIME NOT NULL,
+            document_id VARCHAR(190) NOT NULL,
+            age INT NOT NULL,
+            phone VARCHAR(60) NOT NULL,
+            credit_type VARCHAR(40) NOT NULL,
+            amount DECIMAL(12,2) NOT NULL,
+            savings_snapshot DECIMAL(12,2) NOT NULL DEFAULT 0,
+            bank_available_snapshot DECIMAL(12,2) NOT NULL DEFAULT 0,
+            term_months INT NOT NULL,
+            description TEXT NOT NULL,
+            signature TINYINT(1) NOT NULL DEFAULT 0,
+            status VARCHAR(20) NOT NULL DEFAULT 'pending',
+            approved_president VARCHAR(20) NOT NULL DEFAULT 'pending',
+            approved_treasurer VARCHAR(20) NOT NULL DEFAULT 'pending',
+            approved_veedor VARCHAR(20) NOT NULL DEFAULT 'pending',
+            committee_notes TEXT NULL,
+            approval_date DATETIME NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id),
+            KEY banco (banco_id),
+            KEY banco_user (banco_id, user_id)
         ) $charset;");
 
         self::$members_table_exists = true;
