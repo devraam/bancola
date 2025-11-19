@@ -184,3 +184,262 @@
 .bankitos-role-manager__form .bankitos-btn {
   margin: 0;
 }
+
+/* === Solicitudes de crédito === */
+.bankitos-credit-request {
+  background: var(--bco-blanco);
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-width: 760px;
+}
+.bankitos-credit-request__hero {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+}
+.bankitos-credit-request__badge {
+  margin: 0;
+  font-weight: 800;
+  color: var(--bco-azul);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.bankitos-credit-request__date {
+  margin: 0;
+  font-weight: 600;
+  color: rgba(15,23,42,.7);
+}
+.bankitos-credit-request__grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
+}
+.bankitos-credit-request__label {
+  font-weight: 700;
+  color: rgba(15,23,42,.75);
+}
+.bankitos-credit-request__value {
+  padding: .85rem 1rem;
+  border-radius: 12px;
+  background: var(--bco-gris);
+  font-weight: 700;
+}
+.bankitos-credit-request__fieldset {
+  border: 1px solid rgba(0,115,179,.15);
+  border-radius: 16px;
+  padding: 1rem 1.25rem;
+}
+.bankitos-credit-request__fieldset legend {
+  font-weight: 800;
+  color: var(--bco-azul);
+}
+.bankitos-credit-request__radios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+  margin-top: .5rem;
+}
+.bankitos-credit-request__radio {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .35rem .85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(0,115,179,.2);
+  cursor: pointer;
+}
+.bankitos-credit-request__note {
+  margin: .35rem 0 0;
+  font-size: .9rem;
+  color: rgba(15,23,42,.7);
+}
+.bankitos-credit-request__field {
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+}
+.bankitos-credit-request__signature {
+  display: flex;
+  gap: .5rem;
+  font-weight: 600;
+  color: rgba(15,23,42,.85);
+}
+.bankitos-credit-request__totals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(180px,1fr));
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 16px;
+  background: var(--bco-azul-claro);
+}
+.bankitos-credit-request__totals span {
+  display: block;
+  font-size: .85rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: rgba(15,23,42,.6);
+}
+.bankitos-credit-request__totals strong {
+  font-size: 1.25rem;
+}
+.bankitos-credit-request__actions {
+  margin-top: 1rem;
+}
+
+.bankitos-credit-review__header {
+  margin-bottom: 1.25rem;
+}
+.bankitos-credit-review__header h3 {
+  margin: 0;
+  font-size: 1.4rem;
+  color: var(--bco-azul);
+}
+.bankitos-credit-review__header p {
+  margin: .25rem 0 0;
+  color: rgba(15,23,42,.7);
+}
+.bankitos-credit-review__list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.bankitos-credit-card {
+  background: var(--bco-blanco);
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.bankitos-credit-card__header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+}
+.bankitos-credit-card__badge {
+  margin: 0 0 .25rem;
+  font-size: .8rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: rgba(15,23,42,.6);
+}
+.bankitos-credit-card__status {
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+  align-items: flex-end;
+}
+.bankitos-credit-card__date {
+  font-size: .9rem;
+  color: rgba(15,23,42,.65);
+}
+.bankitos-credit-card__details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(160px,1fr));
+  gap: 1rem;
+  margin: 0;
+}
+.bankitos-credit-card__details dt {
+  font-size: .75rem;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: rgba(15,23,42,.55);
+}
+.bankitos-credit-card__details dd {
+  margin: .15rem 0 0;
+  font-weight: 700;
+  color: var(--bco-texto);
+}
+.bankitos-credit-card__description {
+  padding: 1rem;
+  border-radius: 16px;
+  background: var(--bco-gris);
+}
+.bankitos-credit-card__description h5 {
+  margin: 0 0 .35rem;
+  font-size: 1rem;
+  color: var(--bco-azul);
+}
+.bankitos-credit-card__signature {
+  display: flex;
+  gap: .5rem;
+  font-weight: 700;
+}
+.bankitos-credit-card__committee {
+  border: 1px solid rgba(0,115,179,.15);
+  border-radius: 18px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.bankitos-credit-card__committee-header h5 {
+  margin: 0;
+  color: var(--bco-azul);
+}
+.bankitos-credit-card__committee-header p {
+  margin: .15rem 0 0;
+  color: rgba(15,23,42,.6);
+  font-size: .9rem;
+}
+.bankitos-credit-card__committee-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(160px,1fr));
+  gap: .75rem;
+}
+.bankitos-credit-card__committee-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .5rem;
+  font-weight: 600;
+}
+.bankitos-credit-card__observaciones {
+  padding: .85rem 1rem;
+  border-radius: 12px;
+  background: var(--bco-gris);
+}
+.bankitos-credit-card__observaciones strong {
+  display: block;
+  margin-bottom: .3rem;
+}
+.bankitos-credit-card__form {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+.bankitos-credit-card__form textarea {
+  width: 100%;
+  padding: .75rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(0,115,179,.2);
+}
+.bankitos-credit-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+}
+.bankitos-credit-card__footnote {
+  margin: 0;
+  font-size: .85rem;
+  color: rgba(15,23,42,.6);
+}
+
+@media (max-width: 599px) {
+  .bankitos-credit-card__actions {
+    flex-direction: column;
+  }
+}
