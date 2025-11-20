@@ -19,6 +19,7 @@ if (!defined('BANKITOS_RECAPTCHA_SECRET'))define('BANKITOS_RECAPTCHA_SECRET', ''
 require_once BANKITOS_PATH . 'includes/class-bankitos-plugin.php';
 require_once BANKITOS_PATH . 'includes/class-bankitos-db.php';
 require_once BANKITOS_PATH . 'includes/class-bankitos-credit-requests.php';
+require_once BANKITOS_PATH . 'includes/class-bankitos-credit-payments.php';
 require_once BANKITOS_PATH . 'includes/class-bankitos-settings.php';
 require_once BANKITOS_PATH . 'includes/class-bankitos-cpt.php';
 require_once BANKITOS_PATH . 'includes/class-bankitos-access.php';

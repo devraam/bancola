@@ -22,6 +22,7 @@ class Bankitos_DB {
         $pays    = $wpdb->prefix . 'banco_loan_payments';
         $invites = $wpdb->prefix . 'banco_invites';
         $credits = $wpdb->prefix . 'banco_credit_requests';
+        $payments = $wpdb->prefix . 'banco_credit_payments';
 
         dbDelta("CREATE TABLE $members (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -117,6 +118,19 @@ class Bankitos_DB {
             KEY banco_user (banco_id, user_id)
         ) $charset;");
 
+        dbDelta("CREATE TABLE $payments (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            request_id BIGINT UNSIGNED NOT NULL,
+            user_id BIGINT UNSIGNED NOT NULL,
+            amount DECIMAL(12,2) NOT NULL,
+            attachment_id BIGINT UNSIGNED NULL,
+            status VARCHAR(20) NOT NULL DEFAULT 'pending',
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY request_user (request_id, user_id),
+            KEY request_status (request_id, status)
+        ) $charset;");
+        
         self::$members_table_exists = true;
         self::$invites_table_exists = true;
     }

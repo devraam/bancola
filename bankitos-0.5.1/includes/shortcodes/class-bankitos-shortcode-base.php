@@ -69,6 +69,9 @@ abstract class Bankitos_Shortcode_Base {
                 'role_updated'      => __('El rol del miembro ha sido actualizado.', 'bankitos'),
                 'credito_solicitado'=> __('Solicitud de crédito enviada al comité.', 'bankitos'),
                 'credito_actualizado'=> __('Decisión registrada correctamente.', 'bankitos'),
+                'pago_enviado'      => __('Pago enviado al tesorero para revisión.', 'bankitos'),
+                'pago_aprobado'     => __('Pago aprobado correctamente.', 'bankitos'),
+                'pago_rechazado'    => __('Pago marcado como rechazado.', 'bankitos'),
             ];
             if (!empty($map_ok[$ok])) {
                 $html .= '<div class="bankitos-success">' . esc_html($map_ok[$ok]) . '</div>';
@@ -120,6 +123,13 @@ abstract class Bankitos_Shortcode_Base {
             'credito_guardar' => __('No fue posible guardar la solicitud de crédito.', 'bankitos'),
             'credito_permiso' => __('No tienes permisos para realizar esta acción.', 'bankitos'),
             'credito_decision'=> __('No pudimos actualizar el estado del crédito.', 'bankitos'),
+            'pago_invalido'   => __('La información del pago es inválida.', 'bankitos'),
+            'pago_permiso'    => __('No tienes permisos para registrar este pago.', 'bankitos'),
+            'pago_archivo_subida' => __('Hubo un problema subiendo el comprobante.', 'bankitos'),
+            'pago_archivo_tamano' => __('El comprobante excede el tamaño permitido.', 'bankitos'),
+            'pago_archivo_tipo'   => __('El comprobante debe ser una imagen válida.', 'bankitos'),
+            'pago_archivo_seguro' => __('No pudimos proteger el comprobante subido.', 'bankitos'),
+            'pago_guardar'    => __('No fue posible guardar el pago.', 'bankitos'),
         ];
         $msg = $map[$err] ?? __('Ha ocurrido un error. Intenta nuevamente.', 'bankitos');
         $html .= '<div class="bankitos-error">' . esc_html($msg) . '</div>';

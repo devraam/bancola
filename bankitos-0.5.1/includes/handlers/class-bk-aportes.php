@@ -138,10 +138,13 @@ class BK_Aportes_Handler {
         if (!$nonce || !wp_verify_nonce($nonce, 'bankitos_aporte_download_' . $aporte_id)) {
             wp_die(__('No tienes permisos para ver este comprobante.', 'bankitos'), 403);
         }
-        if (!current_user_can('approve_aportes') && !current_user_can('audit_aportes')) {
+        $current_user = wp_get_current_user();
+        $is_owner     = (int) $current_user->ID === (int) get_post_field('post_author', $aporte_id);
+        $can_manage   = current_user_can('approve_aportes') || current_user_can('audit_aportes');
+        if (!$is_owner && !$can_manage) {
             wp_die(__('No tienes permisos para ver este comprobante.', 'bankitos'), 403);
         }
-        if (!self::check_same_banco($aporte_id, get_current_user_id())) {
+        if (!self::check_same_banco($aporte_id, $current_user->ID)) {
             wp_die(__('No tienes permisos para ver este comprobante.', 'bankitos'), 403);
         }
         $attachment_id = get_post_thumbnail_id($aporte_id);
