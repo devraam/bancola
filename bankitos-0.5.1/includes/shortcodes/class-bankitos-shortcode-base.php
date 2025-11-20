@@ -366,6 +366,7 @@ abstract class Bankitos_Shortcode_Base {
         $totals = [
             'ahorros'    => 0.0,
             'creditos'   => 0.0,
+            'creditos_count' => 0,
             'disponible' => 0.0,
         ];
 
@@ -415,6 +416,8 @@ abstract class Bankitos_Shortcode_Base {
                     $loan_ids[] = (int) $loan->id;
                 }
 
+                $totals['creditos_count'] = count($loans);
+                
                 $outstanding = $principal_total;
 
                 if ($loan_ids && (bool) $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $payments_table))) {
