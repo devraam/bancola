@@ -62,7 +62,7 @@ class Bankitos_Shortcode_Panel_Finanzas extends Bankitos_Shortcode_Panel_Base {
                           <td><?php echo esc_html(self::format_currency($monto)); ?></td>
                           <td>
                             <?php if ($thumb): ?>
-                              <a href="#" class="bankitos-receipt-link" data-receipt="<?php echo esc_url($thumb); ?>" data-title="<?php echo esc_attr(get_the_title()); ?>"><?php esc_html_e('Ver soporte', 'bankitos'); ?></a>
+                              <button type="button" class="bankitos-link bankitos-link--button bankitos-receipt-link" data-receipt="<?php echo esc_url($thumb); ?>" data-title="<?php echo esc_attr(get_the_title()); ?>"><?php esc_html_e('Ver soporte', 'bankitos'); ?></button>
                             <?php else: ?>
                               <span><?php esc_html_e('No disponible', 'bankitos'); ?></span>
                             <?php endif; ?>
@@ -205,7 +205,7 @@ class Bankitos_Shortcode_Panel_Finanzas extends Bankitos_Shortcode_Panel_Base {
                     <td><?php echo esc_html(self::format_currency($payment ? (float) $payment['amount'] : $quota)); ?></td>
                     <td>
                       <?php if ($receipt): ?>
-                        <a href="#" class="bankitos-receipt-link" data-receipt="<?php echo esc_url($receipt); ?>" data-title="<?php echo esc_attr(sprintf(__('Comprobante cuota %s', 'bankitos'), $i + 1)); ?>"><?php esc_html_e('Ver soporte', 'bankitos'); ?></a>
+                        <button type="button" class="bankitos-link bankitos-link--button bankitos-receipt-link" data-receipt="<?php echo esc_url($receipt); ?>" data-title="<?php echo esc_attr(sprintf(__('Comprobante cuota %s', 'bankitos'), $i + 1)); ?>"><?php esc_html_e('Ver soporte', 'bankitos'); ?></button>
                       <?php else: ?>
                         <span><?php esc_html_e('Pendiente', 'bankitos'); ?></span>
                       <?php endif; ?>
