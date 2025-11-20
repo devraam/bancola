@@ -93,7 +93,7 @@ class Bankitos_Shortcode_Tesorero_Creditos extends Bankitos_Shortcode_Panel_Base
                     <tr>
                       <td><?php echo esc_html(date_i18n(get_option('date_format'), strtotime($payment['created_at']))); ?></td>
                       <td><?php echo esc_html(self::format_currency((float) $payment['amount'])); ?></td>
-                      <td><?php echo $receipt ? '<a href="#" class="bankitos-receipt-link" data-receipt="' . esc_url($receipt) . '" data-title="' . esc_attr__('Comprobante de pago', 'bankitos') . '">' . esc_html__('Ver soporte', 'bankitos') . '</a>' : esc_html__('No disponible', 'bankitos'); ?></td>
+                      <td><?php echo $receipt ? '<button type="button" class="bankitos-link bankitos-link--button bankitos-receipt-link" data-receipt="' . esc_url($receipt) . '" data-title="' . esc_attr__('Comprobante de pago', 'bankitos') . '">' . esc_html__('Ver soporte', 'bankitos') . '</button>' : esc_html__('No disponible', 'bankitos'); ?></td>
                       <td><?php echo esc_html($status_labels[$payment['status']] ?? $payment['status']); ?></td>
                       <?php if ($can_moderate): ?>
                         <td>
