@@ -34,8 +34,7 @@ class BK_Aportes_Handler {
         return (array) apply_filters('bankitos_aporte_allowed_mimes', [
             'jpg|jpeg' => 'image/jpeg',
             'png'      => 'image/png',
-            'gif'      => 'image/gif',
-            'webp'     => 'image/webp',
+            'pdf'      => 'application/pdf',
         ]);
     }
 
@@ -61,7 +60,7 @@ class BK_Aportes_Handler {
                 wp_delete_post($aporte_id, true);
                 self::redirect_with('err','archivo_subida', site_url('/panel'));
             }
-            $max_size = (int) apply_filters('bankitos_aporte_max_filesize', 5 * MB_IN_BYTES);
+            $max_size = (int) apply_filters('bankitos_aporte_max_filesize', 1 * MB_IN_BYTES);
             if ($max_size > 0 && !empty($file['size']) && (int) $file['size'] > $max_size) {
                 wp_delete_post($aporte_id, true);
                 self::redirect_with('err','archivo_tamano', site_url('/panel'));
