@@ -77,7 +77,10 @@ class Bankitos_CPT {
             'publish_aportes','edit_aportes','edit_published_aportes','edit_private_aportes',
             'submit_aportes'
         ]);
-        self::grant_caps_to_role('veedor',[ 'read_banco','read_private_bancos','read_aporte','read_private_aportes','audit_aportes']);
+        self::grant_caps_to_role('veedor',[
+            'read_banco','read_private_bancos','read_aporte','read_private_aportes','audit_aportes',
+            'submit_aportes'
+        ]);
         self::grant_caps_to_role('socio_general',[
             'read_banco','read_private_bancos','read_aporte','submit_aportes','create_bancos','edit_banco','edit_bancos','publish_bancos'
         ]);
