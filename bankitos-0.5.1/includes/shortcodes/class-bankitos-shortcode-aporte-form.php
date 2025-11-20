@@ -37,11 +37,11 @@ class Bankitos_Shortcode_Aporte_Form extends Bankitos_Shortcode_Base {
               <input id="bk_monto" type="number" name="monto" step="0.01" min="1" required>
             </div>
             <div class="bankitos-field">
-              <label for="bk_comp"><?php esc_html_e('Comprobante (imagen)', 'bankitos'); ?></label>
-              <input id="bk_comp" type="file" name="comprobante" accept="image/*" required>
+              <label for="bk_comp"><?php esc_html_e('Comprobante (imagen o PDF, máximo 1MB)', 'bankitos'); ?></label>
+              <input id="bk_comp" type="file" name="comprobante" accept=".jpg,.jpeg,.png,.pdf,image/*" capture="environment" required>
             </div>
             <div class="bankitos-actions">
-              <button type="submit" class="bankitos-btn"><?php esc_html_e('Enviar aporte', 'bankitos'); ?></button>
+              <button type="submit" class="bankitos-btn"><?php esc_html_e('Registrar aporte', 'bankitos'); ?></button>
             </div>
           </form>
         </div>
