@@ -9,6 +9,7 @@ class Bankitos_Handlers {
     public static function init() {
         $base = BANKITOS_PATH . 'includes/handlers/';
         foreach (['class-bk-auth.php','class-bk-banco.php','class-bk-aportes.php','class-bk-invites.php','class-bk-creditos.php','class-bk-credit-payments.php'] as $f) {
+            $file = $base . $f;
             if (file_exists($file)) require_once $file;
         }
         if (class_exists('BK_Auth_Handler')) BK_Auth_Handler::init();
