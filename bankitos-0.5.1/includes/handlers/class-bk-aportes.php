@@ -96,10 +96,12 @@ class BK_Aportes_Handler {
         if (!$path) {
             return '';
         }
+        $download_base = admin_url('admin-post.php', 'relative');
+
         return wp_nonce_url(add_query_arg([
-            'action'  => 'bankitos_aporte_download',
-            'aporte'  => $aporte_id,
-        ], admin_url('admin-post.php')), 'bankitos_aporte_download_' . $aporte_id);
+            'action' => 'bankitos_aporte_download',
+            'aporte' => $aporte_id,
+        ], $download_base), 'bankitos_aporte_download_' . $aporte_id);
     }
 
     private static function check_same_banco($aporte_id, $user_id): bool {

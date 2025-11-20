@@ -88,7 +88,7 @@ class Bankitos_Shortcode_Tesorero_Creditos extends Bankitos_Shortcode_Panel_Base
                     $receipt = !empty($payment['attachment_id']) ? wp_nonce_url(add_query_arg([
                         'action'     => 'bankitos_credit_payment_download',
                         'payment_id' => (int) $payment['id'],
-                    ], admin_url('admin-post.php')), 'bankitos_credit_payment_download_' . (int) $payment['id']) : '';
+                    ], admin_url('admin-post.php', 'relative')), 'bankitos_credit_payment_download_' . (int) $payment['id']) : '';
                     ?>
                     <tr>
                       <td><?php echo esc_html(date_i18n(get_option('date_format'), strtotime($payment['created_at']))); ?></td>
