@@ -42,23 +42,23 @@ class Bankitos_Shortcode_Panel_Info extends Bankitos_Shortcode_Panel_Base {
               <dd class="bankitos-panel-info__value"><?php echo esc_html($context['cuota_text']); ?></dd>
             </div>
             <div class="bankitos-panel-info__row">
-              <dt class="bankitos-panel-info__label"><?php esc_html_e('Tasa', 'bankitos'); ?></dt>
+              <dt class="bankitos-panel-info__label"><?php esc_html_e('Tasa mensual', 'bankitos'); ?></dt>
               <dd class="bankitos-panel-info__value"><?php echo esc_html($context['tasa_text']); ?></dd>
             </div>
             <div class="bankitos-panel-info__row">
-              <dt class="bankitos-panel-info__label"><?php esc_html_e('Duración', 'bankitos'); ?></dt>
+              <dt class="bankitos-panel-info__label"><?php esc_html_e('Duracion del Banco', 'bankitos'); ?></dt>
               <dd class="bankitos-panel-info__value"><?php echo esc_html($context['duracion_text']); ?></dd>
             </div>
             <div class="bankitos-panel-info__row">
-              <dt class="bankitos-panel-info__label"><?php esc_html_e('Ahorros totales', 'bankitos'); ?></dt>
+              <dt class="bankitos-panel-info__label"><?php esc_html_e('Ahorro Total todos los socios', 'bankitos'); ?></dt>
               <dd class="bankitos-panel-info__value"><?php echo esc_html($context['ahorros_text']); ?></dd>
             </div>
             <div class="bankitos-panel-info__row">
-              <dt class="bankitos-panel-info__label"><?php esc_html_e('Créditos', 'bankitos'); ?></dt>
+              <dt class="bankitos-panel-info__label"><?php esc_html_e('Valor total de creditos/ Cantidad de creditos', 'bankitos'); ?></dt>
               <dd class="bankitos-panel-info__value"><?php echo esc_html($context['creditos_text']); ?></dd>
             </div>
             <div class="bankitos-panel-info__row">
-              <dt class="bankitos-panel-info__label"><?php esc_html_e('Disponible', 'bankitos'); ?></dt>
+              <dt class="bankitos-panel-info__label"><?php esc_html_e('Dinero Disponible para prestamos', 'bankitos'); ?></dt>
               <dd class="bankitos-panel-info__value"><?php echo esc_html($context['disponible_text']); ?></dd>
             </div>
           </dl>

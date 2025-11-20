@@ -93,7 +93,7 @@ abstract class Bankitos_Shortcode_Panel_Base extends Bankitos_Shortcode_Base {
             : esc_html__('No definida', 'bankitos');
 
         $context['ahorros_text']    = self::format_currency($totals['ahorros']);
-        $context['creditos_text']   = self::format_currency($totals['creditos']);
+        $context['creditos_text']   = sprintf('%s / %s', self::format_currency($totals['creditos']), number_format_i18n($totals['creditos_count']));
         $context['disponible_text'] = self::format_currency($totals['disponible']);
 
         $context['members'] = self::get_banco_members($banco_id);
