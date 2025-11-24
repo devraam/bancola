@@ -55,14 +55,20 @@ class Bankitos_Shortcode_Panel_Finanzas extends Bankitos_Shortcode_Panel_Base {
                         $monto = (float) get_post_meta($aporte_id, '_bankitos_monto', true);
                         $status = get_post_status($aporte_id);
                         $estado_label = self::aporte_status_label($status);
-                        $thumb = class_exists('BK_Aportes_Handler') ? BK_Aportes_Handler::get_comprobante_download_url($aporte_id) : '';
+                        // --- MODIFICADO: Usar el handler para obtener la URL de descarga segura ---
+                        $thumb_url = class_exists('BK_Aportes_Handler') ? BK_Aportes_Handler::get_comprobante_download_url($aporte_id) : '';
+                        $is_image = false;
+                        if ($thumb_url && class_exists('BK_Aportes_Handler')) {
+                            $is_image = BK_Aportes_Handler::is_file_image(get_post_thumbnail_id($aporte_id));
+                        }
+                        // --- FIN MODIFICADO ---
                         ?>
                         <tr>
                           <td><?php echo esc_html(get_the_date()); ?></td>
                           <td><?php echo esc_html(self::format_currency($monto)); ?></td>
                           <td>
-                            <?php if ($thumb): ?>
-                              <button type="button" class="bankitos-link bankitos-link--button bankitos-receipt-link" data-receipt="<?php echo esc_url($thumb); ?>" data-title="<?php echo esc_attr(get_the_title()); ?>"><?php esc_html_e('Ver soporte', 'bankitos'); ?></button>
+                            <?php if ($thumb_url): ?>
+                              <button type="button" class="bankitos-link bankitos-link--button bankitos-receipt-link" data-receipt="<?php echo esc_url($thumb_url); ?>" data-is-image="<?php echo $is_image ? '1' : '0'; ?>" data-title="<?php echo esc_attr(get_the_title()); ?>"><?php esc_html_e('Ver soporte', 'bankitos'); ?></button>
                             <?php else: ?>
                               <span><?php esc_html_e('No disponible', 'bankitos'); ?></span>
                             <?php endif; ?>
@@ -165,7 +171,7 @@ class Bankitos_Shortcode_Panel_Finanzas extends Bankitos_Shortcode_Panel_Base {
                 </div>
                 <div class="bankitos-field">
                   <label for="bk_payment_receipt_<?php echo esc_attr($credit['id']); ?>"><?php esc_html_e('Comprobante de pago', 'bankitos'); ?></label>
-                  <input id="bk_payment_receipt_<?php echo esc_attr($credit['id']); ?>" type="file" name="receipt" accept="image/*" required>
+                  <input id="bk_payment_receipt_<?php echo esc_attr($credit['id']); ?>" type="file" name="receipt" accept="image/*,application/pdf" required>
                 </div>
                 <button type="submit" class="bankitos-btn"><?php esc_html_e('Pagar cuota', 'bankitos'); ?></button>
               </form>
@@ -194,18 +200,25 @@ class Bankitos_Shortcode_Panel_Finanzas extends Bankitos_Shortcode_Panel_Base {
             <tbody>
               <?php for ($i = 0; $i < $term; $i++):
                   $payment = $payments[$i] ?? null;
-                  $receipt = $payment && !empty($payment['attachment_id']) ? wp_nonce_url(add_query_arg([
-                      'action'     => 'bankitos_credit_payment_download',
-                      'payment_id' => (int) $payment['id'],
-                  ], admin_url('admin-post.php', 'relative')), 'bankitos_credit_payment_download_' . (int) $payment['id']) : '';
+                  $receipt_url = '';
+                  $is_image = false;
+
+                  if ($payment && !empty($payment['attachment_id'])) {
+                      // --- MODIFICADO: Usar el handler para obtener la URL de descarga segura ---
+                      $receipt_url = class_exists('BK_Credit_Payments_Handler') ? BK_Credit_Payments_Handler::get_receipt_download_url((int) $payment['id']) : '';
+                      if ($receipt_url && class_exists('BK_Aportes_Handler')) {
+                          $is_image = BK_Aportes_Handler::is_file_image((int) $payment['attachment_id']);
+                      }
+                      // --- FIN MODIFICADO ---
+                  }
                   ?>
                   <tr>
                     <td><?php echo esc_html($i + 1); ?></td>
                     <td><?php echo $payment ? esc_html(date_i18n(get_option('date_format'), strtotime($payment['created_at']))) : esc_html__('Pendiente', 'bankitos'); ?></td>
                     <td><?php echo esc_html(self::format_currency($payment ? (float) $payment['amount'] : $quota)); ?></td>
                     <td>
-                      <?php if ($receipt): ?>
-                        <button type="button" class="bankitos-link bankitos-link--button bankitos-receipt-link" data-receipt="<?php echo esc_url($receipt); ?>" data-title="<?php echo esc_attr(sprintf(__('Comprobante cuota %s', 'bankitos'), $i + 1)); ?>"><?php esc_html_e('Ver soporte', 'bankitos'); ?></button>
+                      <?php if ($receipt_url): ?>
+                        <button type="button" class="bankitos-link bankitos-link--button bankitos-receipt-link" data-receipt="<?php echo esc_url($receipt_url); ?>" data-is-image="<?php echo $is_image ? '1' : '0'; ?>" data-title="<?php echo esc_attr(sprintf(__('Comprobante cuota %s', 'bankitos'), $i + 1)); ?>"><?php esc_html_e('Ver soporte', 'bankitos'); ?></button>
                       <?php else: ?>
                         <span><?php esc_html_e('Pendiente', 'bankitos'); ?></span>
                       <?php endif; ?>
@@ -221,7 +234,7 @@ class Bankitos_Shortcode_Panel_Finanzas extends Bankitos_Shortcode_Panel_Base {
     }
 
     private static function modal_markup(): string {
-        return '<div id="bankitos-modal" class="bankitos-modal" hidden><div class="bankitos-modal__backdrop"></div><div class="bankitos-modal__body"><button type="button" class="bankitos-modal__close" aria-label="' . esc_attr__('Cerrar', 'bankitos') . '">&times;</button><img src="" alt="" loading="lazy"></div></div>';
+        return '<div id="bankitos-modal" class="bankitos-modal" hidden><div class="bankitos-modal__backdrop"></div><div class="bankitos-modal__body"><button type="button" class="bankitos-modal__close" aria-label="' . esc_attr__('Cerrar', 'bankitos') . '">&times;</button><img src="" alt="" loading="lazy"><a href="#" target="_blank" class="bankitos-btn bankitos-modal__download-link" hidden>' . esc_html__('Descargar PDF', 'bankitos') . '</a></div></div>';
     }
 
     private static function inline_scripts(): string {
@@ -241,14 +254,37 @@ class Bankitos_Shortcode_Panel_Finanzas extends Bankitos_Shortcode_Panel_Base {
           if(modal){
             var backdrop = modal.querySelector('.bankitos-modal__backdrop');
             var closeBtn = modal.querySelector('.bankitos-modal__close');
-            function close(){modal.setAttribute('hidden','hidden'); var img=modal.querySelector('img'); if(img){img.removeAttribute('src');}}
+            var img = modal.querySelector('img');
+            var downloadLink = modal.querySelector('.bankitos-modal__download-link');
+
+            function close(){
+              modal.setAttribute('hidden','hidden'); 
+              if(img){img.removeAttribute('src');}
+              if(downloadLink){downloadLink.setAttribute('hidden',''); downloadLink.removeAttribute('href');}
+            }
             [backdrop, closeBtn].forEach(function(el){ if(el){ el.addEventListener('click', close); }});
+
             document.querySelectorAll('.bankitos-receipt-link').forEach(function(link){
               link.addEventListener('click', function(ev){
                 ev.preventDefault();
-                var img = modal.querySelector('img');
-                img.src = link.getAttribute('data-receipt');
-                img.alt = link.getAttribute('data-title') || '';
+                var receiptUrl = link.getAttribute('data-receipt');
+                var isImage = link.getAttribute('data-is-image') === '1';
+                var title = link.getAttribute('data-title') || '';
+                
+                if (isImage) {
+                    img.src = receiptUrl;
+                    img.alt = title;
+                    img.removeAttribute('hidden');
+                    if(downloadLink) { downloadLink.setAttribute('hidden',''); }
+                } else {
+                    // Si es PDF o no imagen, ocultar <img> y mostrar botón de descarga
+                    img.setAttribute('hidden', '');
+                    if(downloadLink) { 
+                      downloadLink.removeAttribute('hidden'); 
+                      downloadLink.setAttribute('href', receiptUrl);
+                    }
+                }
+                
                 modal.removeAttribute('hidden');
               });
             });
