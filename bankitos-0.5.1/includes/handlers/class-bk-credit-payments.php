@@ -204,8 +204,14 @@ class BK_Credit_Payments_Handler {
             wp_die(__('El comprobante no está disponible.', 'bankitos'), 404);
         }
         $mime = wp_check_filetype($path);
+        $content_type = $mime['type'] ?: (function_exists('mime_content_type') ? mime_content_type($path) : '');
         $filename = Bankitos_Secure_Files::get_download_filename($attachment_id);
-        header('Content-Type: ' . ($mime['type'] ?: 'application/octet-stream'));
+        
+        nocache_headers();
+        if (ob_get_length()) {
+            ob_clean();
+        }
+        header('Content-Type: ' . ($content_type ?: 'application/octet-stream'));
         header('Content-Disposition: inline; filename="' . basename($filename) . '"');
         header('Content-Length: ' . filesize($path));
         readfile($path);
