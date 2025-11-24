@@ -42,7 +42,9 @@ class BK_Aportes_Handler {
         return array_merge((array) $mimes, self::allowed_mimes());
     }
 
-    // --- NUEVO: Verificar si el archivo es una imagen ---
+    /**
+     * Verifica si un adjunto es un tipo de archivo de imagen (JPG, PNG, etc.).
+     */
     public static function is_file_image(int $attachment_id): bool {
         if ($attachment_id <= 0) {
             return false;
@@ -50,7 +52,6 @@ class BK_Aportes_Handler {
         $mime = get_post_mime_type($attachment_id);
         return strpos($mime, 'image/') === 0;
     }
-    // --- FIN NUEVO ---
 
     public static function aporte_submit() {
         if (!is_user_logged_in()) { wp_safe_redirect(site_url('/acceder')); exit; }
@@ -103,16 +104,7 @@ class BK_Aportes_Handler {
             return '';
         }
 
-        $attachment_url = wp_get_attachment_url($attachment_id);
-        $attached_path  = get_attached_file($attachment_id);
-
-        if ($attachment_url && $attached_path && file_exists($attached_path)) {
-            // Si el archivo NO está protegido (aún en uploads normal), se usa la URL directa.
-            // PERO si está protegido, la URL directa dará 403 (lo que está ocurriendo).
-            // Si está protegido, get_attached_file devuelve la ruta relativa, pero get_attachment_url puede dar la URL base.
-        }
-
-        // --- MODIFICADO: Generar URL de endpoint seguro ---
+        // Generar URL de endpoint seguro
         if (class_exists('Bankitos_Secure_Files')) {
             $path = Bankitos_Secure_Files::get_protected_path($attachment_id);
             if ($path) {
@@ -124,10 +116,9 @@ class BK_Aportes_Handler {
                 ], $download_base), 'bankitos_aporte_download_' . $aporte_id);
             }
         }
-        // --- FIN MODIFICADO ---
 
-        // Retorno de fallback (si el archivo no existe o no está protegido)
-        return $attachment_url ?: '';
+        // Fallback: si no está protegido
+        return wp_get_attachment_url($attachment_id) ?: '';
     }
 
     private static function check_same_banco($aporte_id, $user_id): bool {
@@ -167,9 +158,9 @@ class BK_Aportes_Handler {
         }
         $current_user = wp_get_current_user();
         
-        // --- MODIFICADO: Lógica de verificación de permisos robusta ---
-        $is_owner     = (int) $current_user->ID === (int) get_post_field('post_author', $aporte_id);
-        $can_manage   = current_user_can('approve_aportes') || current_user_can('audit_aportes');
+        // Lógica de verificación de permisos robusta
+        $is_owner     = (int) get_post_field('post_author', $aporte_id) === (int) $current_user->ID;
+        $can_manage   = user_can($current_user, 'approve_aportes') || user_can($current_user, 'audit_aportes');
         
         if (!$is_owner && !$can_manage) {
             wp_die(__('No tienes permisos para ver este comprobante.', 'bankitos'), 403);
@@ -177,7 +168,6 @@ class BK_Aportes_Handler {
         if (!self::check_same_banco($aporte_id, $current_user->ID)) {
             wp_die(__('No tienes permisos para ver este comprobante.', 'bankitos'), 403);
         }
-        // --- FIN MODIFICADO ---
 
         $attachment_id = get_post_thumbnail_id($aporte_id);
         if (!$attachment_id || !class_exists('Bankitos_Secure_Files')) {
@@ -189,8 +179,11 @@ class BK_Aportes_Handler {
         }
         $mime = wp_check_filetype($path);
         $filename = Bankitos_Secure_Files::get_download_filename($attachment_id);
+        
+        // Configuración para mostrar el archivo EN LÍNEA (inline)
         header('Content-Type: ' . ($mime['type'] ?: 'application/octet-stream'));
-        header('Content-Disposition: inline; filename="' . basename($filename) . '"');
+        header('Content-Disposition: inline; filename="' . basename($filename) . '"'); // Cambio clave: 'inline'
+        
         header('Content-Length: ' . filesize($path));
         readfile($path);
         exit;

@@ -234,7 +234,8 @@ class Bankitos_Shortcode_Panel_Finanzas extends Bankitos_Shortcode_Panel_Base {
     }
 
     private static function modal_markup(): string {
-        return '<div id="bankitos-modal" class="bankitos-modal" hidden><div class="bankitos-modal__backdrop"></div><div class="bankitos-modal__body"><button type="button" class="bankitos-modal__close" aria-label="' . esc_attr__('Cerrar', 'bankitos') . '">&times;</button><img src="" alt="" loading="lazy"><a href="#" target="_blank" class="bankitos-btn bankitos-modal__download-link" hidden>' . esc_html__('Descargar PDF', 'bankitos') . '</a></div></div>';
+        // El <img> se inicializa sin src. El JS lo establecerá condicionalmente.
+        return '<div id="bankitos-modal" class="bankitos-modal" hidden><div class="bankitos-modal__backdrop"></div><div class="bankitos-modal__body"><button type="button" class="bankitos-modal__close" aria-label="' . esc_attr__('Cerrar', 'bankitos') . '">&times;</button><img src="" alt="" loading="lazy"></div></div>';
     }
 
     private static function inline_scripts(): string {
@@ -255,12 +256,14 @@ class Bankitos_Shortcode_Panel_Finanzas extends Bankitos_Shortcode_Panel_Base {
             var backdrop = modal.querySelector('.bankitos-modal__backdrop');
             var closeBtn = modal.querySelector('.bankitos-modal__close');
             var img = modal.querySelector('img');
-            var downloadLink = modal.querySelector('.bankitos-modal__download-link');
+            // var downloadLink = modal.querySelector('.bankitos-modal__download-link'); // No se usa en este modal
 
             function close(){
               modal.setAttribute('hidden','hidden'); 
-              if(img){img.removeAttribute('src');}
-              if(downloadLink){downloadLink.setAttribute('hidden',''); downloadLink.removeAttribute('href');}
+              if(img){
+                img.removeAttribute('src'); // Limpiar src al cerrar
+                img.setAttribute('hidden', ''); // Asegurar que la imagen se oculta
+              }
             }
             [backdrop, closeBtn].forEach(function(el){ if(el){ el.addEventListener('click', close); }});
 
@@ -274,18 +277,14 @@ class Bankitos_Shortcode_Panel_Finanzas extends Bankitos_Shortcode_Panel_Base {
                 if (isImage) {
                     img.src = receiptUrl;
                     img.alt = title;
-                    img.removeAttribute('hidden');
-                    if(downloadLink) { downloadLink.setAttribute('hidden',''); }
+                    img.removeAttribute('hidden'); // Mostrar la imagen
+                    modal.removeAttribute('hidden'); // Mostrar el modal
                 } else {
-                    // Si es PDF o no imagen, ocultar <img> y mostrar botón de descarga
-                    img.setAttribute('hidden', '');
-                    if(downloadLink) { 
-                      downloadLink.removeAttribute('hidden'); 
-                      downloadLink.setAttribute('href', receiptUrl);
-                    }
+                    // Si es PDF o no imagen, ocultar <img> y abrir en nueva pestaña para forzar descarga/vista en navegador
+                    img.setAttribute('hidden', ''); // Ocultar la imagen
+                    window.open(receiptUrl, '_blank'); // Abrir en nueva pestaña
+                    // No mostramos el modal si se abre en otra pestaña
                 }
-                
-                modal.removeAttribute('hidden');
               });
             });
           }
