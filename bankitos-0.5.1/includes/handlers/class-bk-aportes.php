@@ -104,13 +104,19 @@ class BK_Aportes_Handler {
             return '';
         }
 
-        // Generar URL de endpoint seguro
+        // Siempre intentamos servir la URL directa del adjunto, que es la que
+        // WordPress almacena en la base de datos y que funciona tanto en
+        // modales como en nuevas pestañas.
+        $public_url = wp_get_attachment_url($attachment_id);
+        if ($public_url) {
+            return $public_url;
+        }
+
+        // Fallback: si no tenemos URL pública intentamos el endpoint seguro.
         if (class_exists('Bankitos_Secure_Files')) {
             $path = Bankitos_Secure_Files::get_protected_path($attachment_id);
             if ($path) {
-                // Usamos la URL absoluta para evitar rutas incorrectas en sitios instalados en subdirectorios.
                 $download_base = admin_url('admin-post.php');
-                // Devolvemos el endpoint de WordPress para la descarga segura
                 return wp_nonce_url(add_query_arg([
                     'action' => 'bankitos_aporte_download',
                     'aporte' => $aporte_id,
@@ -118,8 +124,7 @@ class BK_Aportes_Handler {
             }
         }
 
-        // Fallback: si no está protegido
-        return wp_get_attachment_url($attachment_id) ?: '';
+        return '';
     }
 
     private static function check_same_banco($aporte_id, $user_id): bool {
