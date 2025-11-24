@@ -108,7 +108,8 @@ class BK_Aportes_Handler {
         if (class_exists('Bankitos_Secure_Files')) {
             $path = Bankitos_Secure_Files::get_protected_path($attachment_id);
             if ($path) {
-                $download_base = admin_url('admin-post.php', 'relative');
+                // Usamos la URL absoluta para evitar rutas incorrectas en sitios instalados en subdirectorios.
+                $download_base = admin_url('admin-post.php');
                 // Devolvemos el endpoint de WordPress para la descarga segura
                 return wp_nonce_url(add_query_arg([
                     'action' => 'bankitos_aporte_download',
