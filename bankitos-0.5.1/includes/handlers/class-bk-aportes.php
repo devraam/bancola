@@ -103,14 +103,9 @@ class BK_Aportes_Handler {
         if (!$attachment_id) {
             return '';
         }
-        // Siempre intentamos devolver la URL pública del adjunto para que pueda
-        // visualizarse directamente en el modal (ej. en /wp-content/uploads/...).
-        $public_url = wp_get_attachment_url($attachment_id);
-        if ($public_url) {
-            return $public_url;
-        }
-
-        // Último recurso: usar endpoint seguro si existe ruta protegida.
+        // Primero intentamos construir la URL segura para archivos protegidos
+        // (bankitos-private). Esto garantiza que el usuario vea el soporte aun
+        // cuando no exista una ruta pública directa en la biblioteca de medios.
         if (class_exists('Bankitos_Secure_Files')) {
             $path = Bankitos_Secure_Files::get_protected_path($attachment_id);
             if ($path) {
@@ -122,7 +117,9 @@ class BK_Aportes_Handler {
             }
         }
 
-        return '';
+        // Si no está protegido, devolvemos la URL pública del adjunto.
+        $public_url = wp_get_attachment_url($attachment_id);
+        return $public_url ?: '';
     }
 
     private static function check_same_banco($aporte_id, $user_id): bool {
