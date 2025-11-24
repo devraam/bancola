@@ -103,17 +103,8 @@ class BK_Aportes_Handler {
         if (!$attachment_id) {
             return '';
         }
-        $download_base = admin_url('admin-post.php');
-        
-        // Si el archivo está protegido (bankitos-private), forzamos el endpoint seguro.
-        if (class_exists('Bankitos_Secure_Files') && Bankitos_Secure_Files::get_protected_path($attachment_id)) {
-            return wp_nonce_url(add_query_arg([
-                'action' => 'bankitos_aporte_download',
-                'aporte' => $aporte_id,
-            ], $download_base), 'bankitos_aporte_download_' . $aporte_id);
-        }
-
-        // Fallback para adjuntos antiguos/no protegidos.
+        // Siempre intentamos devolver la URL pública del adjunto para que pueda
+        // visualizarse directamente en el modal (ej. en /wp-content/uploads/...).
         $public_url = wp_get_attachment_url($attachment_id);
         if ($public_url) {
             return $public_url;
@@ -123,6 +114,7 @@ class BK_Aportes_Handler {
         if (class_exists('Bankitos_Secure_Files')) {
             $path = Bankitos_Secure_Files::get_protected_path($attachment_id);
             if ($path) {
+                $download_base = admin_url('admin-post.php');
                 return wp_nonce_url(add_query_arg([
                     'action' => 'bankitos_aporte_download',
                     'aporte' => $aporte_id,
