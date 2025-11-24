@@ -89,19 +89,30 @@ class BK_Aportes_Handler {
 
     public static function get_comprobante_download_url(int $aporte_id): string {
         $attachment_id = get_post_thumbnail_id($aporte_id);
-        if (!$attachment_id || !class_exists('Bankitos_Secure_Files')) {
+        if (!$attachment_id) {
             return '';
         }
-        $path = Bankitos_Secure_Files::get_protected_path($attachment_id);
-        if (!$path) {
-            return '';
-        }
-        $download_base = admin_url('admin-post.php', 'relative');
 
-        return wp_nonce_url(add_query_arg([
-            'action' => 'bankitos_aporte_download',
-            'aporte' => $aporte_id,
-        ], $download_base), 'bankitos_aporte_download_' . $aporte_id);
+        $attachment_url = wp_get_attachment_url($attachment_id);
+        $attached_path  = get_attached_file($attachment_id);
+
+        if ($attachment_url && $attached_path && file_exists($attached_path)) {
+            return $attachment_url;
+        }
+
+        if (class_exists('Bankitos_Secure_Files')) {
+            $path = Bankitos_Secure_Files::get_protected_path($attachment_id);
+            if ($path) {
+                $download_base = admin_url('admin-post.php', 'relative');
+
+                return wp_nonce_url(add_query_arg([
+                    'action' => 'bankitos_aporte_download',
+                    'aporte' => $aporte_id,
+                ], $download_base), 'bankitos_aporte_download_' . $aporte_id);
+            }
+        }
+
+        return $attachment_url ?: '';
     }
 
     private static function check_same_banco($aporte_id, $user_id): bool {
