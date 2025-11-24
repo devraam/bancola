@@ -42,6 +42,16 @@ class BK_Aportes_Handler {
         return array_merge((array) $mimes, self::allowed_mimes());
     }
 
+    // --- NUEVO: Verificar si el archivo es una imagen ---
+    public static function is_file_image(int $attachment_id): bool {
+        if ($attachment_id <= 0) {
+            return false;
+        }
+        $mime = get_post_mime_type($attachment_id);
+        return strpos($mime, 'image/') === 0;
+    }
+    // --- FIN NUEVO ---
+
     public static function aporte_submit() {
         if (!is_user_logged_in()) { wp_safe_redirect(site_url('/acceder')); exit; }
         check_admin_referer('bankitos_aporte_submit');
@@ -97,21 +107,26 @@ class BK_Aportes_Handler {
         $attached_path  = get_attached_file($attachment_id);
 
         if ($attachment_url && $attached_path && file_exists($attached_path)) {
-            return $attachment_url;
+            // Si el archivo NO está protegido (aún en uploads normal), se usa la URL directa.
+            // PERO si está protegido, la URL directa dará 403 (lo que está ocurriendo).
+            // Si está protegido, get_attached_file devuelve la ruta relativa, pero get_attachment_url puede dar la URL base.
         }
 
+        // --- MODIFICADO: Generar URL de endpoint seguro ---
         if (class_exists('Bankitos_Secure_Files')) {
             $path = Bankitos_Secure_Files::get_protected_path($attachment_id);
             if ($path) {
                 $download_base = admin_url('admin-post.php', 'relative');
-
+                // Devolvemos el endpoint de WordPress para la descarga segura
                 return wp_nonce_url(add_query_arg([
                     'action' => 'bankitos_aporte_download',
                     'aporte' => $aporte_id,
                 ], $download_base), 'bankitos_aporte_download_' . $aporte_id);
             }
         }
+        // --- FIN MODIFICADO ---
 
+        // Retorno de fallback (si el archivo no existe o no está protegido)
         return $attachment_url ?: '';
     }
 
@@ -151,14 +166,19 @@ class BK_Aportes_Handler {
             wp_die(__('No tienes permisos para ver este comprobante.', 'bankitos'), 403);
         }
         $current_user = wp_get_current_user();
+        
+        // --- MODIFICADO: Lógica de verificación de permisos robusta ---
         $is_owner     = (int) $current_user->ID === (int) get_post_field('post_author', $aporte_id);
         $can_manage   = current_user_can('approve_aportes') || current_user_can('audit_aportes');
+        
         if (!$is_owner && !$can_manage) {
             wp_die(__('No tienes permisos para ver este comprobante.', 'bankitos'), 403);
         }
         if (!self::check_same_banco($aporte_id, $current_user->ID)) {
             wp_die(__('No tienes permisos para ver este comprobante.', 'bankitos'), 403);
         }
+        // --- FIN MODIFICADO ---
+
         $attachment_id = get_post_thumbnail_id($aporte_id);
         if (!$attachment_id || !class_exists('Bankitos_Secure_Files')) {
             wp_die(__('El comprobante no está disponible.', 'bankitos'), 404);
