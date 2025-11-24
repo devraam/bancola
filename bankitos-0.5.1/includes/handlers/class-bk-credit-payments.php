@@ -128,6 +128,20 @@ class BK_Credit_Payments_Handler {
         self::moderate_payment('rejected');
     }
 
+    public static function get_receipt_download_url(int $payment_id): string {
+        if ($payment_id <= 0) {
+            return '';
+        }
+
+        $download_base = admin_url('admin-post.php');
+
+        // Siempre usamos el endpoint seguro porque los adjuntos se guardan en bankitos-private.
+        return wp_nonce_url(add_query_arg([
+            'action'     => 'bankitos_credit_payment_download',
+            'payment_id' => $payment_id,
+        ], $download_base), 'bankitos_credit_payment_download_' . $payment_id);
+    }
+    
     private static function moderate_payment(string $status): void {
         if (!is_user_logged_in()) {
             wp_safe_redirect(site_url('/acceder'));
