@@ -52,11 +52,19 @@ class Bankitos_Shortcode_Tesorero_List extends Bankitos_Shortcode_Base {
                   $monto     = get_post_meta($aporte_id, '_bankitos_monto', true);
                   $author    = get_userdata(get_post_field('post_author', $aporte_id));
                   $thumb     = class_exists('BK_Aportes_Handler') ? BK_Aportes_Handler::get_comprobante_view_src($aporte_id) : '';
+                  $is_image  = false;
+                  if ($thumb && class_exists('BK_Aportes_Handler')) {
+                      $is_image = BK_Aportes_Handler::is_file_image(get_post_thumbnail_id($aporte_id));
+                  }
               ?>
                 <tr>
                   <td><?php echo esc_html($author ? ($author->display_name ?: $author->user_login) : '—'); ?></td>
                   <td><strong><?php echo esc_html(number_format((float) $monto, 2, ',', '.')); ?></strong></td>
-                  <td><?php if ($thumb): ?><a href="<?php echo esc_url($thumb); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e('Ver comprobante', 'bankitos'); ?></a><?php else: ?>—<?php endif; ?></td>
+                  <td>
+                    <?php if ($thumb): ?>
+                      <button type="button" class="bankitos-link bankitos-link--button bankitos-receipt-link" data-receipt="<?php echo esc_url($thumb); ?>" data-is-image="<?php echo $is_image ? '1' : '0'; ?>" data-title="<?php echo esc_attr(get_the_title()); ?>"><?php esc_html_e('Ver comprobante', 'bankitos'); ?></button>
+                    <?php else: ?>—<?php endif; ?>
+                  </td>
                   <td>
                     <?php $redirect = self::get_current_url(); ?>
                     <a class="button" href="<?php echo esc_url(wp_nonce_url(add_query_arg(['action' => 'bankitos_aporte_approve', 'aporte' => $aporte_id, 'redirect_to' => $redirect], admin_url('admin-post.php')), 'bankitos_aporte_mod')); ?>"><?php esc_html_e('Aprobar', 'bankitos'); ?></a>
@@ -69,6 +77,57 @@ class Bankitos_Shortcode_Tesorero_List extends Bankitos_Shortcode_Base {
             <?php echo self::render_aporte_pagination($q, $filters['page_key'], $filters['query_args'], $filters['page']); ?>
           <?php endif; ?>
         </div>
+        <?php echo self::modal_markup(); ?>
+        <?php echo self::inline_scripts(); ?>
+        <?php
+        return ob_get_clean();
+    }
+
+    protected static function modal_markup(): string {
+        // El <img> se inicializa sin src. El JS lo establecerá condicionalmente.
+        return '<div id="bankitos-modal" class="bankitos-modal" hidden><div class="bankitos-modal__backdrop"></div><div class="bankitos-modal__body"><button type="button" class="bankitos-modal__close" aria-label="' . esc_attr__('Cerrar', 'bankitos') . '">&times;</button><img src="" alt="" loading="lazy"></div></div>';
+    }
+
+    protected static function inline_scripts(): string {
+        ob_start(); ?>
+        <script>
+        (function(){
+          var modal = document.getElementById('bankitos-modal');
+          if(!modal){return;}
+          var backdrop = modal.querySelector('.bankitos-modal__backdrop');
+          var closeBtn = modal.querySelector('.bankitos-modal__close');
+          var img = modal.querySelector('img');
+
+          function close(){ 
+            modal.setAttribute('hidden','hidden'); 
+            if(img){
+              img.removeAttribute('src'); 
+              img.setAttribute('hidden', ''); 
+            }
+          }
+          [backdrop, closeBtn].forEach(function(el){ if(el){ el.addEventListener('click', close); }});
+
+          document.querySelectorAll('.bankitos-receipt-link').forEach(function(link){
+            link.addEventListener('click', function(ev){
+              ev.preventDefault();
+              var receiptUrl = link.getAttribute('data-receipt');
+              var isImage = link.getAttribute('data-is-image') === '1';
+              var title = link.getAttribute('data-title') || '';
+              
+              if (isImage) {
+                  img.src = receiptUrl;
+                  img.alt = title;
+                  img.removeAttribute('hidden');
+                  modal.removeAttribute('hidden');
+              } else {
+                  // Si es PDF o no imagen, ocultar <img> y abrir en nueva pestaña para forzar descarga/vista en navegador
+                  img.setAttribute('hidden', '');
+                  window.open(receiptUrl, '_blank');
+              }
+            });
+          });
+        })();
+        </script>
         <?php
         return ob_get_clean();
     }

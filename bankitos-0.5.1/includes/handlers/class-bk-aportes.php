@@ -100,7 +100,7 @@ class BK_Aportes_Handler {
     }
 
     public static function get_comprobante_download_url(int $aporte_id): string {
-        return self::get_comprobante_view_url($aporte_id);
+        return self::build_secure_comprobante_url($aporte_id, 'bankitos_aporte_download_', 'bankitos_aporte_download');
     }
 
     public static function get_comprobante_view_url(int $aporte_id): string {
@@ -108,8 +108,8 @@ class BK_Aportes_Handler {
     }
 
     /**
-     * Obtiene una URL accesible directamente por el navegador para visualizar el comprobante.
-     * Valida que el usuario tenga permisos para verlo y apunta al archivo real (protegido o público).
+     * Obtiene una URL accesible por el navegador para visualizar el comprobante.
+     * Siempre devuelve la URL del handler seguro (admin-post.php) si el archivo está protegido.
      */
     public static function get_comprobante_view_src(int $aporte_id): string {
         if (!is_user_logged_in()) {
@@ -137,21 +137,13 @@ class BK_Aportes_Handler {
             return '';
         }
 
-        // 1) Si tenemos la URL protegida real, úsala (es la ruta directa del archivo).
-        if (class_exists('Bankitos_Secure_Files')) {
-            $protected_url = Bankitos_Secure_Files::get_protected_url($attachment_id);
-            if ($protected_url) {
-                return $protected_url;
-            }
-
-         // 2) Si no hay URL protegida disponible, intentamos el endpoint seguro con nonce.
-            $secure_url = self::get_comprobante_view_url($aporte_id);
-            if ($secure_url) {
-                return $secure_url;
-            }
+        // 1) Si el archivo está protegido, SIEMPRE usamos el endpoint seguro con nonce (admin-post.php).
+        $secure_url = self::get_comprobante_view_url($aporte_id);
+        if ($secure_url) {
+            return $secure_url;
         }
 
-        // 3) Último recurso: la URL pública del adjunto.
+        // 2) Último recurso: la URL pública del adjunto (si el sistema de protección no se aplicó o falló).
         return wp_get_attachment_url($attachment_id) ?: '';
     }
 
