@@ -247,9 +247,14 @@ class BK_Aportes_Handler {
         $content_type = $mime['type'] ?: 'application/octet-stream';
         $filename = Bankitos_Secure_Files::get_download_filename($attachment_id);
         
-        // --- CRITICAL FIX: Clear all output buffers to prevent file corruption ---
-        if (ob_get_length()) {
-            ob_clean();
+        // **FIX: Ensure all output buffers are flushed/cleaned and stop gzip compression.**
+        // Desactivar compresión GZIP si está activa para evitar que interfiera con la salida binaria.
+        @ini_set('zlib.output_compression', 'Off'); 
+        
+        // Limpiar todos los buffers de salida para evitar que se envíen datos inesperados.
+        // Se usa un bucle para limpiar múltiples niveles de buffer.
+        while (ob_get_level() > 0) {
+            ob_end_clean();
         }
         
         nocache_headers();
