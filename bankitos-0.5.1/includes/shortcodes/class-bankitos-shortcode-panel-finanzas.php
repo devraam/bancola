@@ -82,49 +82,56 @@ class Bankitos_Shortcode_Panel_Finanzas extends Bankitos_Shortcode_Panel_Base {
           var closeBtn = modal.querySelector('.bankitos-modal__close');
           var img = modal.querySelector('img');
 
-          function close(){ 
+          function close(){
             modal.setAttribute('hidden','hidden'); 
             if(img){
-              img.removeAttribute('src'); 
+              img.removeAttribute('src');
               img.setAttribute('hidden', ''); 
             }
           }
+
           [backdrop, closeBtn].forEach(function(el){ if(el){ el.addEventListener('click', close); }});
 
-          document.querySelectorAll('.bankitos-receipt-link').forEach(function(link){
-            link.addEventListener('click', function(ev){
-              ev.preventDefault();
-              var receiptUrl = link.getAttribute('data-receipt');
-              var isImage = link.getAttribute('data-is-image') === '1';
-              var title = link.getAttribute('data-title') || '';
-              
-              if (isImage) {
-                  // Mostrar en modal solo si la imagen carga bien; en caso contrario, abrir en nueva pestaña.
-                  if (img) {
-                    img.onload = function(){
-                      img.onload = null;
-                      img.onerror = null;
-                      img.removeAttribute('hidden');
-                      modal.removeAttribute('hidden');
-                    };
-                    img.onerror = function(){
-                      img.onload = null;
-                      img.onerror = null;
-                      img.setAttribute('hidden', '');
-                      modal.setAttribute('hidden','hidden');
-                      window.open(receiptUrl, '_blank');
-                    };
-                    img.alt = title;
-                    img.src = receiptUrl;
-                  } else {
-                    window.open(receiptUrl, '_blank');
-                  }
-              } else {
-                  // Si es PDF o no imagen, ocultar <img> y abrir en nueva pestaña para forzar descarga/vista en navegador
-                  img.setAttribute('hidden', '');
-                  window.open(receiptUrl, '_blank');
-              }
-            });
+          function openReceipt(receiptUrl, isImage, title){
+            if (!receiptUrl){ return; }
+
+            if (isImage && img) {
+              // Mostrar en modal solo si la imagen carga bien; en caso contrario, abrir en nueva pestaña.
+              img.onload = function(){
+                img.onload = null;
+                img.onerror = null;
+                img.removeAttribute('hidden');
+                modal.removeAttribute('hidden');
+              };
+              img.onerror = function(){
+                img.onload = null;
+                img.onerror = null;
+                img.setAttribute('hidden', '');
+                modal.setAttribute('hidden','hidden');
+                window.open(receiptUrl, '_blank');
+              };
+              img.alt = title || '';
+              img.src = receiptUrl;
+              // Abrir modal mientras se carga para dar feedback inmediato
+              modal.removeAttribute('hidden');
+              return;
+            }
+
+            // Si es PDF o no imagen, ocultar <img> y abrir en nueva pestaña para forzar descarga/vista en navegador
+            if (img) {
+              img.setAttribute('hidden', '');
+            }
+            window.open(receiptUrl, '_blank');
+          }
+
+          document.addEventListener('click', function(ev){
+            var link = ev.target.closest('.bankitos-receipt-link');
+            if (!link){ return; }
+            ev.preventDefault();
+            var receiptUrl = link.getAttribute('data-receipt');
+            var isImage = link.getAttribute('data-is-image') === '1';
+            var title = link.getAttribute('data-title') || '';
+            openReceipt(receiptUrl, isImage, title);
           });
         })();
         </script>
