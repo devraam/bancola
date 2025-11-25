@@ -137,24 +137,21 @@ class BK_Aportes_Handler {
             return '';
         }
 
-        $protected_path = class_exists('Bankitos_Secure_Files')
-            ? Bankitos_Secure_Files::get_protected_path($attachment_id)
-            : '';
-
-        // Si el archivo está protegido, intentamos devolver primero la URL real del archivo.
-        if ($protected_path && class_exists('Bankitos_Secure_Files')) {
+        // 1) Si tenemos la URL protegida real, úsala (es la ruta directa del archivo).
+        if (class_exists('Bankitos_Secure_Files')) {
             $protected_url = Bankitos_Secure_Files::get_protected_url($attachment_id);
             if ($protected_url) {
                 return $protected_url;
             }
 
+         // 2) Si no hay URL protegida disponible, intentamos el endpoint seguro con nonce.
             $secure_url = self::get_comprobante_view_url($aporte_id);
             if ($secure_url) {
                 return $secure_url;
             }
         }
 
-        // Si no está protegido (o algo falló generando el enlace seguro), devolvemos la URL pública.
+        // 3) Último recurso: la URL pública del adjunto.
         return wp_get_attachment_url($attachment_id) ?: '';
     }
 
