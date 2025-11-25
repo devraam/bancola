@@ -108,43 +108,25 @@ class BK_Aportes_Handler {
     }
 
     /**
-     * Obtiene una URL accesible por el navegador para visualizar el comprobante.
-     * Siempre devuelve la URL del handler seguro (admin-post.php) si el archivo está protegido.
+     * Obtiene una URL accesible públicamente para visualizar el comprobante.
+     *
+     * Se prioriza la URL pública del adjunto para que cualquier usuario/navegador
+     * pueda cargar la imagen o PDF directamente en el modal.
      */
     public static function get_comprobante_view_src(int $aporte_id): string {
-        if (!is_user_logged_in()) {
-            return '';
-        }
-
         $attachment_id = get_post_thumbnail_id($aporte_id);
         if ($attachment_id <= 0) {
             return '';
         }
 
-        $current_user = wp_get_current_user();
-        if (!$current_user || !$current_user->ID) {
-            return '';
+        // 1) URL pública estándar del adjunto.
+        $public_url = wp_get_attachment_url($attachment_id);
+        if ($public_url) {
+            return $public_url;
         }
 
-        $is_owner   = (int) get_post_field('post_author', $aporte_id) === (int) $current_user->ID;
-        $can_manage = user_can($current_user, 'approve_aportes') || user_can($current_user, 'audit_aportes');
-
-        if (!$is_owner && !$can_manage) {
-            return '';
-        }
-
-        if (!self::check_same_banco($aporte_id, $current_user->ID)) {
-            return '';
-        }
-
-        // 1) Si el archivo está protegido, SIEMPRE usamos el endpoint seguro con nonce (admin-post.php).
-        $secure_url = self::get_comprobante_view_url($aporte_id);
-        if ($secure_url) {
-            return $secure_url;
-        }
-
-        // 2) Último recurso: la URL pública del adjunto (si el sistema de protección no se aplicó o falló).
-        return wp_get_attachment_url($attachment_id) ?: '';
+        // 2) Último recurso: el endpoint seguro (si el archivo sigue protegido).
+        return self::get_comprobante_view_url($aporte_id);
     }
 
     private static function build_secure_comprobante_url(int $aporte_id, string $nonce_action, string $action): string {
