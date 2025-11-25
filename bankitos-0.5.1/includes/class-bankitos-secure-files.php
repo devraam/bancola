@@ -6,6 +6,8 @@ class Bankitos_Secure_Files {
     private const META_NAME = '_bankitos_secure_name';
 
     public static function init(): void {
+        // Aseguramos que la carpeta sea accesible públicamente incluso si no se cargan archivos en esta petición.
+        self::ensure_storage_dir();
         add_action('delete_attachment', [__CLASS__, 'delete_protected_file']);
     }
 
@@ -80,15 +82,12 @@ class Bankitos_Secure_Files {
 
     private static function ensure_access_controls(string $dir): void {
         $htaccess = trailingslashit($dir) . '.htaccess';
-        $htaccess_contents = "Options +Indexes\nRequire all granted\n";
+        $htaccess_contents = "Options +Indexes\nRequire all granted\n<FilesMatch \\\"\\.php$\\\">\n    Require all denied\n</FilesMatch>\n";
         file_put_contents($htaccess, $htaccess_contents);
-        
+
         $index = trailingslashit($dir) . 'index.php';
         if (file_exists($index)) {
-            $contents = file_get_contents($index);
-            if ($contents !== false && strpos($contents, 'http_response_code(403)') !== false) {
-                unlink($index);
-            }
+            unlink($index);
         }
     }
 
