@@ -104,8 +104,12 @@ class BK_Aportes_Handler {
     }
 
     public static function get_comprobante_view_url(int $aporte_id): string {
+        return self::build_secure_comprobante_url($aporte_id, 'bankitos_aporte_view_', 'bankitos_aporte_view');
+    }
+
+    private static function build_secure_comprobante_url(int $aporte_id, string $nonce_action, string $action): string {
         $attachment_id = get_post_thumbnail_id($aporte_id);
-        if (!$attachment_id) {
+        if ($attachment_id <= 0) {
             return '';
         }
         if (function_exists('get_post_mime_type')) {
@@ -114,15 +118,21 @@ class BK_Aportes_Handler {
                 return '';
             }
         }
+        if (!class_exists('Bankitos_Secure_Files')) {
+            return '';
+        }
+        // Verificamos que el archivo protegido exista antes de generar el enlace seguro.
+        $path = Bankitos_Secure_Files::get_protected_path($attachment_id);
+        if (!$path) {
+            return '';
+        }
+        
+        $download_base = admin_url('admin-post.php');
 
-        $public_url = '';
-        if (class_exists('Bankitos_Secure_Files')) {
-            $public_url = Bankitos_Secure_Files::get_protected_url($attachment_id);
-        }
-        if (!$public_url) {
-            $public_url = wp_get_attachment_url($attachment_id);
-        }
-        return $public_url ?: '';
+        return wp_nonce_url(add_query_arg([
+            'action' => $action,
+            'aporte' => $aporte_id,
+        ], $download_base), $nonce_action . $aporte_id);
     }
 
     private static function check_same_banco($aporte_id, $user_id): bool {
