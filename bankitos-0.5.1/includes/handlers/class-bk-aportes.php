@@ -202,45 +202,67 @@ class BK_Aportes_Handler {
         self::redirect_with('ok','aporte_rechazado', site_url('/panel'));
     }
 
+    /**
+     * Streams the protected aporte file, handling permissions and output.
+     */
     private static function stream_aporte_file(int $aporte_id, string $nonce_action, string $disposition = 'inline'): void {
-        if (!is_user_logged_in()) { wp_safe_redirect(site_url('/acceder')); exit; }
-        if ($aporte_id <= 0) { wp_die(__('Solicitud inválida.', 'bankitos'), 400); }
+        if (!is_user_logged_in()) { 
+            wp_safe_redirect(site_url('/acceder')); 
+            exit; 
+        }
+        
         $nonce = isset($_GET['_wpnonce']) ? sanitize_text_field($_GET['_wpnonce']) : '';
         if (!$nonce || !wp_verify_nonce($nonce, $nonce_action . $aporte_id)) {
+            if (ob_get_length()) ob_clean(); 
             wp_die(__('No tienes permisos para ver este comprobante.', 'bankitos'), 403);
         }
+        
         $current_user = wp_get_current_user();
 
         $is_owner   = (int) get_post_field('post_author', $aporte_id) === (int) $current_user->ID;
         $can_manage = user_can($current_user, 'approve_aportes') || user_can($current_user, 'audit_aportes');
         
         if (!$is_owner && !$can_manage) {
+            if (ob_get_length()) ob_clean();
             wp_die(__('No tienes permisos para ver este comprobante.', 'bankitos'), 403);
         }
         if (!self::check_same_banco($aporte_id, $current_user->ID)) {
+            if (ob_get_length()) ob_clean();
             wp_die(__('No tienes permisos para ver este comprobante.', 'bankitos'), 403);
         }
 
         $attachment_id = get_post_thumbnail_id($aporte_id);
         if (!$attachment_id || !class_exists('Bankitos_Secure_Files')) {
+            if (ob_get_length()) ob_clean();
             wp_die(__('El comprobante no está disponible.', 'bankitos'), 404);
         }
+        
         $path = Bankitos_Secure_Files::get_protected_path($attachment_id);
-        if (!$path) {
-            wp_die(__('El comprobante no está disponible.', 'bankitos'), 404);
+        if (!$path || !is_readable($path)) {
+            if (ob_get_length()) ob_clean();
+            wp_die(__('El archivo del comprobante no se pudo leer.', 'bankitos'), 500);
         }
+
         $mime = wp_check_filetype($path);
-        $content_type = $mime['type'] ?: (function_exists('mime_content_type') ? mime_content_type($path) : '');
+        $content_type = $mime['type'] ?: 'application/octet-stream';
         $filename = Bankitos_Secure_Files::get_download_filename($attachment_id);
         
-        nocache_headers();
+        // --- CRITICAL FIX: Clear all output buffers to prevent file corruption ---
         if (ob_get_length()) {
             ob_clean();
         }
-        header('Content-Type: ' . ($content_type ?: 'application/octet-stream'));
+        
+        nocache_headers();
+        
+        // Set file headers
+        header('Content-Type: ' . $content_type);
         header('Content-Disposition: ' . $disposition . '; filename="' . basename($filename) . '"');
         header('Content-Length: ' . filesize($path));
+        
+        // Stream the file content
         readfile($path);
+        
+        // Exit cleanly to stop WordPress execution
         exit;
     }
 
