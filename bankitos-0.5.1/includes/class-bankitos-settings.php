@@ -109,11 +109,16 @@ class Bankitos_Settings {
             'bankitos_panel_members' => __('Tabla de miembros e invitaciones del B@nko (solo Presidente).', 'bankitos'),
             'bankitos_panel_members_invite' => __('Formulario para gestionar invitaciones de miembros (solo Presidente).', 'bankitos'),
             'bankitos_panel_quick_actions' => __('Accesos directos a las acciones más usadas dentro del B@nko.', 'bankitos'),
+            'bankitos_panel_mis_finanzas' => __('Historial de aportes personales y capacidad de crédito del socio.', 'bankitos'),
             'bankitos_crear_banco_form' => __('Formulario para crear un nuevo B@nko.', 'bankitos'),
             'bankitos_aporte_form' => __('Formulario de registro de aportes de capital.', 'bankitos'),
-            'bankitos_tesorero_aportes' => __('Listado de aportes pendientes para el rol de Tesorero.', 'bankitos'),
-            'bankitos_veedor_aportes' => __('Listado de aportes para seguimiento desde el rol de Veedor.', 'bankitos'),
-            'bankitos_invite_portal' => __('Portal para aceptar o rechazar invitaciones recibidas.', 'bankitos'),
+            'bankitos_credit_request' => __('Solicitud de crédito que envían los socios para revisión del comité.', 'bankitos'),
+            'bankitos_credit_request_list' => __('Listado de solicitudes de crédito para firma de presidente, tesorero o veedor.', 'bankitos'),
+            'bankitos_tesorero_creditos' => __('Panel de pagos de créditos para aprobación o rechazo del tesorero.', 'bankitos'),
+            'bankitos_veedor_creditos' => __('Vista de pagos de créditos aprobados para seguimiento del veedor.', 'bankitos'),
+            'bankitos_tesorero_aportes' => __('Listado de aportes pendientes para aprobar o rechazar (Tesorero).', 'bankitos'),
+            'bankitos_veedor_aportes' => __('Aportes aprobados visibles para auditoría del veedor.', 'bankitos'),
+            'bankitos_invite_portal' => __('Portal para aceptar o rechazar invitaciones recibidas de distintos B@nkos.', 'bankitos'),
         ];
 
         echo '<div class="bankitos-shortcodes-doc">';
