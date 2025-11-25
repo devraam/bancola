@@ -80,15 +80,27 @@ class Bankitos_Secure_Files {
 
     private static function ensure_access_controls(string $dir): void {
         $htaccess = trailingslashit($dir) . '.htaccess';
-        if (!file_exists($htaccess)) {
-            file_put_contents($htaccess, "Deny from all\n");
-        }
+        $htaccess_contents = "Options -Indexes\n";
+        file_put_contents($htaccess, $htaccess_contents);
         $index = trailingslashit($dir) . 'index.php';
         if (!file_exists($index)) {
             file_put_contents($index, "<?php\nhttp_response_code(403); exit;\n");
         }
     }
 
+    public static function get_protected_url(int $attachment_id): string {
+        $relative = get_post_meta($attachment_id, self::META_PATH, true);
+        if (!$relative) {
+            return '';
+        }
+        $uploads = wp_get_upload_dir();
+        if (!empty($uploads['error']) || empty($uploads['baseurl'])) {
+            return '';
+        }
+        $url = trailingslashit($uploads['baseurl']) . ltrim($relative, '/');
+        return $url;
+    }
+    
     private static function relative_to_uploads(string $path): string {
         $uploads = wp_get_upload_dir();
         if (!empty($uploads['error'])) {

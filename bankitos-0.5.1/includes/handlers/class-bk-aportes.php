@@ -108,22 +108,20 @@ class BK_Aportes_Handler {
         if (!$attachment_id) {
             return '';
         }
-        // Primero intentamos construir la URL segura para archivos protegidos
-        // (bankitos-private). Esto garantiza que el usuario vea el soporte aun
-        // cuando no exista una ruta pública directa en la biblioteca de medios.
-        if (class_exists('Bankitos_Secure_Files')) {
-            $path = Bankitos_Secure_Files::get_protected_path($attachment_id);
-            if ($path) {
-                $download_base = admin_url('admin-post.php');
-                return wp_nonce_url(add_query_arg([
-                    'action' => 'bankitos_aporte_view',
-                    'aporte' => $aporte_id,
-                ], $download_base), 'bankitos_aporte_view_' . $aporte_id);
+        if (function_exists('get_post_mime_type')) {
+            $mime = get_post_mime_type($attachment_id);
+            if (!$mime || !preg_match('#^(image|application)/(jpeg|png|pdf)$#', $mime)) {
+                return '';
             }
         }
 
-        // Si no está protegido, devolvemos la URL pública del adjunto.
-        $public_url = wp_get_attachment_url($attachment_id);
+        $public_url = '';
+        if (class_exists('Bankitos_Secure_Files')) {
+            $public_url = Bankitos_Secure_Files::get_protected_url($attachment_id);
+        }
+        if (!$public_url) {
+            $public_url = wp_get_attachment_url($attachment_id);
+        }
         return $public_url ?: '';
     }
 
