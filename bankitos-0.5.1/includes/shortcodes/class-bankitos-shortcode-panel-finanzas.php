@@ -99,10 +99,26 @@ class Bankitos_Shortcode_Panel_Finanzas extends Bankitos_Shortcode_Panel_Base {
               var title = link.getAttribute('data-title') || '';
               
               if (isImage) {
-                  img.src = receiptUrl;
-                  img.alt = title;
-                  img.removeAttribute('hidden');
-                  modal.removeAttribute('hidden');
+                  // Mostrar en modal solo si la imagen carga bien; en caso contrario, abrir en nueva pestaña.
+                  if (img) {
+                    img.onload = function(){
+                      img.onload = null;
+                      img.onerror = null;
+                      img.removeAttribute('hidden');
+                      modal.removeAttribute('hidden');
+                    };
+                    img.onerror = function(){
+                      img.onload = null;
+                      img.onerror = null;
+                      img.setAttribute('hidden', '');
+                      modal.setAttribute('hidden','hidden');
+                      window.open(receiptUrl, '_blank');
+                    };
+                    img.alt = title;
+                    img.src = receiptUrl;
+                  } else {
+                    window.open(receiptUrl, '_blank');
+                  }
               } else {
                   // Si es PDF o no imagen, ocultar <img> y abrir en nueva pestaña para forzar descarga/vista en navegador
                   img.setAttribute('hidden', '');

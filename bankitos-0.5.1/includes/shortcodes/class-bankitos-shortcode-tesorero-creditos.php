@@ -137,15 +137,39 @@ class Bankitos_Shortcode_Tesorero_Creditos extends Bankitos_Shortcode_Panel_Base
           if(!modal){return;}
           var backdrop = modal.querySelector('.bankitos-modal__backdrop');
           var closeBtn = modal.querySelector('.bankitos-modal__close');
-          function close(){modal.setAttribute('hidden','hidden'); var img=modal.querySelector('img'); if(img){img.removeAttribute('src');}}
+          var img = modal.querySelector('img');
+          function close(){
+            modal.setAttribute('hidden','hidden');
+            if(img){
+              img.removeAttribute('src');
+              img.setAttribute('hidden','');
+            }
+          }
           [backdrop, closeBtn].forEach(function(el){ if(el){ el.addEventListener('click', close); }});
           document.querySelectorAll('.bankitos-receipt-link').forEach(function(link){
             link.addEventListener('click', function(ev){
               ev.preventDefault();
-              var img = modal.querySelector('img');
-              img.src = link.getAttribute('data-receipt');
-              img.alt = link.getAttribute('data-title') || '';
-              modal.removeAttribute('hidden');
+              var receiptUrl = link.getAttribute('data-receipt');
+              var title = link.getAttribute('data-title') || '';
+              if (img) {
+                img.onload = function(){
+                  img.onload = null;
+                  img.onerror = null;
+                  img.removeAttribute('hidden');
+                  modal.removeAttribute('hidden');
+                };
+                img.onerror = function(){
+                  img.onload = null;
+                  img.onerror = null;
+                  img.setAttribute('hidden','');
+                  modal.setAttribute('hidden','hidden');
+                  window.open(receiptUrl, '_blank');
+                };
+                img.alt = title;
+                img.src = receiptUrl;
+              } else {
+                window.open(receiptUrl, '_blank');
+              }
             });
           });
         })();
