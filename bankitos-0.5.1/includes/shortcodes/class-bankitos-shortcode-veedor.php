@@ -58,7 +58,7 @@ class Bankitos_Shortcode_Veedor_List extends Bankitos_Shortcode_Base {
               ?>
                 <tr>
                   <td><?php echo esc_html($author ? ($author->display_name ?: $author->user_login) : '—'); ?></td>
-                  <td><strong><?php echo esc_html(number_format((float) $monto, 2, ',', '.')); ?></strong></td>
+                  <td><strong><?php echo esc_html(self::format_currency((float) $monto)); ?></strong></td>
                   <td>
                     <?php if ($thumb): ?>
                       <button type="button" class="bankitos-link bankitos-link--button bankitos-receipt-link" data-receipt="<?php echo esc_url($thumb); ?>" data-is-image="<?php echo $is_image ? '1' : '0'; ?>" data-title="<?php echo esc_attr(get_the_title()); ?>"><?php esc_html_e('Ver comprobante', 'bankitos'); ?></button>

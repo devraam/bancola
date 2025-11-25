@@ -46,7 +46,7 @@ class Bankitos_Shortcode_Panel_Finanzas extends Bankitos_Shortcode_Panel_Base {
                   }
               ?>
                 <tr>
-                  <td><strong><?php echo esc_html(number_format((float) $monto, 2, ',', '.')); ?></strong></td>
+                  <td><strong><?php echo esc_html(self::format_currency($monto)); ?></strong></td>
                   <td><?php echo esc_html($status ? $status->label : '—'); ?></td>
                   <td><?php echo esc_html(get_the_date()); ?></td>
                   <td>
