@@ -7,6 +7,7 @@ class BK_Aportes_Handler {
         add_action('admin_post_bankitos_aporte_approve',     [__CLASS__,'aporte_approve']);
         add_action('admin_post_bankitos_aporte_reject',      [__CLASS__,'aporte_reject']);
         add_action('admin_post_bankitos_aporte_download',    [__CLASS__,'aporte_download']);
+        add_action('admin_post_bankitos_aporte_view',        [__CLASS__,'aporte_view']);
     }
 
     private static function get_redirect_target(string $fallback): string {
@@ -99,6 +100,10 @@ class BK_Aportes_Handler {
     }
 
     public static function get_comprobante_download_url(int $aporte_id): string {
+        return self::get_comprobante_view_url($aporte_id);
+    }
+
+    public static function get_comprobante_view_url(int $aporte_id): string {
         $attachment_id = get_post_thumbnail_id($aporte_id);
         if (!$attachment_id) {
             return '';
@@ -111,9 +116,9 @@ class BK_Aportes_Handler {
             if ($path) {
                 $download_base = admin_url('admin-post.php');
                 return wp_nonce_url(add_query_arg([
-                    'action' => 'bankitos_aporte_download',
+                    'action' => 'bankitos_aporte_view',
                     'aporte' => $aporte_id,
-                ], $download_base), 'bankitos_aporte_download_' . $aporte_id);
+                ], $download_base), 'bankitos_aporte_view_' . $aporte_id);
             }
         }
 
@@ -149,19 +154,17 @@ class BK_Aportes_Handler {
         self::redirect_with('ok','aporte_rechazado', site_url('/panel'));
     }
 
-    public static function aporte_download() {
+    private static function stream_aporte_file(int $aporte_id, string $nonce_action, string $disposition = 'inline'): void {
         if (!is_user_logged_in()) { wp_safe_redirect(site_url('/acceder')); exit; }
-        $aporte_id = intval($_GET['aporte'] ?? 0);
         if ($aporte_id <= 0) { wp_die(__('Solicitud inválida.', 'bankitos'), 400); }
         $nonce = isset($_GET['_wpnonce']) ? sanitize_text_field($_GET['_wpnonce']) : '';
-        if (!$nonce || !wp_verify_nonce($nonce, 'bankitos_aporte_download_' . $aporte_id)) {
+        if (!$nonce || !wp_verify_nonce($nonce, $nonce_action . $aporte_id)) {
             wp_die(__('No tienes permisos para ver este comprobante.', 'bankitos'), 403);
         }
         $current_user = wp_get_current_user();
-        
-        // Lógica de verificación de permisos robusta
-        $is_owner     = (int) get_post_field('post_author', $aporte_id) === (int) $current_user->ID;
-        $can_manage   = user_can($current_user, 'approve_aportes') || user_can($current_user, 'audit_aportes');
+
+        $is_owner   = (int) get_post_field('post_author', $aporte_id) === (int) $current_user->ID;
+        $can_manage = user_can($current_user, 'approve_aportes') || user_can($current_user, 'audit_aportes');
         
         if (!$is_owner && !$can_manage) {
             wp_die(__('No tienes permisos para ver este comprobante.', 'bankitos'), 403);
@@ -182,15 +185,24 @@ class BK_Aportes_Handler {
         $content_type = $mime['type'] ?: (function_exists('mime_content_type') ? mime_content_type($path) : '');
         $filename = Bankitos_Secure_Files::get_download_filename($attachment_id);
         
-        // Configuración para mostrar el archivo EN LÍNEA (inline)
         nocache_headers();
         if (ob_get_length()) {
             ob_clean();
         }
         header('Content-Type: ' . ($content_type ?: 'application/octet-stream'));
-        header('Content-Disposition: inline; filename="' . basename($filename) . '"'); // Cambio clave: 'inline' 
+        header('Content-Disposition: ' . $disposition . '; filename="' . basename($filename) . '"');
         header('Content-Length: ' . filesize($path));
         readfile($path);
         exit;
+    }
+
+    public static function aporte_view() {
+        $aporte_id = intval($_GET['aporte'] ?? 0);
+        self::stream_aporte_file($aporte_id, 'bankitos_aporte_view_', 'inline');
+    }
+
+    public static function aporte_download() {
+        $aporte_id = intval($_GET['aporte'] ?? 0);
+        self::stream_aporte_file($aporte_id, 'bankitos_aporte_download_', 'attachment');
     }
 }
