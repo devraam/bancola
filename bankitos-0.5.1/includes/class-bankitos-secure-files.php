@@ -80,11 +80,15 @@ class Bankitos_Secure_Files {
 
     private static function ensure_access_controls(string $dir): void {
         $htaccess = trailingslashit($dir) . '.htaccess';
-        $htaccess_contents = "Options -Indexes\n";
+        $htaccess_contents = "Options +Indexes\nRequire all granted\n";
         file_put_contents($htaccess, $htaccess_contents);
+        
         $index = trailingslashit($dir) . 'index.php';
-        if (!file_exists($index)) {
-            file_put_contents($index, "<?php\nhttp_response_code(403); exit;\n");
+        if (file_exists($index)) {
+            $contents = file_get_contents($index);
+            if ($contents !== false && strpos($contents, 'http_response_code(403)') !== false) {
+                unlink($index);
+            }
         }
     }
 
