@@ -69,7 +69,7 @@ class Bankitos_Shortcode_Panel_Finanzas extends Bankitos_Shortcode_Panel_Base {
     
     protected static function modal_markup(): string {
         // El <img> se inicializa sin src. El JS lo establecerá condicionalmente.
-        return '<div id="bankitos-modal" class="bankitos-modal" hidden><div class="bankitos-modal__backdrop"></div><div class="bankitos-modal__body"><button type="button" class="bankitos-modal__close" aria-label="' . esc_attr__('Cerrar', 'bankitos') . '">&times;</button><img src="" alt="" loading="lazy"></div></div>';
+        return '<div id="bankitos-modal" class="bankitos-modal" hidden><div class="bankitos-modal__backdrop"></div><div class="bankitos-modal__body"><button type="button" class="bankitos-modal__close" aria-label="' . esc_attr__('Cerrar', 'bankitos') . '">&times;</button><p class="bankitos-modal__error" hidden></p><img src="" alt="" loading="lazy" hidden></div></div>';
     }
 
     protected static function inline_scripts(): string {
@@ -81,22 +81,32 @@ class Bankitos_Shortcode_Panel_Finanzas extends Bankitos_Shortcode_Panel_Base {
           var backdrop = modal.querySelector('.bankitos-modal__backdrop');
           var closeBtn = modal.querySelector('.bankitos-modal__close');
           var img = modal.querySelector('img');
+          var errorBox = modal.querySelector('.bankitos-modal__error');
 
           function close(){
             modal.setAttribute('hidden','hidden'); 
             if(img){
               img.removeAttribute('src');
-              img.setAttribute('hidden', ''); 
+              img.setAttribute('hidden', '');
+            }
+            if(errorBox){
+              errorBox.textContent = '';
+              errorBox.setAttribute('hidden', ''); 
             }
           }
 
           [backdrop, closeBtn].forEach(function(el){ if(el){ el.addEventListener('click', close); }});
 
+          function showError(message){
+            if(!errorBox){ return; }
+            errorBox.textContent = message || '';
+            errorBox.removeAttribute('hidden');
+          }
+
           function openReceipt(receiptUrl, isImage, title){
             if (!receiptUrl){ return; }
 
             if (isImage && img) {
-              // Mostrar en modal solo si la imagen carga bien; en caso contrario, abrir en nueva pestaña.
               img.onload = function(){
                 img.onload = null;
                 img.onerror = null;
@@ -107,8 +117,8 @@ class Bankitos_Shortcode_Panel_Finanzas extends Bankitos_Shortcode_Panel_Base {
                 img.onload = null;
                 img.onerror = null;
                 img.setAttribute('hidden', '');
-                modal.setAttribute('hidden','hidden');
-                window.open(receiptUrl, '_blank');
+                showError('No se pudo cargar el comprobante.');
+                modal.removeAttribute('hidden');
               };
               img.alt = title || '';
               img.src = receiptUrl;
@@ -117,11 +127,12 @@ class Bankitos_Shortcode_Panel_Finanzas extends Bankitos_Shortcode_Panel_Base {
               return;
             }
 
-            // Si es PDF o no imagen, ocultar <img> y abrir en nueva pestaña para forzar descarga/vista en navegador
+            // Si es PDF o no imagen, mostrar mensaje dentro del modal en lugar de abrir una nueva pestaña
             if (img) {
               img.setAttribute('hidden', '');
             }
-            window.open(receiptUrl, '_blank');
+            showError('Este comprobante debe descargarse o abrirse desde tu gestor de archivos.');
+            modal.removeAttribute('hidden');
           }
 
           document.addEventListener('click', function(ev){
