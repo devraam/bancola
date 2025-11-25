@@ -23,12 +23,18 @@ class Bankitos_Shortcode_Panel_Finanzas extends Bankitos_Shortcode_Panel_Base {
         if (!empty($filters['date_query'])) {
             $args['date_query'] = $filters['date_query'];
         }
-        $q = new WP_Query($args);
+        
+        $approved_total   = self::get_user_approved_total(get_current_user_id());
+        $credit_capacity  = $approved_total * 4;
+        $q                = new WP_Query($args);
         ob_start(); ?>
         <div class="bankitos-form">
           <?php echo self::top_notice_from_query(); ?>
           <h3><?php esc_html_e('Mis Aportes', 'bankitos'); ?></h3>
-          <?php echo self::render_aporte_filter_form('finanzas', $filters); ?>
+           <div class="bankitos-finanzas__summary">
+            <p><strong><?php esc_html_e('Total de mis aportes:', 'bankitos'); ?></strong> <?php echo esc_html(self::format_currency($approved_total)); ?></p>
+            <p><strong><?php esc_html_e('Capacidad de crédito:', 'bankitos'); ?></strong> <?php echo esc_html(self::format_currency($credit_capacity)); ?></p>
+          </div>
           <?php if (!$q->have_posts()): ?>
             <p><?php esc_html_e('No tienes aportes registrados.', 'bankitos'); ?></p>
           <?php else: ?>
@@ -38,7 +44,9 @@ class Bankitos_Shortcode_Panel_Finanzas extends Bankitos_Shortcode_Panel_Base {
               <?php while ($q->have_posts()): $q->the_post();
                   $aporte_id = get_the_ID();
                   $monto     = get_post_meta($aporte_id, '_bankitos_monto', true);
-                  $status    = get_post_status_object(get_post_status($aporte_id));
+                  $status_slug = get_post_status($aporte_id);
+                  $status    = get_post_status_object($status_slug);
+                  $status_label = self::transform_status_label($status_slug, $status ? $status->label : '—');
                   $thumb     = class_exists('BK_Aportes_Handler') ? BK_Aportes_Handler::get_comprobante_view_src($aporte_id) : '';
                   $is_image  = false;
                   if ($thumb && class_exists('BK_Aportes_Handler')) {
@@ -47,7 +55,7 @@ class Bankitos_Shortcode_Panel_Finanzas extends Bankitos_Shortcode_Panel_Base {
               ?>
                 <tr>
                   <td><strong><?php echo esc_html(self::format_currency($monto)); ?></strong></td>
-                  <td><?php echo esc_html($status ? $status->label : '—'); ?></td>
+                  <td><?php echo esc_html($status_label); ?></td>
                   <td><?php echo esc_html(get_the_date()); ?></td>
                   <td>
                     <?php if ($thumb): ?>
@@ -72,6 +80,42 @@ class Bankitos_Shortcode_Panel_Finanzas extends Bankitos_Shortcode_Panel_Base {
         return '<div id="bankitos-modal" class="bankitos-modal" hidden><div class="bankitos-modal__backdrop"></div><div class="bankitos-modal__body"><button type="button" class="bankitos-modal__close" aria-label="' . esc_attr__('Cerrar', 'bankitos') . '">&times;</button><p class="bankitos-modal__error" hidden></p><img src="" alt="" loading="lazy" hidden></div></div>';
     }
 
+    protected static function get_user_approved_total(int $user_id): float {
+        if ($user_id <= 0) {
+            return 0.0;
+        }
+
+        $approved = get_posts([
+            'post_type'      => Bankitos_CPT::SLUG_APORTE,
+            'post_status'    => 'publish',
+            'posts_per_page' => -1,
+            'fields'         => 'ids',
+            'author'         => $user_id,
+        ]);
+
+        if (empty($approved)) {
+            return 0.0;
+        }
+
+        $total = 0.0;
+        foreach ($approved as $aporte_id) {
+            $total += (float) get_post_meta($aporte_id, '_bankitos_monto', true);
+        }
+
+        return (float) $total;
+    }
+
+    protected static function transform_status_label(?string $status_slug, string $fallback): string {
+        switch ($status_slug) {
+            case 'publish':
+                return __('Aprobado', 'bankitos');
+            case 'private':
+                return __('Rechazado', 'bankitos');
+            default:
+                return $fallback;
+        }
+    }
+    
     protected static function inline_scripts(): string {
         ob_start(); ?>
         <script>
