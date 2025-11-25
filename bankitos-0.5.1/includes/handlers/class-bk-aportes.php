@@ -137,15 +137,27 @@ class BK_Aportes_Handler {
             return '';
         }
 
-        $url = class_exists('Bankitos_Secure_Files') ? Bankitos_Secure_Files::get_protected_url($attachment_id) : '';
+        $protected_path = class_exists('Bankitos_Secure_Files')
+            ? Bankitos_Secure_Files::get_protected_path($attachment_id)
+            : '';
 
-        if (!$url) {
-            $url = wp_get_attachment_url($attachment_id) ?: '';
+        // Si el archivo está protegido, intentamos devolver primero la URL real del archivo.
+        if ($protected_path && class_exists('Bankitos_Secure_Files')) {
+            $protected_url = Bankitos_Secure_Files::get_protected_url($attachment_id);
+            if ($protected_url) {
+                return $protected_url;
+            }
+
+            $secure_url = self::get_comprobante_view_url($aporte_id);
+            if ($secure_url) {
+                return $secure_url;
+            }
         }
 
-        return $url;
+        // Si no está protegido (o algo falló generando el enlace seguro), devolvemos la URL pública.
+        return wp_get_attachment_url($attachment_id) ?: '';
     }
-    
+
     private static function build_secure_comprobante_url(int $aporte_id, string $nonce_action, string $action): string {
         $attachment_id = get_post_thumbnail_id($aporte_id);
         if ($attachment_id <= 0) {
