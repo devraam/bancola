@@ -107,6 +107,45 @@ class BK_Aportes_Handler {
         return self::build_secure_comprobante_url($aporte_id, 'bankitos_aporte_view_', 'bankitos_aporte_view');
     }
 
+    /**
+     * Obtiene una URL accesible directamente por el navegador para visualizar el comprobante.
+     * Valida que el usuario tenga permisos para verlo y apunta al archivo real (protegido o público).
+     */
+    public static function get_comprobante_view_src(int $aporte_id): string {
+        if (!is_user_logged_in()) {
+            return '';
+        }
+
+        $attachment_id = get_post_thumbnail_id($aporte_id);
+        if ($attachment_id <= 0) {
+            return '';
+        }
+
+        $current_user = wp_get_current_user();
+        if (!$current_user || !$current_user->ID) {
+            return '';
+        }
+
+        $is_owner   = (int) get_post_field('post_author', $aporte_id) === (int) $current_user->ID;
+        $can_manage = user_can($current_user, 'approve_aportes') || user_can($current_user, 'audit_aportes');
+
+        if (!$is_owner && !$can_manage) {
+            return '';
+        }
+
+        if (!self::check_same_banco($aporte_id, $current_user->ID)) {
+            return '';
+        }
+
+        $url = class_exists('Bankitos_Secure_Files') ? Bankitos_Secure_Files::get_protected_url($attachment_id) : '';
+
+        if (!$url) {
+            $url = wp_get_attachment_url($attachment_id) ?: '';
+        }
+
+        return $url;
+    }
+    
     private static function build_secure_comprobante_url(int $aporte_id, string $nonce_action, string $action): string {
         $attachment_id = get_post_thumbnail_id($aporte_id);
         if ($attachment_id <= 0) {

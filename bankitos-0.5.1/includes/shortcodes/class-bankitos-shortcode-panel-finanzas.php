@@ -55,8 +55,8 @@ class Bankitos_Shortcode_Panel_Finanzas extends Bankitos_Shortcode_Panel_Base {
                         $monto = (float) get_post_meta($aporte_id, '_bankitos_monto', true);
                         $status = get_post_status($aporte_id);
                         $estado_label = self::aporte_status_label($status);
-                        // --- MODIFICADO: Usar el handler para obtener la URL de descarga segura ---
-                        $thumb_url = class_exists('BK_Aportes_Handler') ? BK_Aportes_Handler::get_comprobante_download_url($aporte_id) : '';
+                        // --- MODIFICADO: Usar el handler para obtener la URL directa del comprobante ---
+                        $thumb_url = class_exists('BK_Aportes_Handler') ? BK_Aportes_Handler::get_comprobante_view_src($aporte_id) : '';
                         $is_image = false;
                         if ($thumb_url && class_exists('BK_Aportes_Handler')) {
                             $is_image = BK_Aportes_Handler::is_file_image(get_post_thumbnail_id($aporte_id));

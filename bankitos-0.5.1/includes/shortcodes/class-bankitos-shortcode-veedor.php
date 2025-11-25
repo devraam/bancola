@@ -50,7 +50,7 @@ class Bankitos_Shortcode_Veedor_List extends Bankitos_Shortcode_Base {
                   $aporte_id = get_the_ID();
                   $monto     = get_post_meta($aporte_id, '_bankitos_monto', true);
                   $author    = get_userdata(get_post_field('post_author', $aporte_id));
-                  $thumb     = class_exists('BK_Aportes_Handler') ? BK_Aportes_Handler::get_comprobante_download_url($aporte_id) : '';
+                  $thumb     = class_exists('BK_Aportes_Handler') ? BK_Aportes_Handler::get_comprobante_view_src($aporte_id) : '';
               ?>
                 <tr>
                   <td><?php echo esc_html($author ? ($author->display_name ?: $author->user_login) : '—'); ?></td>
