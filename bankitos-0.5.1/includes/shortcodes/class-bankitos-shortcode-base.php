@@ -402,46 +402,72 @@ abstract class Bankitos_Shortcode_Base {
             $totals['ahorros'] = (float) $sum_aportes;
         }
 
-        $loans_table    = $wpdb->prefix . 'banco_loans';
-        $payments_table = $wpdb->prefix . 'banco_loan_payments';
-        $loan_statuses  = (array) apply_filters('bankitos_panel_active_loan_statuses', ['active', 'pending', 'late']);
+        $credits_table = $wpdb->prefix . 'banco_credit_requests';
+        $table_exists  = (bool) $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $credits_table));
 
-        $table_exists = (bool) $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $loans_table));
         if ($table_exists) {
-            $status_placeholders = $loan_statuses ? implode(',', array_fill(0, count($loan_statuses), '%s')) : '';
-            if ($status_placeholders) {
-                $sql  = "SELECT id, principal FROM {$loans_table} WHERE banco_id = %d AND status IN ({$status_placeholders})";
-                $args = array_merge([$sql, $banco_id], $loan_statuses);
-                $query = call_user_func_array([$wpdb, 'prepare'], $args);
-            } else {
-                $query = $wpdb->prepare("SELECT id, principal FROM {$loans_table} WHERE banco_id = %d", $banco_id);
+           $approved_sum = $wpdb->get_var($wpdb->prepare(
+                "SELECT SUM(amount) FROM {$credits_table} WHERE banco_id = %d AND status = %s",
+                $banco_id,
+                'approved'
+            ));
+            $approved_count = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$credits_table} WHERE banco_id = %d AND status = %s",
+                $banco_id,
+                'approved'
+            ));
+
+            if ($approved_sum) {
+                $totals['creditos'] = (float) $approved_sum;
             }
 
-            $loans = $wpdb->get_results($query);
-            if ($loans) {
-                $principal_total = 0.0;
-                $loan_ids = [];
-                foreach ($loans as $loan) {
-                    $principal_total += (float) $loan->principal;
-                    $loan_ids[] = (int) $loan->id;
+            if ($approved_count) {
+                $totals['creditos_count'] = (int) $approved_count;
+            }
+        }
+
+        // Fallback to legacy loans table if no approved credits were found.
+        if ($totals['creditos'] <= 0 && $totals['creditos_count'] === 0) {
+            $loans_table    = $wpdb->prefix . 'banco_loans';
+            $payments_table = $wpdb->prefix . 'banco_loan_payments';
+            $loan_statuses  = (array) apply_filters('bankitos_panel_active_loan_statuses', ['active', 'pending', 'late']);
+
+            $table_exists = (bool) $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $loans_table));
+            if ($table_exists) {
+                $status_placeholders = $loan_statuses ? implode(',', array_fill(0, count($loan_statuses), '%s')) : '';
+                if ($status_placeholders) {
+                    $sql  = "SELECT id, principal FROM {$loans_table} WHERE banco_id = %d AND status IN ({$status_placeholders})";
+                    $args = array_merge([$sql, $banco_id], $loan_statuses);
+                    $query = call_user_func_array([$wpdb, 'prepare'], $args);
+                } else {
+                    $query = $wpdb->prepare("SELECT id, principal FROM {$loans_table} WHERE banco_id = %d", $banco_id);
                 }
 
-                $totals['creditos_count'] = count($loans);
-                
-                $outstanding = $principal_total;
-
-                if ($loan_ids && (bool) $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $payments_table))) {
-                    $placeholders = implode(',', array_fill(0, count($loan_ids), '%d'));
-                    $sql  = "SELECT SUM(amount) FROM {$payments_table} WHERE loan_id IN ({$placeholders})";
-                    $args = array_merge([$sql], $loan_ids);
-                    $payments_query = call_user_func_array([$wpdb, 'prepare'], $args);
-                    $paid = $wpdb->get_var($payments_query);
-                    if ($paid) {
-                        $outstanding = max(0.0, $outstanding - (float) $paid);
+                $loans = $wpdb->get_results($query);
+                if ($loans) {
+                    $principal_total = 0.0;
+                    $loan_ids = [];
+                    foreach ($loans as $loan) {
+                        $principal_total += (float) $loan->principal;
+                        $loan_ids[] = (int) $loan->id;
                     }
-                }
+                $totals['creditos_count'] = count($loans);
 
-                $totals['creditos'] = max(0.0, $outstanding);
+                    $outstanding = $principal_total;
+
+                    if ($loan_ids && (bool) $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $payments_table))) {
+                        $placeholders = implode(',', array_fill(0, count($loan_ids), '%d'));
+                        $sql  = "SELECT SUM(amount) FROM {$payments_table} WHERE loan_id IN ({$placeholders})";
+                        $args = array_merge([$sql], $loan_ids);
+                        $payments_query = call_user_func_array([$wpdb, 'prepare'], $args);
+                        $paid = $wpdb->get_var($payments_query);
+                        if ($paid) {
+                            $outstanding = max(0.0, $outstanding - (float) $paid);
+                        }
+                    }
+
+                    $totals['creditos'] = max(0.0, $outstanding);
+                }
             }
         }
 
