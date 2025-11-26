@@ -529,6 +529,53 @@
   margin: 0;
   color: rgba(15,23,42,.8);
 }
+
+.bankitos-credit-summary__actions {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.bankitos-credit-summary__modal {
+  max-width: min(960px, 94vw);
+  width: 100%;
+}
+
+.bankitos-credit-summary__modal-content {
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: .5rem;
+}
+
+.bankitos-credit-summary__modal-tag {
+  font-size: .85rem;
+  color: var(--bco-primary);
+  font-weight: 600;
+  margin: 0 0 .35rem;
+  text-transform: uppercase;
+  letter-spacing: .02em;
+}
+
+.bankitos-credit-summary__modal-title {
+  margin: 0 0 .25rem;
+}
+
+.bankitos-credit-summary__modal-subtitle {
+  margin: 0 0 1rem;
+  color: var(--bco-text-light);
+}
+
+.bankitos-credit-summary__modal-notes {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 1rem;
+  color: var(--bco-text);
+  white-space: pre-wrap;
+}
+
+.bankitos-credit-summary__payments input[type="file"] {
+  width: 100%;
+}
 .bankitos-credit-card__observaciones strong {
   display: block;
   margin-bottom: .3rem;
