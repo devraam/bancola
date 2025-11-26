@@ -418,6 +418,117 @@
   border-radius: 12px;
   background: var(--bco-gris);
 }
+
+/* === Resumen de créditos del socio === */
+.bankitos-credit-summary {
+  background: var(--bco-blanco);
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.bankitos-credit-summary__badge {
+  margin: 0;
+  font-weight: 800;
+  color: var(--bco-azul);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.bankitos-credit-summary__header h3 {
+  margin: .15rem 0;
+  font-size: 1.4rem;
+  color: var(--bco-texto);
+}
+
+.bankitos-credit-summary__intro {
+  margin: 0;
+  color: rgba(15,23,42,.72);
+}
+
+.bankitos-credit-summary__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(260px,1fr));
+  gap: 1rem;
+}
+
+.bankitos-credit-summary__card {
+  background: var(--bco-gris);
+  border-radius: 16px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: .85rem;
+}
+
+.bankitos-credit-summary__card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: .75rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.bankitos-credit-summary__card-badge {
+  margin: 0 0 .15rem;
+  font-size: .85rem;
+  color: rgba(15,23,42,.65);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.bankitos-credit-summary__status {
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+  align-items: flex-end;
+}
+
+.bankitos-credit-summary__date {
+  font-size: .9rem;
+  color: rgba(15,23,42,.6);
+}
+
+.bankitos-credit-summary__details {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(140px,1fr));
+  gap: .75rem;
+}
+
+.bankitos-credit-summary__details dt {
+  font-size: .78rem;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  color: rgba(15,23,42,.6);
+}
+
+.bankitos-credit-summary__details dd {
+  margin: .1rem 0 0;
+  font-weight: 700;
+  color: var(--bco-texto);
+}
+
+.bankitos-credit-summary__description {
+  padding: .75rem .9rem;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: inset 0 1px 0 rgba(0,0,0,.04);
+}
+
+.bankitos-credit-summary__description h5 {
+  margin: 0 0 .25rem;
+  font-size: 1rem;
+  color: var(--bco-azul);
+}
+
+.bankitos-credit-summary__description p {
+  margin: 0;
+  color: rgba(15,23,42,.8);
+}
 .bankitos-credit-card__observaciones strong {
   display: block;
   margin-bottom: .3rem;

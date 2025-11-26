@@ -127,6 +127,27 @@ class Bankitos_Credit_Requests {
         return $rows ? array_map([__CLASS__, 'prepare_row'], $rows) : [];
     }
 
+    public static function get_user_requests(int $banco_id, int $user_id): array {
+        if ($banco_id <= 0 || $user_id <= 0) {
+            return [];
+        }
+
+        global $wpdb;
+        $table = self::table_name();
+        $sql = $wpdb->prepare(
+            "SELECT r.*, u.display_name, u.user_login
+             FROM {$table} r
+             LEFT JOIN {$wpdb->users} u ON u.ID = r.user_id
+             WHERE r.banco_id = %d AND r.user_id = %d
+             ORDER BY r.created_at DESC",
+            $banco_id,
+            $user_id
+        );
+
+        $rows = $wpdb->get_results($sql, ARRAY_A);
+        return $rows ? array_map([__CLASS__, 'prepare_row'], $rows) : [];
+    }
+
     public static function get_request(int $request_id): ?array {
         if ($request_id <= 0) {
             return null;
