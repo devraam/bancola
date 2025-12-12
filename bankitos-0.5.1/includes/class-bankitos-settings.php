@@ -135,6 +135,8 @@ class Bankitos_Settings {
         }
         echo '</tbody>';
         echo '</table>';
+        echo '<p>' . esc_html__('Todas las vistas de los shortcodes fueron unificadas con un diseño móvil primero. En teléfonos iOS o Android el contenido se apila en vertical para evitar desplazamientos horizontales.', 'bankitos') . '</p>';
+        echo '<p>' . esc_html__('Para aprovechar la versión optimizada, coloca los shortcodes en páginas de ancho completo o plantillas sin barras laterales y evita contenedores que limiten el ancho.', 'bankitos') . '</p>';
         echo '</div>';
     }
 }
