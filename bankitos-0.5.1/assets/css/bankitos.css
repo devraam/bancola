@@ -459,9 +459,10 @@
   background: var(--bco-gris);
   border-radius: 16px;
   padding: 1rem;
-  display: flex;
-  flex-direction: column;
+  display: block;
+  border: outset;
   gap: .85rem;
+  grid-template-columns: 1fr;
 }
 
 .bankitos-credit-summary__card-header {
@@ -534,6 +535,36 @@
   margin-top: 1rem;
   display: flex;
   justify-content: flex-end;
+}
+
+@media (min-width: 640px) {
+  .bankitos-credit-summary__card {
+    grid-template-columns: minmax(240px, 1fr) minmax(280px, 1.2fr);
+    align-items: center;
+  }
+
+  .bankitos-credit-summary__actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (min-width: 900px) {
+  .bankitos-credit-summary__card {
+    grid-template-columns: minmax(220px, 1fr) minmax(320px, 1.2fr) auto;
+    align-items: center;
+  }
+
+  .bankitos-credit-summary__details {
+    grid-template-columns: repeat(2,minmax(160px,1fr));
+  }
+
+  .bankitos-credit-summary__actions {
+    margin-top: 0;
+    justify-content: flex-end;
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+  }
 }
 
 .bankitos-credit-summary__modal {

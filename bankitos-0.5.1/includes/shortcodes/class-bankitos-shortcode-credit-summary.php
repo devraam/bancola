@@ -122,7 +122,7 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
 
         return $classes[$status] ?? 'bankitos-pill--pending';
     }
-    
+
     private static function render_modal_for_request(array $request, string $modal_id, float $tasa): string {
         if ($request['status'] === 'rejected') {
             return self::render_rejection_modal($request, $modal_id);
@@ -183,6 +183,7 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
                     <tr>
                       <th><?php esc_html_e('Fecha', 'bankitos'); ?></th>
                       <th><?php esc_html_e('Cuota', 'bankitos'); ?></th>
+                      <th><?php esc_html_e('Saldo de crédito', 'bankitos'); ?></th>
                       <th><?php esc_html_e('Comprobante', 'bankitos'); ?></th>
                       <th><?php esc_html_e('Acción', 'bankitos'); ?></th>
                     </tr>
@@ -194,6 +195,7 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
                         <tr>
                           <td><?php echo esc_html(date_i18n(get_option('date_format'), strtotime($row['date']))); ?></td>
                           <td><?php echo esc_html(self::format_currency($row['amount'])); ?></td>
+                          <td><?php echo esc_html(self::format_currency($row['balance'])); ?></td>
                           <td>
                             <label class="screen-reader-text" for="<?php echo esc_attr($input_id); ?>"><?php esc_html_e('Subir comprobante', 'bankitos'); ?></label>
                             <input type="file" id="<?php echo esc_attr($input_id); ?>" name="receipt" accept="image/*" form="<?php echo esc_attr($input_id); ?>-form">
@@ -224,20 +226,21 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
             return [];
         }
 
-        $rate   = $tasa > 0 ? $tasa / 100 : 0.0;
-        $base   = $months > 0 ? $amount / $months : 0.0;
-        $plan   = [];
-        $cursor = $amount;
+        $rate         = $tasa > 0 ? $tasa / 100 : 0.0;
+        $base         = $months > 0 ? $amount / $months : 0.0;
+        $plan         = [];
+        $cursor       = $amount;
 
-        for ($i = 0; $i < $months; $i++) {
+        for ($i = 1; $i <= $months; $i++) {
             $date = date('Y-m-d', strtotime("{$approval_date} +{$i} month"));
             $interest = $rate > 0 ? $cursor * $rate : 0.0;
             $installment = $base + $interest;
             $plan[] = [
-                'date'   => $date,
-                'amount' => round($installment, 2),
+                'date'    => $date,
+                'amount'  => round($installment, 2),
+                'balance' => round($cursor, 2),
             ];
-            $cursor -= $base;
+            $cursor = max(0, $cursor - $base);
         }
 
         return $plan;
