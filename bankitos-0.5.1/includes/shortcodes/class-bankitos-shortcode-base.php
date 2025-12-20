@@ -128,6 +128,7 @@ abstract class Bankitos_Shortcode_Base {
             'pago_archivo_subida' => __('Hubo un problema subiendo el comprobante.', 'bankitos'),
             'pago_archivo_tamano' => __('El comprobante excede el tamaño permitido.', 'bankitos'),
             'pago_archivo_tipo'   => __('El comprobante debe ser una imagen válida.', 'bankitos'),
+            'pago_archivo_requerido' => __('Debes adjuntar un comprobante de pago.', 'bankitos'),
             'pago_archivo_seguro' => __('No pudimos proteger el comprobante subido.', 'bankitos'),
             'pago_guardar'    => __('No fue posible guardar el pago.', 'bankitos'),
         ];
