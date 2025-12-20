@@ -263,11 +263,12 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
                               <?php endif; ?>
                               <?php if ($installment['can_upload']): ?>
                                 <label class="bankitos-file">
-                                  <span class="screen-reader-text"><?php esc_html_e('Subir comprobante', 'bankitos'); ?></span>
-                                  <input type="file" id="<?php echo esc_attr($input_id); ?>" name="receipt" accept="image/*" form="<?php echo esc_attr($input_id); ?>-form" required>
+                                  <input type="file" id="<?php echo esc_attr($input_id); ?>" name="receipt" accept="image/*,application/pdf,.pdf" form="<?php echo esc_attr($input_id); ?>-form" required>
+                                  <span class="bankitos-file__label" data-default-label><?php esc_html_e('Elegir archivo', 'bankitos'); ?></span>
                                   <span class="bankitos-file__label" data-default-label><?php esc_html_e('Elegir imagen', 'bankitos'); ?></span>
                                 </label>
-                             <span class="bankitos-credit-summary__help"><?php esc_html_e('Adjunta el soporte antes de registrar el pago.', 'bankitos'); ?></span>
+                            <span class="bankitos-credit-summary__help"><?php esc_html_e('Adjunta el soporte antes de registrar el pago.', 'bankitos'); ?></span>
+                                <span class="bankitos-credit-summary__help bankitos-credit-summary__help--error" data-upload-error hidden><?php esc_html_e('Sube un archivo válido (imagen o PDF) para continuar.', 'bankitos'); ?></span>
                               <?php elseif (!$installment['receipt']): ?>
                                 <span class="bankitos-credit-summary__help"><?php echo esc_html($state_label); ?></span>
                               <?php endif; ?>
@@ -287,7 +288,7 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
                               <input type="hidden" name="amount" value="<?php echo esc_attr($row['amount']); ?>">
                               <input type="hidden" name="installment_date" value="<?php echo esc_attr($row['date']); ?>">
                               <input type="hidden" name="redirect_to" value="<?php echo esc_url(self::get_current_url()); ?>">
-                              <button type="submit" class="bankitos-btn bankitos-btn--primary"><?php esc_html_e('Registrar pago', 'bankitos'); ?></button>
+                              <button type="submit" class="bankitos-btn bankitos-btn--primary" data-bankitos-submit disabled aria-disabled="true"><?php esc_html_e('Registrar pago', 'bankitos'); ?></button>
                             </form>
                           <?php endif; ?>
                         </div>
@@ -451,20 +452,51 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
               if(ev.target === modal){ closeModal(modal); }
             });
           });
-          document.querySelectorAll('.bankitos-credit-summary__upload input[type="file"]').forEach(function(input){
-            var label = input.parentElement ? input.parentElement.querySelector('.bankitos-file__label') : null;
-            if(!label){ return; }
-            var defaultText = label.dataset.defaultLabel || label.textContent;
-            input.addEventListener('change', function(){
-              var fileName = input.files && input.files.length ? input.files[0].name : '';
-              if(fileName){
-                label.textContent = fileName;
-                label.classList.add('bankitos-file__label--selected');
-              }else{
-                label.textContent = defaultText;
-                label.classList.remove('bankitos-file__label--selected');
+          var allowedTypes = ['image/jpeg','image/png','image/gif','image/webp','application/pdf'];
+          var allowedExt = /(\.jpe?g|\.png|\.gif|\.webp|\.pdf)$/i;
+          function toggleSubmitState(input){
+            var formId = input.getAttribute('form');
+            var form = formId ? document.getElementById(formId) : null;
+            var submit = form ? form.querySelector('[data-bankitos-submit]') : null;
+            var errorMsg = input.closest('.bankitos-credit-summary__upload') ? input.closest('.bankitos-credit-summary__upload').querySelector('[data-upload-error]') : null;
+            var file = input.files && input.files.length ? input.files[0] : null;
+            var hasFile = !!file;
+            var isValid = false;
+            if(hasFile){
+              if(file.type && allowedTypes.indexOf(file.type) !== -1){
+                isValid = true;
+              } else if(file.name && allowedExt.test(file.name)){
+                isValid = true;
               }
-            });
+            }
+            if(submit){
+              submit.disabled = !isValid;
+              submit.setAttribute('aria-disabled', submit.disabled ? 'true' : 'false');
+            }
+            if(errorMsg){
+              errorMsg.hidden = !hasFile || isValid;
+            }
+            return isValid;
+          }
+          document.querySelectorAll('.bankitos-credit-summary__upload input[type=\"file\"]').forEach(function(input){
+            var label = input.parentElement ? input.parentElement.querySelector('.bankitos-file__label') : null;
+            var defaultText = label && (label.dataset.defaultLabel || label.textContent);
+            function updateLabel(){
+              var file = input.files && input.files.length ? input.files[0] : null;
+              var fileName = file ? file.name : '';
+              if(label){
+                if(fileName){
+                  label.textContent = fileName;
+                  label.classList.add('bankitos-file__label--selected');
+                }else{
+                  label.textContent = defaultText;
+                  label.classList.remove('bankitos-file__label--selected');
+                }
+              }
+            toggleSubmitState(input);
+            }
+            updateLabel();
+            input.addEventListener('change', updateLabel);
           });
         })();
         </script>

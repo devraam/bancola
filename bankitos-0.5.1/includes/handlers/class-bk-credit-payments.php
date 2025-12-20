@@ -37,6 +37,7 @@ class BK_Credit_Payments_Handler {
             'png'      => 'image/png',
             'gif'      => 'image/gif',
             'webp'     => 'image/webp',
+            'pdf'      => 'application/pdf',
         ]);
     }
 
