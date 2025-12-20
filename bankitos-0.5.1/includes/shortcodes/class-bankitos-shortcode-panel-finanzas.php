@@ -38,10 +38,8 @@ class Bankitos_Shortcode_Panel_Finanzas extends Bankitos_Shortcode_Panel_Base {
           <?php if (!$q->have_posts()): ?>
             <p><?php esc_html_e('No tienes aportes registrados.', 'bankitos'); ?></p>
           <?php else: ?>
-            <table class="bankitos-ficha">
-              <thead><tr><th><?php esc_html_e('Monto', 'bankitos'); ?></th><th><?php esc_html_e('Estado', 'bankitos'); ?></th><th><?php esc_html_e('Fecha', 'bankitos'); ?></th><th><?php esc_html_e('Comprobante', 'bankitos'); ?></th></tr></thead>
-              <tbody>
-              <?php while ($q->have_posts()): $q->the_post();
+            <div class="bankitos-accordion" role="list">
+              <?php $is_first = true; while ($q->have_posts()): $q->the_post();
                   $aporte_id = get_the_ID();
                   $monto     = get_post_meta($aporte_id, '_bankitos_monto', true);
                   $status_slug = get_post_status($aporte_id);
@@ -52,20 +50,51 @@ class Bankitos_Shortcode_Panel_Finanzas extends Bankitos_Shortcode_Panel_Base {
                   if ($thumb && class_exists('BK_Aportes_Handler')) {
                       $is_image = BK_Aportes_Handler::is_file_image(get_post_thumbnail_id($aporte_id));
                   }
+                  $badge_class = 'bankitos-pill bankitos-pill--pending';
+                  if ($status_slug === 'publish') {
+                      $badge_class = 'bankitos-pill bankitos-pill--accepted';
+                  } elseif ($status_slug === 'private') {
+                      $badge_class = 'bankitos-pill bankitos-pill--rejected';
+                  }
               ?>
-                <tr>
-                  <td><strong><?php echo esc_html(self::format_currency($monto)); ?></strong></td>
-                  <td><?php echo esc_html($status_label); ?></td>
-                  <td><?php echo esc_html(get_the_date()); ?></td>
-                  <td>
-                    <?php if ($thumb): ?>
-                      <button type="button" class="bankitos-link bankitos-link--button bankitos-receipt-link" data-receipt="<?php echo esc_url($thumb); ?>" data-is-image="<?php echo $is_image ? '1' : '0'; ?>" data-title="<?php echo esc_attr(get_the_title()); ?>"><?php esc_html_e('Ver comprobante', 'bankitos'); ?></button>
-                    <?php else: ?>—<?php endif; ?>
-                  </td>
-                </tr>
-              <?php endwhile; wp_reset_postdata(); ?>
-              </tbody>
-            </table>
+                <details class="bankitos-accordion__item" role="listitem" <?php echo $is_first ? 'open' : ''; ?>>
+                  <summary class="bankitos-accordion__summary">
+                    <div class="bankitos-accordion__title">
+                      <span class="bankitos-accordion__amount"><?php echo esc_html(self::format_currency($monto)); ?></span>
+                      <span class="<?php echo esc_attr($badge_class); ?>"><?php echo esc_html($status_label); ?></span>
+                    </div>
+                    <div class="bankitos-accordion__meta">
+                      <span><?php echo esc_html(get_the_date()); ?></span>
+                      <span class="bankitos-accordion__chevron" aria-hidden="true"></span>
+                    </div>
+                  </summary>
+                  <div class="bankitos-accordion__content">
+                    <dl class="bankitos-accordion__grid">
+                      <div>
+                        <dt><?php esc_html_e('Monto', 'bankitos'); ?></dt>
+                        <dd><?php echo esc_html(self::format_currency($monto)); ?></dd>
+                      </div>
+                      <div>
+                        <dt><?php esc_html_e('Estado', 'bankitos'); ?></dt>
+                        <dd><?php echo esc_html($status_label); ?></dd>
+                      </div>
+                      <div>
+                        <dt><?php esc_html_e('Fecha', 'bankitos'); ?></dt>
+                        <dd><?php echo esc_html(get_the_date()); ?></dd>
+                      </div>
+                      <div>
+                        <dt><?php esc_html_e('Comprobante', 'bankitos'); ?></dt>
+                        <dd>
+                          <?php if ($thumb): ?>
+                            <button type="button" class="bankitos-link bankitos-link--button bankitos-receipt-link" data-receipt="<?php echo esc_url($thumb); ?>" data-is-image="<?php echo $is_image ? '1' : '0'; ?>" data-title="<?php echo esc_attr(get_the_title()); ?>"><?php esc_html_e('Ver comprobante', 'bankitos'); ?></button>
+                          <?php else: ?>—<?php endif; ?>
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
+                </details>
+              <?php $is_first = false; endwhile; wp_reset_postdata(); ?>
+            </div>
             <?php echo self::render_aporte_pagination($q, $filters['page_key'], $filters['query_args'], $filters['page']); ?>
           <?php endif; ?>
         </div>
