@@ -171,6 +171,7 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
             return $carry + (float) $row['interest'];
         }, 0.0);
         $interest_paid      = 0.0;
+        $unmatched_payments = 0;
 
         ob_start(); ?>
         <div id="<?php echo esc_attr($modal_id); ?>" class="bankitos-modal" hidden>
@@ -232,7 +233,7 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
                                 <label class="bankitos-file">
                                   <span class="screen-reader-text"><?php esc_html_e('Subir comprobante', 'bankitos'); ?></span>
                                   <input type="file" id="<?php echo esc_attr($input_id); ?>" name="receipt" accept="image/*" form="<?php echo esc_attr($input_id); ?>-form" required>
-                                  <span class="bankitos-file__label"><?php esc_html_e('Elegir imagen', 'bankitos'); ?></span>
+                                  <span class="bankitos-file__label" data-default-label><?php esc_html_e('Elegir imagen', 'bankitos'); ?></span>
                                 </label>
                               <?php else: ?>
                                 <p class="bankitos-credit-summary__help"><?php echo esc_html($installment['state_label']); ?></p>
@@ -251,12 +252,14 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
                                 <input type="hidden" name="request_id" value="<?php echo esc_attr($request['id']); ?>">
                                 <input type="hidden" name="amount" value="<?php echo esc_attr($row['amount']); ?>">
                                 <input type="hidden" name="installment_date" value="<?php echo esc_attr($row['date']); ?>">
+                                <input type="hidden" name="redirect_to" value="<?php echo esc_url(self::get_current_url()); ?>">
                                 <button type="submit" class="bankitos-btn bankitos-btn--primary"><?php esc_html_e('Registrar pago', 'bankitos'); ?></button>
                               </form>
                             <?php endif; ?>
                           </td>
                         </tr>
                     <?php endforeach; ?>
+                    <?php $unmatched_payments = array_sum(array_map('count', $payments_by_amount)); ?>
                   </tbody>
                   <tfoot>
                     <tr>
@@ -278,6 +281,12 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
                   </tfoot>
                 </table>
               </div>
+              <?php if ($unmatched_payments > 0): ?>
+                <div class="bankitos-credit-summary__alert">
+                  <p><?php printf(esc_html(_n('Tienes %s pago registrado que está en revisión.', 'Tienes %s pagos registrados que están en revisión.', $unmatched_payments, 'bankitos')), esc_html(number_format_i18n($unmatched_payments))); ?></p>
+                  <p class="bankitos-credit-summary__alert-note"><?php esc_html_e('Se mostrará en el plan apenas coincida con una cuota pendiente.', 'bankitos'); ?></p>
+                </div>
+              <?php endif; ?>
             </div>
           </div>
         </div>
@@ -333,27 +342,55 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
     }
 
     private static function get_installment_state(array $row, array &$payments_by_amount): array {
-        $key = self::normalize_amount((float) $row['amount']);
-        $payment = null;
-        if (!empty($payments_by_amount[$key])) {
-            $payment = array_shift($payments_by_amount[$key]);
-            if (!$payments_by_amount[$key]) {
-                unset($payments_by_amount[$key]);
-            }
-        }
-
+        $payment = self::shift_payment_for_amount((float) $row['amount'], $payments_by_amount);
         $status_labels = Bankitos_Credit_Payments::get_status_labels();
-        $state = $payment['status'] ?? 'open';
+        $state = $payment ? self::normalize_state((string) ($payment['status'] ?? '')) : 'open';
         $receipt = ($payment && !empty($payment['attachment_id']) && class_exists('BK_Credit_Payments_Handler'))
             ? BK_Credit_Payments_Handler::get_receipt_download_url((int) $payment['id'])
             : '';
 
         return [
             'state'       => $state,
-            'state_label' => $status_labels[$state] ?? '',
+            'state_label' => $status_labels[$state] ?? ($state === 'open' ? '' : __('Estado del pago en revisión', 'bankitos')),
             'can_upload'  => !$payment || $state === 'rejected',
             'receipt'     => $receipt,
         ];
+    }
+
+    private static function shift_payment_for_amount(float $target_amount, array &$payments_by_amount): ?array {
+        $key = self::normalize_amount($target_amount);
+        if (!empty($payments_by_amount[$key])) {
+            $payment = array_shift($payments_by_amount[$key]);
+            if (!$payments_by_amount[$key]) {
+                unset($payments_by_amount[$key]);
+            }
+            return $payment;
+        }
+
+        $tolerance = 0.05;
+        foreach ($payments_by_amount as $stored_key => $list) {
+            if (!$list) {
+                continue;
+            }
+            if (abs((float) $stored_key - $target_amount) <= $tolerance) {
+                $payment = array_shift($payments_by_amount[$stored_key]);
+                if (!$payments_by_amount[$stored_key]) {
+                    unset($payments_by_amount[$stored_key]);
+                }
+                return $payment;
+            }
+        }
+
+        return null;
+    }
+
+    private static function normalize_state(string $state): string {
+        $normalized = strtolower(trim($state));
+        $allowed = ['pending', 'approved', 'rejected'];
+        if (!$normalized) {
+            return 'open';
+        }
+        return in_array($normalized, $allowed, true) ? $normalized : 'pending';
     }
 
     private static function normalize_amount(float $amount): string {
@@ -365,23 +402,39 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
         <script>
         (function(){
           var openers = document.querySelectorAll('[data-bankitos-open]');
-          if(!openers.length){return;}
           function closeModal(modal){
             if(modal){ modal.setAttribute('hidden','hidden'); }
           }
-          openers.forEach(function(btn){
-            btn.addEventListener('click', function(){
-              var id = btn.getAttribute('data-bankitos-open');
-              var modal = document.getElementById(id);
-              if(modal){ modal.removeAttribute('hidden'); }
+          if(openers.length){
+            openers.forEach(function(btn){
+              btn.addEventListener('click', function(){
+                var id = btn.getAttribute('data-bankitos-open');
+                var modal = document.getElementById(id);
+                if(modal){ modal.removeAttribute('hidden'); }
+              });
             });
-          });
+           }
           document.querySelectorAll('.bankitos-modal').forEach(function(modal){
             modal.querySelectorAll('[data-bankitos-close]').forEach(function(closer){
               closer.addEventListener('click', function(){ closeModal(modal); });
             });
             modal.addEventListener('click', function(ev){
               if(ev.target === modal){ closeModal(modal); }
+            });
+          });
+          document.querySelectorAll('.bankitos-credit-summary__upload input[type="file"]').forEach(function(input){
+            var label = input.parentElement ? input.parentElement.querySelector('.bankitos-file__label') : null;
+            if(!label){ return; }
+            var defaultText = label.dataset.defaultLabel || label.textContent;
+            input.addEventListener('change', function(){
+              var fileName = input.files && input.files.length ? input.files[0].name : '';
+              if(fileName){
+                label.textContent = fileName;
+                label.classList.add('bankitos-file__label--selected');
+              }else{
+                label.textContent = defaultText;
+                label.classList.remove('bankitos-file__label--selected');
+              }
             });
           });
         })();

@@ -342,7 +342,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .bankitos-modal__body img {
@@ -674,6 +674,8 @@
 .bankitos-credit-summary__modal {
   max-width: min(960px, 100%);
   width: 100%;
+  align-items: stretch;
+  justify-content: flex-start;
 }
 
 .bankitos-credit-summary__modal-content {
@@ -760,6 +762,21 @@
   background: #fff;
 }
 
+.bankitos-credit-summary__alert {
+  margin: 0 1rem 1rem;
+  padding: .85rem 1rem;
+  border-radius: 12px;
+  background: #fff8e6;
+  border: 1px solid rgba(245, 158, 11, .25);
+  color: var(--bco-text);
+}
+
+.bankitos-credit-summary__alert-note {
+  margin: .35rem 0 0;
+  color: var(--bco-text-light);
+  font-size: .9rem;
+}
+
 .bankitos-credit-summary__help {
   margin: .25rem 0 0;
   color: var(--bco-text-light);
@@ -805,13 +822,31 @@
 
 @media (max-width: 767px) {
   .bankitos-modal {
-    padding: .75rem;
+    padding: 0;
+    align-items: stretch;
   }
   .bankitos-modal__body {
-    border-radius: 14px;
+    border-radius: 0;
+    max-width: 100%;
+    width: 100%;
+    height: 100vh;
+    max-height: none;
+    box-shadow: none;
+    padding: 1rem 0;
   }
   .bankitos-credit-summary__payments thead {
     display: none;
+  }
+  .bankitos-credit-summary__modal {
+    height: 100vh;
+  }
+  .bankitos-credit-summary__modal-content {
+    max-height: none;
+    height: 100%;
+    padding: .5rem 1rem 1.25rem;
+  }
+  .bankitos-credit-summary__table-wrapper {
+    padding: 0;
   }
   .bankitos-credit-summary__payments tbody tr {
     display: grid;
@@ -858,6 +893,12 @@
 
 .bankitos-file__label {
   white-space: nowrap;
+}
+.bankitos-file__label--selected {
+  color: var(--bco-text);
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .bankitos-credit-card__observaciones strong {
   display: block;
