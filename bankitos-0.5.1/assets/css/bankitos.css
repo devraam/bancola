@@ -154,6 +154,21 @@
 .bankitos-pill--accepted{background:#DCFCE7;color:#166534;}
 .bankitos-pill--rejected{background:#FEE2E2;color:#B91C1C;}
 
+.bankitos-accordion{display:flex;flex-direction:column;gap:1rem;}
+.bankitos-accordion__item{border:1px solid rgba(0,115,179,.12);border-radius:16px;overflow:hidden;background:var(--bco-blanco);box-shadow:0 6px 20px rgba(15,23,42,.06);}
+.bankitos-accordion__summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:1rem 1.2rem;cursor:pointer;background:var(--bco-gris);border:none;}
+.bankitos-accordion__summary::-webkit-details-marker{display:none;}
+.bankitos-accordion__title{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;}
+.bankitos-accordion__amount{font-size:1.1rem;font-weight:800;color:var(--bco-texto);}
+.bankitos-accordion__meta{display:flex;align-items:center;gap:.5rem;color:rgba(15,23,42,.65);font-weight:700;}
+.bankitos-accordion__chevron{display:inline-block;width:10px;height:10px;border-right:2px solid rgba(15,23,42,.55);border-bottom:2px solid rgba(15,23,42,.55);transform:rotate(45deg);transition:transform .18s ease;}
+.bankitos-accordion__item[open] .bankitos-accordion__chevron{transform:rotate(-135deg);}
+.bankitos-accordion__content{padding:1rem 1.2rem 1.25rem;background:var(--bco-blanco);}
+.bankitos-accordion__grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.9rem 1rem;margin:0;}
+.bankitos-accordion__grid dt{font-size:.82rem;text-transform:uppercase;letter-spacing:.05em;color:rgba(15,23,42,.55);margin:0;}
+.bankitos-accordion__grid dd{margin:.15rem 0 0;font-weight:800;color:var(--bco-texto);}
+.bankitos-accordion__grid button{padding:0;font-weight:800;}
+
 .bankitos-invite-rows{display:flex;flex-direction:column;gap:1rem;margin:1rem 0;}
 .bankitos-invite-row{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));align-items:end;position:relative;padding-right:2.5rem;}
 .bankitos-invite-row__remove{position:absolute;right:0;top:50%;transform:translateY(-50%);background:#fff;border:1px solid rgba(15,23,42,.1);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;cursor:pointer;color:rgba(15,23,42,.6);}
