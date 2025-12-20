@@ -726,6 +726,67 @@
   white-space: pre-wrap;
 }
 
+.bankitos-credit-summary__payments-accordion {
+  padding: 0 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+
+.bankitos-credit-summary__payment-summary {
+  background: #f8fafc;
+}
+
+.bankitos-credit-summary__payment-number {
+  font-weight: 700;
+  color: var(--bco-text-light);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.bankitos-credit-summary__payment-content {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+
+.bankitos-credit-summary__payment-grid dd {
+  display: flex;
+  flex-direction: column;
+  gap: .2rem;
+}
+
+.bankitos-credit-summary__payment-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.bankitos-credit-summary__payment-item--pending .bankitos-credit-summary__payment-summary {
+  border-left: 4px solid rgba(245, 158, 11, .35);
+}
+
+.bankitos-credit-summary__payment-item--rejected .bankitos-credit-summary__payment-summary {
+  border-left: 4px solid rgba(239, 68, 68, .35);
+}
+
+.bankitos-credit-summary__payment-item--approved .bankitos-credit-summary__payment-summary {
+  border-left: 4px solid rgba(34, 197, 94, .35);
+}
+
+.bankitos-credit-summary__overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: .75rem;
+  padding: 0 1rem 1rem;
+}
+
+.bankitos-credit-summary__overview-card {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: .85rem 1rem;
+  box-shadow: 0 4px 14px rgba(15,23,42,.06);
+}
+
 .bankitos-credit-summary__table-wrapper {
   padding: 0 1rem 1rem;
 }
@@ -872,6 +933,17 @@
     width: 100%;
     border: none;
     padding-top: .75rem;
+  }
+  .bankitos-credit-summary__payment-summary {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .bankitos-credit-summary__payment-actions {
+    justify-content: flex-start;
+  }
+  .bankitos-credit-summary__payments-accordion,
+  .bankitos-credit-summary__overview {
+    padding: 0;
   }
 }
 
