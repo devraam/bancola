@@ -35,8 +35,8 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
           <?php if (!$requests): ?>
             <p class="bankitos-panel__message"><?php esc_html_e('Aún no has enviado solicitudes de crédito.', 'bankitos'); ?></p>
           <?php else: ?>
-            <div class="bankitos-credit-summary__list">
-              <?php foreach ($requests as $request):
+            <div class="bankitos-credit-summary__accordion bankitos-accordion" role="list">
+              <?php $is_first = true; foreach ($requests as $request):
                   $type_label   = $types[$request['credit_type']] ?? ucfirst($request['credit_type']);
                   $status_class = self::get_status_class($request['status']);
                   $status_label = self::get_status_label($request['status']);
@@ -46,52 +46,55 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
                       $modals[] = $modal_markup;
                   }
                   ?>
-                  <article class="bankitos-credit-summary__card">
-                    <header class="bankitos-credit-summary__card-header">
-                      <div>
-                        <p class="bankitos-credit-summary__card-badge"><?php echo esc_html($type_label); ?></p>
-                        <h4><?php echo esc_html(self::format_currency((float) $request['amount'])); ?></h4>
+                  <details class="bankitos-accordion__item bankitos-credit-summary__item" role="listitem" <?php echo $is_first ? 'open' : ''; ?>>
+                    <summary class="bankitos-accordion__summary bankitos-credit-summary__summary">
+                      <div class="bankitos-credit-summary__summary-main">
+                        <span class="bankitos-credit-summary__amount"><?php echo esc_html(self::format_currency((float) $request['amount'])); ?></span>
+                        <span class="bankitos-credit-summary__type"><?php echo esc_html($type_label); ?></span>
                       </div>
-                      <div class="bankitos-credit-summary__status">
+                      <div class="bankitos-credit-summary__summary-meta">
                         <span class="bankitos-pill <?php echo esc_attr($status_class); ?>"><?php echo esc_html($status_label); ?></span>
                         <span class="bankitos-credit-summary__date"><?php echo esc_html(date_i18n(get_option('date_format'), strtotime($request['request_date']))); ?></span>
+                        <span class="bankitos-accordion__chevron" aria-hidden="true"></span>
                       </div>
-                    </header>
-                    <dl class="bankitos-credit-summary__details">
-                      <div>
-                        <dt><?php esc_html_e('Fecha de solicitud', 'bankitos'); ?></dt>
-                        <dd><?php echo esc_html(date_i18n(get_option('date_format'), strtotime($request['request_date']))); ?></dd>
-                      </div>
-                      <div>
-                        <dt><?php esc_html_e('Tipo de crédito', 'bankitos'); ?></dt>
-                        <dd><?php echo esc_html($type_label); ?></dd>
-                      </div>
-                      <div>
-                        <dt><?php esc_html_e('Monto', 'bankitos'); ?></dt>
-                        <dd><?php echo esc_html(self::format_currency((float) $request['amount'])); ?></dd>
-                      </div>
-                      <div>
-                        <dt><?php esc_html_e('Plazo', 'bankitos'); ?></dt>
-                        <dd><?php echo esc_html(sprintf(_n('%s mes', '%s meses', (int) $request['term_months'], 'bankitos'), number_format_i18n((int) $request['term_months']))); ?></dd>
-                      </div>
-                      <div>
-                        <dt><?php esc_html_e('Interés mensual', 'bankitos'); ?></dt>
-                        <dd><?php echo $tasa > 0 ? esc_html(sprintf('%s%%', number_format_i18n($tasa, 2))) : esc_html__('No definido', 'bankitos'); ?></dd>
-                      </div>
-                      <div>
-                        <dt><?php esc_html_e('Estado', 'bankitos'); ?></dt>
-                        <dd><?php echo esc_html($status_label); ?></dd>
-                      </div>
-                    </dl>
-                   <?php if ($modal_markup): ?>
-                      <div class="bankitos-credit-summary__actions">
-                        <button type="button" class="bankitos-btn" data-bankitos-open="<?php echo esc_attr($modal_id); ?>">
-                          <?php echo $request['status'] === 'rejected' ? esc_html__('Ver más', 'bankitos') : esc_html__('Pagar', 'bankitos'); ?>
-                        </button>
-                      </div>
-                    <?php endif; ?>
-                  </article>
-              <?php endforeach; ?>
+                    </summary>
+                    <div class="bankitos-accordion__content bankitos-credit-summary__content">
+                      <dl class="bankitos-credit-summary__details">
+                        <div>
+                          <dt><?php esc_html_e('Fecha de solicitud', 'bankitos'); ?></dt>
+                          <dd><?php echo esc_html(date_i18n(get_option('date_format'), strtotime($request['request_date']))); ?></dd>
+                        </div>
+                        <div>
+                          <dt><?php esc_html_e('Tipo de crédito', 'bankitos'); ?></dt>
+                          <dd><?php echo esc_html($type_label); ?></dd>
+                        </div>
+                        <div>
+                          <dt><?php esc_html_e('Monto', 'bankitos'); ?></dt>
+                          <dd><?php echo esc_html(self::format_currency((float) $request['amount'])); ?></dd>
+                        </div>
+                        <div>
+                          <dt><?php esc_html_e('Plazo', 'bankitos'); ?></dt>
+                          <dd><?php echo esc_html(sprintf(_n('%s mes', '%s meses', (int) $request['term_months'], 'bankitos'), number_format_i18n((int) $request['term_months']))); ?></dd>
+                        </div>
+                        <div>
+                          <dt><?php esc_html_e('Interés mensual', 'bankitos'); ?></dt>
+                          <dd><?php echo $tasa > 0 ? esc_html(sprintf('%s%%', number_format_i18n($tasa, 2))) : esc_html__('No definido', 'bankitos'); ?></dd>
+                        </div>
+                        <div>
+                          <dt><?php esc_html_e('Estado', 'bankitos'); ?></dt>
+                          <dd><?php echo esc_html($status_label); ?></dd>
+                        </div>
+                      </dl>
+                      <?php if ($modal_markup): ?>
+                        <div class="bankitos-credit-summary__actions">
+                          <button type="button" class="bankitos-btn" data-bankitos-open="<?php echo esc_attr($modal_id); ?>">
+                            <?php echo $request['status'] === 'rejected' ? esc_html__('Ver más', 'bankitos') : esc_html__('Pagar', 'bankitos'); ?>
+                          </button>
+                        </div>
+                      <?php endif; ?>
+                    </div>
+                  </details>
+              <?php $is_first = false; endforeach; ?>
             </div>
           <?php endif; ?>
         </div>

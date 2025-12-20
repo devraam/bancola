@@ -571,43 +571,41 @@
   color: rgba(15,23,42,.72);
 }
 
-.bankitos-credit-summary__list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit,minmax(260px,1fr));
-  gap: 1rem;
-}
-
-.bankitos-credit-summary__card {
-  background: var(--bco-gris);
-  border-radius: 16px;
-  padding: 1rem;
-  display: block;
-  border: outset;
-  gap: .85rem;
-  grid-template-columns: 1fr;
-}
-
-.bankitos-credit-summary__card-header {
-  display: flex;
-  justify-content: space-between;
+.bankitos-credit-summary__accordion {
   gap: .75rem;
+}
+
+.bankitos-credit-summary__summary {
+  background: var(--bco-gris);
+  padding: 1.1rem 1.25rem;
+}
+
+.bankitos-credit-summary__summary-main {
+  display: flex;
+  gap: .65rem;
   flex-wrap: wrap;
   align-items: center;
 }
 
-.bankitos-credit-summary__card-badge {
-  margin: 0 0 .15rem;
-  font-size: .85rem;
-  color: rgba(15,23,42,.65);
-  text-transform: uppercase;
-  letter-spacing: .05em;
+.bankitos-credit-summary__amount {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--bco-texto);
 }
 
-.bankitos-credit-summary__status {
+.bankitos-credit-summary__type {
+  font-size: .9rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: rgba(15,23,42,.65);
+}
+
+.bankitos-credit-summary__summary-meta {
   display: flex;
-  flex-direction: column;
-  gap: .25rem;
-  align-items: flex-end;
+  align-items: center;
+  gap: .75rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .bankitos-credit-summary__date {
@@ -615,11 +613,17 @@
   color: rgba(15,23,42,.6);
 }
 
+.bankitos-credit-summary__content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
 .bankitos-credit-summary__details {
   margin: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit,minmax(140px,1fr));
-  gap: .75rem;
+  grid-template-columns: repeat(auto-fit,minmax(160px,1fr));
+  gap: .85rem;
 }
 
 .bankitos-credit-summary__details dt {
@@ -635,57 +639,32 @@
   color: var(--bco-texto);
 }
 
-.bankitos-credit-summary__description {
-  padding: .75rem .9rem;
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: inset 0 1px 0 rgba(0,0,0,.04);
-}
-
-.bankitos-credit-summary__description h5 {
-  margin: 0 0 .25rem;
-  font-size: 1rem;
-  color: var(--bco-azul);
-}
-
-.bankitos-credit-summary__description p {
-  margin: 0;
-  color: rgba(15,23,42,.8);
-}
-
 .bankitos-credit-summary__actions {
-  margin-top: 1rem;
+  margin-top: .5rem;
   display: flex;
   justify-content: flex-end;
 }
 
-@media (min-width: 640px) {
-  .bankitos-credit-summary__card {
-    grid-template-columns: minmax(240px, 1fr) minmax(280px, 1.2fr);
-    align-items: center;
+@media (min-width: 768px) {
+  .bankitos-credit-summary__summary {
+    padding: 1.25rem 1.5rem;
   }
 
-  .bankitos-credit-summary__actions {
-    justify-content: flex-start;
-  }
-}
-
-@media (min-width: 900px) {
-  .bankitos-credit-summary__card {
-    grid-template-columns: minmax(220px, 1fr) minmax(320px, 1.2fr) auto;
+  .bankitos-credit-summary__content {
+    flex-direction: row;
+    justify-content: space-between;
     align-items: center;
   }
 
   .bankitos-credit-summary__details {
-    grid-template-columns: repeat(2,minmax(160px,1fr));
+    flex: 1 1 auto;
+    grid-template-columns: repeat(2,minmax(180px,1fr));
   }
 
   .bankitos-credit-summary__actions {
     margin-top: 0;
-    justify-content: flex-end;
-    align-self: stretch;
-    display: flex;
-    align-items: center;
+    justify-content: flex-start;
+    min-width: 150px;
   }
 }
 
