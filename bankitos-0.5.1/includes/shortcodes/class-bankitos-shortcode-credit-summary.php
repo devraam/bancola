@@ -196,36 +196,68 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
                   <span class="bankitos-pill"><?php printf(esc_html__('%s meses', 'bankitos'), esc_html(number_format_i18n((int) $request['term_months']))); ?></span>
                 </div>
               </div>
-              <div class="bankitos-table-wrapper bankitos-credit-summary__table-wrapper">
-                <table class="bankitos-table bankitos-credit-summary__payments">
-                  <thead>
-                    <tr>
-                      <th><?php esc_html_e('Fecha', 'bankitos'); ?></th>
-                      <th><?php esc_html_e('Cuota', 'bankitos'); ?></th>
-                      <th><?php esc_html_e('Saldo de crédito', 'bankitos'); ?></th>
-                      <th><?php esc_html_e('Comprobante', 'bankitos'); ?></th>
-                      <th><?php esc_html_e('Acción', 'bankitos'); ?></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <?php foreach ($plan as $index => $row):
-                        $input_id = sprintf('bk-payment-%d-%d', (int) $request['id'], $index);
-                        $installment = self::get_installment_state($row, $payments_by_amount);
-                        if ($installment['state'] === 'approved') {
-                            $interest_paid += (float) $row['interest'];
-                        }
-                        ?>
-                        <tr class="bankitos-credit-summary__row bankitos-credit-summary__row--<?php echo esc_attr($installment['state']); ?>">
-                          <td data-title="<?php esc_attr_e('Fecha', 'bankitos'); ?>"><?php echo esc_html(date_i18n(get_option('date_format'), strtotime($row['date']))); ?></td>
-                          <td data-title="<?php esc_attr_e('Cuota', 'bankitos'); ?>">
-                            <div class="bankitos-credit-summary__cell">
+              <div class="bankitos-credit-summary__payments-accordion bankitos-accordion" role="list">
+                <?php $opened_item = false; foreach ($plan as $index => $row):
+                    $input_id = sprintf('bk-payment-%d-%d', (int) $request['id'], $index);
+                    $installment = self::get_installment_state($row, $payments_by_amount);
+                    $state_label = $installment['state_label'] ?: esc_html__('Pendiente de pago', 'bankitos');
+                    $state_class = 'bankitos-pill';
+                    if ($installment['state'] === 'approved') {
+                        $state_class .= ' bankitos-pill--accepted';
+                        $interest_paid += (float) $row['interest'];
+                    } elseif ($installment['state'] === 'pending') {
+                        $state_class .= ' bankitos-pill--pending';
+                    } elseif ($installment['state'] === 'rejected') {
+                        $state_class .= ' bankitos-pill--rejected';
+                    } else {
+                        $state_class .= ' bankitos-pill--pending';
+                    }
+                    $should_open = !$opened_item && ($installment['state'] !== 'approved' || $index === 0);
+                    $opened_item = $opened_item || $should_open;
+                    ?>
+                    <details class="bankitos-accordion__item bankitos-credit-summary__payment-item bankitos-credit-summary__payment-item--<?php echo esc_attr($installment['state']); ?>" role="listitem" <?php echo $should_open ? 'open' : ''; ?>>
+                      <summary class="bankitos-accordion__summary bankitos-credit-summary__payment-summary">
+                        <div class="bankitos-accordion__title">
+                          <span class="bankitos-credit-summary__amount"><?php echo esc_html(self::format_currency($row['amount'])); ?></span>
+                          <span class="bankitos-credit-summary__payment-number"><?php printf(esc_html__('Cuota %s', 'bankitos'), esc_html(number_format_i18n($index + 1))); ?></span>
+                        </div>
+                        <div class="bankitos-accordion__meta">
+                          <span><?php echo esc_html(date_i18n(get_option('date_format'), strtotime($row['date']))); ?></span>
+                          <span class="<?php echo esc_attr($state_class); ?>"><?php echo esc_html($state_label); ?></span>
+                          <span class="bankitos-accordion__chevron" aria-hidden="true"></span>
+                        </div>
+                      </summary>
+                      <div class="bankitos-accordion__content bankitos-credit-summary__payment-content">
+                        <dl class="bankitos-accordion__grid bankitos-credit-summary__payment-grid">
+                          <div>
+                            <dt><?php esc_html_e('Fecha programada', 'bankitos'); ?></dt>
+                            <dd><?php echo esc_html(date_i18n(get_option('date_format'), strtotime($row['date']))); ?></dd>
+                          </div>
+                          <div>
+                            <dt><?php esc_html_e('Saldo de crédito', 'bankitos'); ?></dt>
+                            <dd><?php echo esc_html(self::format_currency($row['balance'])); ?></dd>
+                          </div>
+                          <div>
+                            <dt><?php esc_html_e('Cuota estimada', 'bankitos'); ?></dt>
+                            <dd>
                               <span class="bankitos-credit-summary__amount"><?php echo esc_html(self::format_currency($row['amount'])); ?></span>
-                              <small class="bankitos-credit-summary__help"><?php printf(esc_html__('Interés: %s', 'bankitos'), esc_html(self::format_currency($row['interest']))); ?></small>
-                            </div>
-                          </td>
-                          <td data-title="<?php esc_attr_e('Saldo de crédito', 'bankitos'); ?>"><?php echo esc_html(self::format_currency($row['balance'])); ?></td>
-                          <td data-title="<?php esc_attr_e('Comprobante', 'bankitos'); ?>">
-                            <div class="bankitos-credit-summary__upload">
+                              <span class="bankitos-credit-summary__help"><?php printf(esc_html__('Interés proyectado: %s', 'bankitos'), esc_html(self::format_currency($row['interest']))); ?></span>
+                            </dd>
+                          </div>
+                          <div>
+                            <dt><?php esc_html_e('Estado del pago', 'bankitos'); ?></dt>
+                            <dd>
+                              <span class="<?php echo esc_attr($state_class); ?>"><?php echo esc_html($state_label); ?></span>
+                              <?php if ($installment['state'] === 'pending'): ?>
+                                <span class="bankitos-credit-summary__help"><?php esc_html_e('Estamos revisando tu comprobante.', 'bankitos'); ?></span>
+                              <?php elseif ($installment['state'] === 'rejected'): ?>
+                                <span class="bankitos-credit-summary__help"><?php esc_html_e('Vuelve a subir el comprobante para continuar.', 'bankitos'); ?></span>
+                              <?php endif; ?>
+                            </dd>
+                          </div>
+                          <div>
+                            <dt><?php esc_html_e('Comprobante', 'bankitos'); ?></dt>
+                            <dd class="bankitos-credit-summary__upload">
                               <?php if ($installment['receipt']): ?>
                                 <a class="bankitos-link" href="<?php echo esc_url($installment['receipt']); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e('Ver comprobante', 'bankitos'); ?></a>
                               <?php endif; ?>
@@ -235,51 +267,48 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
                                   <input type="file" id="<?php echo esc_attr($input_id); ?>" name="receipt" accept="image/*" form="<?php echo esc_attr($input_id); ?>-form" required>
                                   <span class="bankitos-file__label" data-default-label><?php esc_html_e('Elegir imagen', 'bankitos'); ?></span>
                                 </label>
-                              <?php else: ?>
-                                <p class="bankitos-credit-summary__help"><?php echo esc_html($installment['state_label']); ?></p>
+                             <span class="bankitos-credit-summary__help"><?php esc_html_e('Adjunta el soporte antes de registrar el pago.', 'bankitos'); ?></span>
+                              <?php elseif (!$installment['receipt']): ?>
+                                <span class="bankitos-credit-summary__help"><?php echo esc_html($state_label); ?></span>
                               <?php endif; ?>
-                            </div>
-                          </td>
-                          <td data-title="<?php esc_attr_e('Acción', 'bankitos'); ?>">
-                            <?php if ($installment['state'] === 'pending'): ?>
-                              <span class="bankitos-pill bankitos-pill--pending"><?php esc_html_e('En revisión', 'bankitos'); ?></span>
-                            <?php elseif ($installment['state'] === 'approved'): ?>
-                              <span class="bankitos-pill bankitos-pill--accepted"><?php esc_html_e('Cuota pagada', 'bankitos'); ?></span>
-                            <?php else: ?>
-                              <form id="<?php echo esc_attr($input_id); ?>-form" class="bankitos-credit-summary__form" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" enctype="multipart/form-data">
-                                <?php echo wp_nonce_field('bankitos_credit_payment_submit', '_wpnonce', true, false); ?>
-                                <input type="hidden" name="action" value="bankitos_credit_payment_submit">
-                                <input type="hidden" name="request_id" value="<?php echo esc_attr($request['id']); ?>">
-                                <input type="hidden" name="amount" value="<?php echo esc_attr($row['amount']); ?>">
-                                <input type="hidden" name="installment_date" value="<?php echo esc_attr($row['date']); ?>">
-                                <input type="hidden" name="redirect_to" value="<?php echo esc_url(self::get_current_url()); ?>">
-                                <button type="submit" class="bankitos-btn bankitos-btn--primary"><?php esc_html_e('Registrar pago', 'bankitos'); ?></button>
-                              </form>
-                            <?php endif; ?>
-                          </td>
-                        </tr>
-                    <?php endforeach; ?>
-                    <?php $unmatched_payments = array_sum(array_map('count', $payments_by_amount)); ?>
-                  </tbody>
-                  <tfoot>
-                    <tr>
-                      <td colspan="2">
-                        <p class="bankitos-credit-summary__foot-label"><?php esc_html_e('Total del crédito', 'bankitos'); ?></p>
-                        <p class="bankitos-credit-summary__foot-value"><?php echo esc_html(self::format_currency((float) $request['amount'])); ?></p>
-                      </td>
-                      <td colspan="3" class="bankitos-credit-summary__totals">
-                        <div>
-                          <p class="bankitos-credit-summary__foot-label"><?php esc_html_e('Intereses pagados', 'bankitos'); ?></p>
-                          <p class="bankitos-credit-summary__foot-value"><?php echo esc_html(self::format_currency($interest_paid)); ?></p>
+                            </dd>
+                          </div>
+                        </dl>
+                        <div class="bankitos-credit-summary__payment-actions">
+                          <?php if ($installment['state'] === 'pending'): ?>
+                            <span class="bankitos-pill bankitos-pill--pending"><?php esc_html_e('En revisión', 'bankitos'); ?></span>
+                          <?php elseif ($installment['state'] === 'approved'): ?>
+                            <span class="bankitos-pill bankitos-pill--accepted"><?php esc_html_e('Cuota pagada', 'bankitos'); ?></span>
+                          <?php else: ?>
+                            <form id="<?php echo esc_attr($input_id); ?>-form" class="bankitos-credit-summary__form" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" enctype="multipart/form-data">
+                              <?php echo wp_nonce_field('bankitos_credit_payment_submit', '_wpnonce', true, false); ?>
+                              <input type="hidden" name="action" value="bankitos_credit_payment_submit">
+                              <input type="hidden" name="request_id" value="<?php echo esc_attr($request['id']); ?>">
+                              <input type="hidden" name="amount" value="<?php echo esc_attr($row['amount']); ?>">
+                              <input type="hidden" name="installment_date" value="<?php echo esc_attr($row['date']); ?>">
+                              <input type="hidden" name="redirect_to" value="<?php echo esc_url(self::get_current_url()); ?>">
+                              <button type="submit" class="bankitos-btn bankitos-btn--primary"><?php esc_html_e('Registrar pago', 'bankitos'); ?></button>
+                            </form>
+                          <?php endif; ?>
                         </div>
-                        <div>
-                          <p class="bankitos-credit-summary__foot-label"><?php esc_html_e('Interés proyectado', 'bankitos'); ?></p>
-                          <p class="bankitos-credit-summary__foot-value"><?php echo esc_html(self::format_currency($total_interest)); ?></p>
-                        </div>
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
+                      </div>
+                    </details>
+                <?php endforeach; ?>
+                <?php $unmatched_payments = array_sum(array_map('count', $payments_by_amount)); ?>
+              </div>
+              <div class="bankitos-credit-summary__overview">
+                <div class="bankitos-credit-summary__overview-card">
+                  <p class="bankitos-credit-summary__foot-label"><?php esc_html_e('Total del crédito', 'bankitos'); ?></p>
+                  <p class="bankitos-credit-summary__foot-value"><?php echo esc_html(self::format_currency((float) $request['amount'])); ?></p>
+                </div>
+                <div class="bankitos-credit-summary__overview-card">
+                  <p class="bankitos-credit-summary__foot-label"><?php esc_html_e('Intereses pagados', 'bankitos'); ?></p>
+                  <p class="bankitos-credit-summary__foot-value"><?php echo esc_html(self::format_currency($interest_paid)); ?></p>
+                </div>
+                <div class="bankitos-credit-summary__overview-card">
+                  <p class="bankitos-credit-summary__foot-label"><?php esc_html_e('Interés proyectado', 'bankitos'); ?></p>
+                  <p class="bankitos-credit-summary__foot-value"><?php echo esc_html(self::format_currency($total_interest)); ?></p>
+                </div>
               </div>
               <?php if ($unmatched_payments > 0): ?>
                 <div class="bankitos-credit-summary__alert">
