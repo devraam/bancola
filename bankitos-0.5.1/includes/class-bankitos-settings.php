@@ -101,42 +101,294 @@ class Bankitos_Settings {
     }
 
     protected static function render_shortcodes_help() : void {
-        $shortcodes = [
-            'bankitos_login' => __('Muestra el formulario de acceso para miembros.', 'bankitos'),
-            'bankitos_register' => __('Despliega el formulario de registro para nuevos miembros.', 'bankitos'),
-            'bankitos_panel' => __('Panel principal del usuario con acceso rápido a su B@nko.', 'bankitos'),
-            'bankitos_panel_info' => __('Resumen financiero y datos clave del B@nko del usuario.', 'bankitos'),
-            'bankitos_panel_members' => __('Tabla de miembros e invitaciones del B@nko (solo Presidente).', 'bankitos'),
-            'bankitos_panel_members_invite' => __('Formulario para gestionar invitaciones de miembros (solo Presidente).', 'bankitos'),
-            'bankitos_panel_quick_actions' => __('Accesos directos a las acciones más usadas dentro del B@nko.', 'bankitos'),
-            'bankitos_panel_mis_finanzas' => __('Historial de aportes personales y capacidad de crédito del socio.', 'bankitos'),
-            'bankitos_crear_banco_form' => __('Formulario para crear un nuevo B@nko.', 'bankitos'),
-            'bankitos_aporte_form' => __('Formulario de registro de aportes de capital.', 'bankitos'),
-            'bankitos_credit_request' => __('Solicitud de crédito que envían los socios para revisión del comité.', 'bankitos'),
-            'bankitos_credit_request_list' => __('Listado de solicitudes de crédito para firma de presidente, tesorero o veedor.', 'bankitos'),
-            'bankitos_tesorero_creditos' => __('Panel de pagos de créditos para aprobación o rechazo del tesorero.', 'bankitos'),
-            'bankitos_veedor_creditos' => __('Vista de pagos de créditos aprobados para seguimiento del veedor.', 'bankitos'),
-            'bankitos_tesorero_aportes' => __('Listado de aportes pendientes para aprobar o rechazar (Tesorero).', 'bankitos'),
-            'bankitos_veedor_aportes' => __('Aportes aprobados visibles para auditoría del veedor.', 'bankitos'),
-            'bankitos_invite_portal' => __('Portal para aceptar o rechazar invitaciones recibidas de distintos B@nkos.', 'bankitos'),
-        ];
+        $sections = self::get_shortcodes_reference();
 
         echo '<div class="bankitos-shortcodes-doc">';
+        echo '<div class="bankitos-shortcodes-doc__intro">';
         echo '<h2>' . esc_html__('Documentación de shortcodes', 'bankitos') . '</h2>';
-        echo '<p>' . esc_html__('Utiliza los siguientes shortcodes en tus páginas para habilitar las funciones principales de Bankitos.', 'bankitos') . '</p>';
-        echo '<table class="widefat striped">';
-        echo '<thead><tr><th>' . esc_html__('Shortcode', 'bankitos') . '</th><th>' . esc_html__('Descripción', 'bankitos') . '</th></tr></thead>';
-        echo '<tbody>';
-        foreach ($shortcodes as $tag => $description) {
-            echo '<tr>';
-            echo '<td><code>[' . esc_html($tag) . ']</code></td>';
-            echo '<td>' . esc_html($description) . '</td>';
-            echo '</tr>';
-        }
-        echo '</tbody>';
-        echo '</table>';
-        echo '<p>' . esc_html__('Todas las vistas de los shortcodes fueron unificadas con un diseño móvil primero. En teléfonos iOS o Android el contenido se apila en vertical para evitar desplazamientos horizontales.', 'bankitos') . '</p>';
-        echo '<p>' . esc_html__('Para aprovechar la versión optimizada, coloca los shortcodes en páginas de ancho completo o plantillas sin barras laterales y evita contenedores que limiten el ancho.', 'bankitos') . '</p>';
+        echo '<p>' . esc_html__('Usa estos bloques para construir las páginas principales de Bankitos. Cada tarjeta indica el rol que lo utiliza, las acciones disponibles y el shortcode listo para copiar.', 'bankitos') . '</p>';
+        echo '<ul class="bankitos-shortcodes-doc__tips">';
+        echo '<li>' . esc_html__('Todos los shortcodes usan un diseño móvil primero; publícalos en plantillas de ancho completo para evitar barras laterales.', 'bankitos') . '</li>';
+        echo '<li>' . esc_html__('Si un rol no tiene permisos, el contenido se oculta o muestra un mensaje contextual, por lo que puedes colocar varios shortcodes en la misma página.', 'bankitos') . '</li>';
+        echo '</ul>';
         echo '</div>';
+
+        foreach ($sections as $section) {
+            echo '<section class="bankitos-shortcodes-doc__section">';
+            echo '<div class="bankitos-shortcodes-doc__section-head">';
+            echo '<h3>' . esc_html($section['title']) . '</h3>';
+            if (!empty($section['description'])) {
+                echo '<p>' . esc_html($section['description']) . '</p>';
+            }
+            echo '</div>';
+            echo '<div class="bankitos-shortcodes-doc__grid">';
+            foreach ($section['items'] as $item) {
+                echo '<article class="bankitos-shortcodes-doc__card">';
+                echo '<div class="bankitos-shortcodes-doc__tag"><code>[' . esc_html($item['tag']) . ']</code></div>';
+                echo '<h4 class="bankitos-shortcodes-doc__name">' . esc_html($item['name']) . '</h4>';
+                echo '<p class="bankitos-shortcodes-doc__role">' . esc_html($item['role']) . '</p>';
+                echo '<p class="bankitos-shortcodes-doc__summary">' . esc_html($item['summary']) . '</p>';
+                if (!empty($item['actions'])) {
+                    echo '<ul class="bankitos-shortcodes-doc__list">';
+                    foreach ($item['actions'] as $action) {
+                        echo '<li>' . esc_html($action) . '</li>';
+                    }
+                    echo '</ul>';
+                }
+                if (!empty($item['usage'])) {
+                    echo '<p class="bankitos-shortcodes-doc__usage">' . esc_html($item['usage']) . '</p>';
+                }
+                echo '</article>';
+            }
+            echo '</div>';
+            echo '</section>';
+        }
+        echo '</div>';
+    }
+
+    protected static function get_shortcodes_reference(): array {
+        return [
+            [
+                'title'       => __('Acceso y registro', 'bankitos'),
+                'description' => __('Pantallas públicas para que los invitados entren o creen su usuario.', 'bankitos'),
+                'items'       => [
+                    [
+                        'tag'     => 'bankitos_login',
+                        'name'    => __('Acceso de socios', 'bankitos'),
+                        'role'    => __('Invitados y socios con invitación', 'bankitos'),
+                        'summary' => __('Formulario de inicio de sesión compatible con reCAPTCHA y con tokens de invitación.', 'bankitos'),
+                        'actions' => [
+                            __('Valida reCAPTCHA si el administrador lo habilitó.', 'bankitos'),
+                            __('Permite recordar sesión y pasar el parámetro invite_token.', 'bankitos'),
+                            __('Muestra un enlace directo a la página de registro.', 'bankitos'),
+                        ],
+                        'usage'   => __('Úsalo en la página pública de acceso (ej. /acceder).', 'bankitos'),
+                    ],
+                    [
+                        'tag'     => 'bankitos_register',
+                        'name'    => __('Registro de socios', 'bankitos'),
+                        'role'    => __('Invitados', 'bankitos'),
+                        'summary' => __('Alta de nuevos usuarios, incluyendo registros que llegan con invite_token.', 'bankitos'),
+                        'actions' => [
+                            __('Solicita datos básicos para crear la cuenta.', 'bankitos'),
+                            __('Cuando llega con invite_token vincula al B@nko correcto.', 'bankitos'),
+                        ],
+                        'usage'   => __('Colócalo en la página pública de registro (ej. /registrarse).', 'bankitos'),
+                    ],
+                    [
+                        'tag'     => 'bankitos_invite_portal',
+                        'name'    => __('Portal de invitaciones', 'bankitos'),
+                        'role'    => __('Invitados con invitación', 'bankitos'),
+                        'summary' => __('Vista donde cada persona acepta o rechaza invitaciones pendientes a un B@nko.', 'bankitos'),
+                        'actions' => [
+                            __('Muestra detalles del B@nko que invita (rol, cuota, duración).', 'bankitos'),
+                            __('Guarda la decisión y limpia el token de la URL para evitar reutilización.', 'bankitos'),
+                        ],
+                        'usage'   => __('Añádelo a la URL que usas en los correos de invitación.', 'bankitos'),
+                    ],
+                ],
+            ],
+            [
+                'title'       => __('Panel general del socio', 'bankitos'),
+                'description' => __('Bloques base que conforman la experiencia principal de cualquier miembro.', 'bankitos'),
+                'items'       => [
+                    [
+                        'tag'     => 'bankitos_panel',
+                        'name'    => __('Bienvenida al panel', 'bankitos'),
+                        'role'    => __('Socios autenticados', 'bankitos'),
+                        'summary' => __('Saludo inicial que muestra el estado del socio y ofrece crear un B@nko si aplica.', 'bankitos'),
+                        'actions' => [
+                            __('Si no pertenece a un B@nko ofrece el botón para crearlo.', 'bankitos'),
+                            __('Si ya pertenece, confirma el nombre del B@nko activo.', 'bankitos'),
+                        ],
+                        'usage'   => __('Ubícalo en la página principal del panel después de iniciar sesión.', 'bankitos'),
+                    ],
+                    [
+                        'tag'     => 'bankitos_panel_info',
+                        'name'    => __('Resumen del B@nko', 'bankitos'),
+                        'role'    => __('Socios del B@nko', 'bankitos'),
+                        'summary' => __('Tarjeta de información general del B@nko: cuota, tasa, duración y totales.', 'bankitos'),
+                        'actions' => [
+                            __('Incluye rol del usuario, ahorro total, créditos activos y dinero disponible.', 'bankitos'),
+                            __('Se oculta si el socio no pertenece a ningún B@nko.', 'bankitos'),
+                        ],
+                        'usage'   => __('Úsalo junto al panel para dar contexto financiero rápido.', 'bankitos'),
+                    ],
+                    [
+                        'tag'     => 'bankitos_panel_quick_actions',
+                        'name'    => __('Acciones rápidas', 'bankitos'),
+                        'role'    => __('Socios del B@nko', 'bankitos'),
+                        'summary' => __('Listado de accesos directos según permisos (aportes, créditos y revisiones).', 'bankitos'),
+                        'actions' => [
+                            __('Enlaza a subir aporte y solicitar crédito.', 'bankitos'),
+                            __('Muestra enlaces extra si el usuario es tesorero, veedor o parte del comité de crédito.', 'bankitos'),
+                        ],
+                        'usage'   => __('Ideal debajo del resumen para guiar al socio al siguiente paso.', 'bankitos'),
+                    ],
+                    [
+                        'tag'     => 'bankitos_panel_mis_finanzas',
+                        'name'    => __('Mis aportes y capacidad de crédito', 'bankitos'),
+                        'role'    => __('Socios del B@nko', 'bankitos'),
+                        'summary' => __('Historial de aportes con estados (pendiente, aprobado, rechazado) y capacidad de crédito calculada.', 'bankitos'),
+                        'actions' => [
+                            __('Muestra cada aporte con su comprobante y fecha.', 'bankitos'),
+                            __('Calcula la capacidad de crédito como 4x los aportes aprobados.', 'bankitos'),
+                        ],
+                        'usage'   => __('Coloca este bloque en la vista personal del socio (ej. /mi-aporte).', 'bankitos'),
+                    ],
+                ],
+            ],
+            [
+                'title'       => __('Gestión de miembros', 'bankitos'),
+                'description' => __('Herramientas exclusivas para el rol Presidente.', 'bankitos'),
+                'items'       => [
+                    [
+                        'tag'     => 'bankitos_panel_members_invite',
+                        'name'    => __('Invitar miembros', 'bankitos'),
+                        'role'    => __('Presidente', 'bankitos'),
+                        'summary' => __('Formulario dinámico para enviar varias invitaciones en una sola acción.', 'bankitos'),
+                        'actions' => [
+                            __('Controla el mínimo de invitaciones requeridas para activar el B@nko.', 'bankitos'),
+                            __('Agrega o elimina filas de invitados sin recargar la página.', 'bankitos'),
+                        ],
+                        'usage'   => __('Úsalo en la sección de gestión de miembros del panel.', 'bankitos'),
+                    ],
+                    [
+                        'tag'     => 'bankitos_panel_members',
+                        'name'    => __('Miembros e invitaciones', 'bankitos'),
+                        'role'    => __('Presidente', 'bankitos'),
+                        'summary' => __('Tabla unificada de miembros aceptados e invitaciones pendientes.', 'bankitos'),
+                        'actions' => [
+                            __('Permite reenviar, cancelar o editar invitaciones en línea.', 'bankitos'),
+                            __('Asigna o cambia roles a miembros activos (socio, secretario, tesorero, veedor).', 'bankitos'),
+                        ],
+                        'usage'   => __('Colócalo después de la sección de invitación para continuar con el seguimiento.', 'bankitos'),
+                    ],
+                ],
+            ],
+            [
+                'title'       => __('Operación del B@nko', 'bankitos'),
+                'description' => __('Shortcodes para crear B@nkos, registrar aportes y habilitar flujos financieros.', 'bankitos'),
+                'items'       => [
+                    [
+                        'tag'     => 'bankitos_crear_banco_form',
+                        'name'    => __('Crear B@nko', 'bankitos'),
+                        'role'    => __('Socios generales sin B@nko', 'bankitos'),
+                        'summary' => __('Formulario guiado para definir nombre, objetivo, cuota, tasa y duración del B@nko.', 'bankitos'),
+                        'actions' => [
+                            __('Valida montos mínimos y rangos permitidos antes de enviar.', 'bankitos'),
+                            __('Carga mensajes de error y éxito sin recargar la página.', 'bankitos'),
+                        ],
+                        'usage'   => __('Ubícalo en la página donde los socios crean su B@nko (ej. /crear-banko).', 'bankitos'),
+                    ],
+                    [
+                        'tag'     => 'bankitos_aporte_form',
+                        'name'    => __('Subir aporte', 'bankitos'),
+                        'role'    => __('Socios del B@nko', 'bankitos'),
+                        'summary' => __('Registro de aportes de capital con carga de comprobante.', 'bankitos'),
+                        'actions' => [
+                            __('Valida tipo y tamaño del archivo antes de enviarlo.', 'bankitos'),
+                            __('Envía el aporte al tesorero para su aprobación.', 'bankitos'),
+                        ],
+                        'usage'   => __('Coloca este formulario en la página donde los socios reportan aportes.', 'bankitos'),
+                    ],
+                ],
+            ],
+            [
+                'title'       => __('Créditos', 'bankitos'),
+                'description' => __('Flujo completo de solicitud, seguimiento y revisión de créditos.', 'bankitos'),
+                'items'       => [
+                    [
+                        'tag'     => 'bankitos_credit_request',
+                        'name'    => __('Solicitud de crédito', 'bankitos'),
+                        'role'    => __('Socios del B@nko', 'bankitos'),
+                        'summary' => __('Formulario para que el socio capture monto, plazo y destino del crédito.', 'bankitos'),
+                        'actions' => [
+                            __('Incluye aceptación de términos y firma de responsabilidad.', 'bankitos'),
+                            __('Envía la solicitud al comité para firma del presidente, tesorero y veedor.', 'bankitos'),
+                        ],
+                        'usage'   => __('Ponlo en la página destinada a solicitar crédito (ej. /solicitud-credito).', 'bankitos'),
+                    ],
+                    [
+                        'tag'     => 'bankitos_credit_summary',
+                        'name'    => __('Estado de mis créditos', 'bankitos'),
+                        'role'    => __('Socios del B@nko', 'bankitos'),
+                        'summary' => __('Resumen en acordeón de todas las solicitudes del socio con montos, plazos y tasas.', 'bankitos'),
+                        'actions' => [
+                            __('Muestra etiquetas de estado (pendiente, aprobado, rechazado).', 'bankitos'),
+                            __('Desglosa los detalles y la cronología de cada solicitud.', 'bankitos'),
+                        ],
+                        'usage'   => __('Agrégalo junto al formulario de solicitud para que el socio vea su historial.', 'bankitos'),
+                    ],
+                    [
+                        'tag'     => 'bankitos_credit_request_list',
+                        'name'    => __('Revisión de solicitudes', 'bankitos'),
+                        'role'    => __('Presidente, tesorero y veedor', 'bankitos'),
+                        'summary' => __('Listado de solicitudes que cada miembro del comité puede firmar o comentar.', 'bankitos'),
+                        'actions' => [
+                            __('Resalta el estado general y la fecha de solicitud.', 'bankitos'),
+                            __('Habilita botones de aprobación o rechazo según el rol actual.', 'bankitos'),
+                        ],
+                        'usage'   => __('Úsalo en la página interna de comité (ej. /solicitudes-credito).', 'bankitos'),
+                    ],
+                ],
+            ],
+            [
+                'title'       => __('Pagos de créditos', 'bankitos'),
+                'description' => __('Seguimiento de pagos de créditos aprobados.', 'bankitos'),
+                'items'       => [
+                    [
+                        'tag'     => 'bankitos_tesorero_creditos',
+                        'name'    => __('Pagos para aprobar', 'bankitos'),
+                        'role'    => __('Tesorero', 'bankitos'),
+                        'summary' => __('Muestra cada pago registrado y permite aprobarlo o marcarlo como rechazado.', 'bankitos'),
+                        'actions' => [
+                            __('Lista pagos de créditos aprobados con su comprobante.', 'bankitos'),
+                            __('Permite aprobar o rechazar según corresponda.', 'bankitos'),
+                        ],
+                        'usage'   => __('Inclúyelo en la página de tesorería de créditos.', 'bankitos'),
+                    ],
+                    [
+                        'tag'     => 'bankitos_veedor_creditos',
+                        'name'    => __('Pagos auditados', 'bankitos'),
+                        'role'    => __('Veedor', 'bankitos'),
+                        'summary' => __('Vista de sólo lectura para auditar pagos aprobados o rechazados.', 'bankitos'),
+                        'actions' => [
+                            __('Muestra los pagos ya cargados con sus soportes.', 'bankitos'),
+                            __('Bloquea acciones si el usuario no tiene el rol de veedor.', 'bankitos'),
+                        ],
+                        'usage'   => __('Ubícalo en la sección de auditoría de créditos.', 'bankitos'),
+                    ],
+                ],
+            ],
+            [
+                'title'       => __('Aportes', 'bankitos'),
+                'description' => __('Herramientas del tesorero y veedor para validar aportes.', 'bankitos'),
+                'items'       => [
+                    [
+                        'tag'     => 'bankitos_tesorero_aportes',
+                        'name'    => __('Aportes pendientes', 'bankitos'),
+                        'role'    => __('Tesorero', 'bankitos'),
+                        'summary' => __('Tabla de aportes enviados por los socios para que el tesorero los apruebe o rechace.', 'bankitos'),
+                        'actions' => [
+                            __('Incluye paginación, filtros de fecha y enlaces a comprobantes.', 'bankitos'),
+                            __('Actualiza el estado del aporte y notifica al socio.', 'bankitos'),
+                        ],
+                        'usage'   => __('Colócalo en la página interna del tesorero.', 'bankitos'),
+                    ],
+                    [
+                        'tag'     => 'bankitos_veedor_aportes',
+                        'name'    => __('Aportes aprobados', 'bankitos'),
+                        'role'    => __('Veedor', 'bankitos'),
+                        'summary' => __('Listado de aportes aprobados para fines de auditoría.', 'bankitos'),
+                        'actions' => [
+                            __('Muestra comprobantes y fechas de aprobación.', 'bankitos'),
+                            __('Restringe el acceso si el usuario no tiene el rol de veedor.', 'bankitos'),
+                        ],
+                        'usage'   => __('Utilízalo en la página de auditoría de aportes.', 'bankitos'),
+                    ],
+                ],
+            ],
+        ];
     }
 }
