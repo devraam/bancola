@@ -69,33 +69,35 @@ class BK_Credit_Payments_Handler {
         }
 
         $attachment_id = 0;
-        if (!empty($_FILES['receipt']['name'])) {
-            require_once ABSPATH . 'wp-admin/includes/file.php';
-            require_once ABSPATH . 'wp-admin/includes/media.php';
-            require_once ABSPATH . 'wp-admin/includes/image.php';
-            $file = $_FILES['receipt'];
-            if (!empty($file['error']) && (int) $file['error'] !== UPLOAD_ERR_OK) {
-                self::redirect_with('err', 'pago_archivo_subida', $redirect);
-            }
-            $max_size = (int) apply_filters('bankitos_credit_payment_max_filesize', 5 * MB_IN_BYTES);
-            if ($max_size > 0 && !empty($file['size']) && (int) $file['size'] > $max_size) {
-                self::redirect_with('err', 'pago_archivo_tamano', $redirect);
-            }
-            $allowed_mimes = self::allowed_mimes();
-            $filetype = wp_check_filetype_and_ext($file['tmp_name'], $file['name'], $allowed_mimes);
-            if (empty($filetype['type']) || !in_array($filetype['type'], array_values($allowed_mimes), true)) {
-                self::redirect_with('err', 'pago_archivo_tipo', $redirect);
-            }
-            add_filter('upload_mimes', [__CLASS__, 'filter_upload_mimes']);
-            $attachment_id = media_handle_upload('receipt', 0);
-            remove_filter('upload_mimes', [__CLASS__, 'filter_upload_mimes']);
-            if (is_wp_error($attachment_id)) {
-                self::redirect_with('err', 'pago_archivo_subida', $redirect);
-            }
-            if (class_exists('Bankitos_Secure_Files') && !Bankitos_Secure_Files::protect_attachment($attachment_id)) {
-                wp_delete_attachment($attachment_id, true);
-                self::redirect_with('err', 'pago_archivo_seguro', $redirect);
-            }
+        $file = $_FILES['receipt'] ?? null;
+        if (!$file || empty($file['name'])) {
+            self::redirect_with('err', 'pago_archivo_requerido', $redirect);
+        }
+
+        require_once ABSPATH . 'wp-admin/includes/file.php';
+        require_once ABSPATH . 'wp-admin/includes/media.php';
+        require_once ABSPATH . 'wp-admin/includes/image.php';
+        if (!empty($file['error']) && (int) $file['error'] !== UPLOAD_ERR_OK) {
+            self::redirect_with('err', 'pago_archivo_subida', $redirect);
+        }
+        $max_size = (int) apply_filters('bankitos_credit_payment_max_filesize', 5 * MB_IN_BYTES);
+        if ($max_size > 0 && !empty($file['size']) && (int) $file['size'] > $max_size) {
+            self::redirect_with('err', 'pago_archivo_tamano', $redirect);
+        }
+        $allowed_mimes = self::allowed_mimes();
+        $filetype = wp_check_filetype_and_ext($file['tmp_name'], $file['name'], $allowed_mimes);
+        if (empty($filetype['type']) || !in_array($filetype['type'], array_values($allowed_mimes), true)) {
+            self::redirect_with('err', 'pago_archivo_tipo', $redirect);
+        }
+        add_filter('upload_mimes', [__CLASS__, 'filter_upload_mimes']);
+        $attachment_id = media_handle_upload('receipt', 0);
+        remove_filter('upload_mimes', [__CLASS__, 'filter_upload_mimes']);
+        if (is_wp_error($attachment_id)) {
+            self::redirect_with('err', 'pago_archivo_subida', $redirect);
+        }
+        if (class_exists('Bankitos_Secure_Files') && !Bankitos_Secure_Files::protect_attachment($attachment_id)) {
+            wp_delete_attachment($attachment_id, true);
+            self::redirect_with('err', 'pago_archivo_seguro', $redirect);
         }
 
         $payment_id = Bankitos_Credit_Payments::insert_payment([
