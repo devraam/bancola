@@ -17,10 +17,11 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
             return '<div class="bankitos-panel__message">' . esc_html__('Aún no perteneces a un B@nko.', 'bankitos') . '</div>';
         }
 
-        $requests = Bankitos_Credit_Requests::get_user_requests($context['banco_id'], get_current_user_id());
-        $types    = Bankitos_Credit_Requests::get_credit_types();
-        $tasa     = isset($context['meta']['tasa']) ? (float) $context['meta']['tasa'] : 0.0;
-        $modals   = [];
+        $requests     = Bankitos_Credit_Requests::get_user_requests($context['banco_id'], get_current_user_id());
+        $types        = Bankitos_Credit_Requests::get_credit_types();
+        $tasa         = isset($context['meta']['tasa']) ? (float) $context['meta']['tasa'] : 0.0;
+        $redirect_url = self::get_creditos_redirect_url($atts);
+        $modals       = [];
 
         ob_start(); ?>
         <div class="bankitos-credit-summary">
@@ -41,7 +42,7 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
                   $status_class = self::get_status_class($request['status']);
                   $status_label = self::get_status_label($request['status']);
                   $modal_id     = 'bk-modal-credit-' . (int) $request['id'];
-                  $modal_markup = self::render_modal_for_request($request, $modal_id, $tasa);
+                  $modal_markup = self::render_modal_for_request($request, $modal_id, $tasa, $redirect_url);
                   if ($modal_markup) {
                       $modals[] = $modal_markup;
                   }
@@ -106,6 +107,40 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
         return ob_get_clean();
     }
 
+    /**
+     * Obtiene la URL de redirección para los formularios del resumen de créditos.
+     * Se intenta mantener al usuario en la misma página donde se muestra el shortcode
+     * (por ejemplo, https://bancola.tarcem.com/creditos/).
+     *
+     * @param array|string $atts
+     */
+    private static function get_creditos_redirect_url($atts): string {
+        $default = site_url('/creditos/');
+
+        // Si el shortcode está embebido en una página, usamos su URL como destino preferido.
+        if (function_exists('get_permalink')) {
+            $current = get_permalink();
+            if ($current) {
+                $default = $current;
+            }
+        }
+
+        // Permitir definir una URL explícita vía atributo del shortcode (ej: [bankitos_credit_summary redirect="/creditos/"]).
+        $candidate = '';
+        if (is_array($atts)) {
+            $candidate = $atts['redirect'] ?? ($atts['redirect_to'] ?? '');
+        }
+
+        if ($candidate) {
+            $validated = wp_validate_redirect(esc_url_raw($candidate), $default);
+            if ($validated) {
+                return $validated;
+            }
+        }
+
+        return $default;
+    }
+
     private static function get_status_label(string $status): string {
         $labels = [
             'pending'  => __('Pendiente de revisión', 'bankitos'),
@@ -124,12 +159,12 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
         return $classes[$status] ?? 'bankitos-pill--pending';
     }
 
-    private static function render_modal_for_request(array $request, string $modal_id, float $tasa): string {
+    private static function render_modal_for_request(array $request, string $modal_id, float $tasa, string $redirect_url): string {
         if ($request['status'] === 'rejected') {
             return self::render_rejection_modal($request, $modal_id);
         }
         if ($request['status'] === 'approved') {
-            return self::render_payment_modal($request, $modal_id, $tasa);
+           return self::render_payment_modal($request, $modal_id, $tasa, $redirect_url);
         }
         return '';
     }
@@ -153,7 +188,7 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
         return ob_get_clean();
     }
 
-    private static function render_payment_modal(array $request, string $modal_id, float $tasa): string {
+    private static function render_payment_modal(array $request, string $modal_id, float $tasa, string $redirect_url): string {
         if (empty($request['approval_date'])) {
             return '';
         }
@@ -303,7 +338,7 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
                             <input type="hidden" name="request_id" value="<?php echo esc_attr($request['id']); ?>">
                             <input type="hidden" name="amount" value="<?php echo esc_attr(number_format((float)$row['amount'], 2, '.', '')); ?>">
                             <input type="hidden" name="installment_date" value="<?php echo esc_attr($row['date']); ?>">
-                            <input type="hidden" name="redirect_to" value="<?php echo esc_url(site_url('/creditos/')); ?>">
+                            <input type="hidden" name="redirect_to" value="<?php echo esc_url($redirect_url); ?>">
                             
                             <button type="submit" class="bankitos-btn bankitos-btn--primary" data-bankitos-submit disabled aria-disabled="true">
                                 <?php echo $installment['state'] === 'rejected' ? esc_html__('Reintentar pago', 'bankitos') : esc_html__('Registrar pago', 'bankitos'); ?>
