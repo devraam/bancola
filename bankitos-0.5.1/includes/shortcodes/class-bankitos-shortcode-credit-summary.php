@@ -163,6 +163,8 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
             return '';
         }
 
+        $can_submit = current_user_can('submit_aportes');
+
         // Recuperar los pagos ya registrados en BD
         $payments           = Bankitos_Credit_Payments::get_request_payments((int) $request['id']);
         $payments_by_amount = self::index_payments_by_amount($payments);
@@ -201,6 +203,8 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
                 <?php $opened_item = false; foreach ($plan as $index => $row):
                     // Determinar el estado comparando el plan teórico con los pagos en BD
                     $installment = self::get_installment_state($row, $payments_by_amount);
+                    $installment['can_upload'] = $installment['can_upload'] && $can_submit;
+                    $upload_blocked = !$can_submit && ($installment['state'] === 'open' || $installment['state'] === 'rejected');
                     
                     $state_label = $installment['state_label'] ?: esc_html__('Pendiente de pago', 'bankitos');
                     $state_class = 'bankitos-pill';
@@ -269,12 +273,15 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
 
                               <?php if ($installment['can_upload']): ?>
                                 <label class="bankitos-file">
-                                  <input type="file" id="<?php echo esc_attr($input_id); ?>" name="receipt" accept="image/*,application/pdf,.pdf" required>
+                                  <input type="file" id="<?php echo esc_attr($input_id); ?>" name="receipt" accept=".jpg,.jpeg,.png,.pdf" required>
                                   <span class="bankitos-file__label" data-default-label><?php esc_html_e('Elegir archivo', 'bankitos'); ?></span>
                                 </label>
-                                <span class="bankitos-credit-summary__help bankitos-credit-summary__help--error" data-upload-error hidden><?php esc_html_e('Sube un archivo válido (imagen o PDF).', 'bankitos'); ?></span>
+                                <span class="bankitos-credit-summary__help bankitos-credit-summary__help--error" data-upload-error hidden><?php esc_html_e('Sube un archivo válido (JPG/PNG o PDF).', 'bankitos'); ?></span>
+                                <span class="bankitos-credit-summary__help bankitos-credit-summary__help--error" data-upload-size-error hidden><?php esc_html_e('El archivo no debe superar 1MB.', 'bankitos'); ?></span>
                               <?php elseif ($installment['state'] === 'pending'): ?>
                                 <span class="bankitos-credit-summary__help"><?php esc_html_e('Archivo enviado. Esperando revisión.', 'bankitos'); ?></span>
+                                <?php elseif ($upload_blocked): ?>
+                                <span class="bankitos-credit-summary__help bankitos-credit-summary__help--error"><?php esc_html_e('No tienes permiso para registrar pagos.', 'bankitos'); ?></span>
                               <?php else: ?>
                                 <span class="bankitos-credit-summary__help"><?php echo esc_html($state_label); ?></span>
                               <?php endif; ?>
@@ -290,7 +297,7 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
                             </div>
                           <?php elseif ($installment['state'] === 'approved'): ?>
                             <span class="bankitos-pill bankitos-pill--accepted"><?php esc_html_e('Cuota pagada exitosamente', 'bankitos'); ?></span>
-                          <?php else: ?>
+                          <?php elseif ($installment['can_upload']): ?>
                             <?php echo wp_nonce_field('bankitos_credit_payment_submit', '_wpnonce', true, false); ?>
                             <input type="hidden" name="action" value="bankitos_credit_payment_submit">
                             <input type="hidden" name="request_id" value="<?php echo esc_attr($request['id']); ?>">
@@ -301,6 +308,10 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
                             <button type="submit" class="bankitos-btn bankitos-btn--primary" data-bankitos-submit disabled aria-disabled="true">
                                 <?php echo $installment['state'] === 'rejected' ? esc_html__('Reintentar pago', 'bankitos') : esc_html__('Registrar pago', 'bankitos'); ?>
                             </button>
+                            <?php elseif ($upload_blocked): ?>
+                            <span class="bankitos-credit-summary__help bankitos-credit-summary__help--error"><?php esc_html_e('No tienes permiso para registrar pagos.', 'bankitos'); ?></span>
+                          <?php else: ?>
+                            <span class="bankitos-credit-summary__help"><?php echo esc_html($state_label); ?></span>
                           <?php endif; ?>
                         </div>
 
@@ -480,8 +491,9 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
             });
           });
           
-          var allowedTypes = ['image/jpeg','image/png','image/gif','image/webp','application/pdf'];
-          var allowedExt = /(\.jpe?g|\.png|\.gif|\.webp|\.pdf)$/i;
+          var allowedTypes = ['image/jpeg','image/png','application/pdf'];
+          var allowedExt = /(\.jpe?g|\.png|\.pdf)$/i;
+          var maxSize = 1024 * 1024; // 1MB
 
           function toggleSubmitState(input){
             var form = input.closest('form'); 
@@ -489,9 +501,11 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
             
             var submit = form.querySelector('[data-bankitos-submit]');
             var errorMsg = form.querySelector('[data-upload-error]');
+            var sizeMsg = form.querySelector('[data-upload-size-error]');
             var file = input.files && input.files.length ? input.files[0] : null;
             var hasFile = !!file;
             var isValid = false;
+            var isSizeValid = true;
 
             if(hasFile){
               if(file.type && allowedTypes.indexOf(file.type) !== -1){
@@ -499,13 +513,19 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
               } else if(file.name && allowedExt.test(file.name)){
                 isValid = true;
               }
+              if(file.size && file.size > maxSize){
+                isSizeValid = false;
+              }
             }
             if(submit){
-              submit.disabled = !isValid;
+              submit.disabled = !isValid || !isSizeValid;
               submit.setAttribute('aria-disabled', submit.disabled ? 'true' : 'false');
             }
             if(errorMsg){
               errorMsg.hidden = !hasFile || isValid;
+            }
+            if(sizeMsg){
+              sizeMsg.hidden = !hasFile || isSizeValid;
             }
           }
 
