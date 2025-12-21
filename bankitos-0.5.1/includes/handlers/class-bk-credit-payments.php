@@ -35,8 +35,6 @@ class BK_Credit_Payments_Handler {
         return (array) apply_filters('bankitos_credit_payment_allowed_mimes', [
             'jpg|jpeg' => 'image/jpeg',
             'png'      => 'image/png',
-            'gif'      => 'image/gif',
-            'webp'     => 'image/webp',
             'pdf'      => 'application/pdf',
         ]);
     }
@@ -60,6 +58,10 @@ class BK_Credit_Payments_Handler {
 
         if ($request_id <= 0 || $amount <= 0) {
             self::redirect_with('err', 'pago_invalido', $redirect);
+        }
+
+        if (!current_user_can('submit_aportes')) {
+            self::redirect_with('err', 'pago_permiso', $redirect);
         }
 
         // Verificar propiedad del crédito y estado
@@ -97,7 +99,7 @@ class BK_Credit_Payments_Handler {
             self::redirect_with('err', 'pago_archivo_subida', $redirect);
         }
         
-        $max_size = (int) apply_filters('bankitos_credit_payment_max_filesize', 5 * MB_IN_BYTES);
+        $max_size = (int) apply_filters('bankitos_credit_payment_max_filesize', 1 * MB_IN_BYTES);
         if ($max_size > 0 && !empty($file['size']) && (int) $file['size'] > $max_size) {
             self::redirect_with('err', 'pago_archivo_tamano', $redirect);
         }
