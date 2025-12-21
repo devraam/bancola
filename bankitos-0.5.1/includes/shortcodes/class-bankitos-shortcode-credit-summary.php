@@ -303,7 +303,7 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
                             <input type="hidden" name="request_id" value="<?php echo esc_attr($request['id']); ?>">
                             <input type="hidden" name="amount" value="<?php echo esc_attr(number_format((float)$row['amount'], 2, '.', '')); ?>">
                             <input type="hidden" name="installment_date" value="<?php echo esc_attr($row['date']); ?>">
-                            <input type="hidden" name="redirect_to" value="<?php echo esc_url(self::get_current_url()); ?>">
+                            <input type="hidden" name="redirect_to" value="<?php echo esc_url(site_url('/creditos/')); ?>">
                             
                             <button type="submit" class="bankitos-btn bankitos-btn--primary" data-bankitos-submit disabled aria-disabled="true">
                                 <?php echo $installment['state'] === 'rejected' ? esc_html__('Reintentar pago', 'bankitos') : esc_html__('Registrar pago', 'bankitos'); ?>

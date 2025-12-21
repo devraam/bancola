@@ -54,7 +54,7 @@ class BK_Credit_Payments_Handler {
         $amount_raw = isset($_POST['amount']) ? $_POST['amount'] : 0;
         $amount     = floatval($amount_raw);
         
-        $redirect   = site_url('/panel');
+        $redirect   = site_url('/creditos/');
 
         if ($request_id <= 0 || $amount <= 0) {
             self::redirect_with('err', 'pago_invalido', $redirect);
