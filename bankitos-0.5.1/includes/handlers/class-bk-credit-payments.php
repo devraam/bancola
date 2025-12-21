@@ -11,18 +11,22 @@ class BK_Credit_Payments_Handler {
     }
 
     private static function get_redirect_target(string $fallback): string {
-        $redirect = isset($_REQUEST['redirect_to']) ? wp_unslash($_REQUEST['redirect_to']) : '';
+        $creditos_url = trailingslashit(site_url('/creditos/'));
+        $fallback     = $fallback ?: $creditos_url;
+        $redirect     = isset($_REQUEST['redirect_to']) ? wp_unslash($_REQUEST['redirect_to']) : '';
+
         if ($redirect) {
             $validated = wp_validate_redirect(esc_url_raw($redirect), $fallback);
-            if ($validated) {
+            if ($validated && strpos($validated, $creditos_url) === 0) {
                 return $validated;
             }
         }
-        $referer = wp_get_referer();
-        if ($referer) {
-            return $referer;
+
+        if (strpos($fallback, $creditos_url) === 0) {
+            return $fallback;
         }
-        return $fallback;
+       
+        return $creditos_url;
     }
 
     private static function redirect_with(string $param, string $code, string $fallback): void {
