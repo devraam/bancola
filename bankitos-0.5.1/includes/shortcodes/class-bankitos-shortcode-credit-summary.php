@@ -115,15 +115,7 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
      * @param array|string $atts
      */
     private static function get_creditos_redirect_url($atts): string {
-        $default = site_url('/creditos/');
-
-        // Si el shortcode está embebido en una página, usamos su URL como destino preferido.
-        if (function_exists('get_permalink')) {
-            $current = get_permalink();
-            if ($current) {
-                $default = $current;
-            }
-        }
+        $creditos_url = trailingslashit(site_url('/creditos/'));
 
         // Permitir definir una URL explícita vía atributo del shortcode (ej: [bankitos_credit_summary redirect="/creditos/"]).
         $candidate = '';
@@ -132,13 +124,19 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
         }
 
         if ($candidate) {
-            $validated = wp_validate_redirect(esc_url_raw($candidate), $default);
-            if ($validated) {
+            $validated = wp_validate_redirect(esc_url_raw($candidate), $creditos_url);
+            if ($validated && strpos($validated, $creditos_url) === 0) {
                 return $validated;
             }
         }
 
-        return $default;
+        // Si ya estamos en /creditos/, respetamos la URL actual con sus parámetros.
+        $current = self::get_current_url();
+        if ($current && strpos($current, $creditos_url) === 0) {
+            return $current;
+        }
+
+        return $creditos_url;
     }
 
     private static function get_status_label(string $status): string {
