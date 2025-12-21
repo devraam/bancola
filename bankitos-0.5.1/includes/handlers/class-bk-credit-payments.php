@@ -47,9 +47,13 @@ class BK_Credit_Payments_Handler {
             exit;
         }
         check_admin_referer('bankitos_credit_payment_submit');
+        
         $user_id    = get_current_user_id();
         $request_id = isset($_POST['request_id']) ? absint($_POST['request_id']) : 0;
-        $amount     = isset($_POST['amount']) ? floatval(wp_unslash($_POST['amount'])) : 0.0;
+        
+        // Recibir el monto. Como viene formateado '123.45', floatval funciona bien.
+        $amount_raw = isset($_POST['amount']) ? $_POST['amount'] : 0;
+        $amount     = floatval($amount_raw);
         $redirect   = site_url('/panel');
 
         if ($request_id <= 0 || $amount <= 0) {
@@ -65,7 +69,7 @@ class BK_Credit_Payments_Handler {
             self::redirect_with('err', 'pago_permiso', $redirect);
         }
 
-        // Verificar que el usuario pertenezca al banco del crédito
+        // Verificar banco
         $banco_id = class_exists('Bankitos_Handlers') ? Bankitos_Handlers::get_user_banco_id($user_id) : 0;
         if ($banco_id <= 0 || (int) $request['banco_id'] !== $banco_id) {
             self::redirect_with('err', 'pago_permiso', $redirect);
@@ -93,12 +97,11 @@ class BK_Credit_Payments_Handler {
         $allowed_mimes = self::allowed_mimes();
         $filetype = wp_check_filetype_and_ext($file['tmp_name'], $file['name'], $allowed_mimes);
         
-        // Validación extra de tipo real
         if (empty($filetype['type']) || !in_array($filetype['type'], array_values($allowed_mimes), true)) {
             self::redirect_with('err', 'pago_archivo_tipo', $redirect);
         }
 
-        // Permitir subida filtrando tipos MIME
+        // Subir archivo
         add_filter('upload_mimes', [__CLASS__, 'filter_upload_mimes']);
         $attachment_id = media_handle_upload('receipt', 0);
         remove_filter('upload_mimes', [__CLASS__, 'filter_upload_mimes']);
@@ -123,7 +126,8 @@ class BK_Credit_Payments_Handler {
         ]);
 
         if ($payment_id <= 0) {
-            if ($attachment_id) {
+            // Si falla la inserción en BD, borramos el adjunto para no dejar basura
+            if ($attachment_id && !is_wp_error($attachment_id)) {
                 wp_delete_attachment($attachment_id, true);
             }
             self::redirect_with('err', 'pago_guardar', $redirect);
@@ -148,7 +152,6 @@ class BK_Credit_Payments_Handler {
         if ($payment_id <= 0) {
             return '';
         }
-        // Usamos el endpoint seguro
         return wp_nonce_url(add_query_arg([
             'action'     => 'bankitos_credit_payment_download',
             'payment_id' => $payment_id,
@@ -234,10 +237,12 @@ class BK_Credit_Payments_Handler {
         $content_type = $mime['type'] ?: (function_exists('mime_content_type') ? mime_content_type($path) : 'application/octet-stream');
         $filename = Bankitos_Secure_Files::get_download_filename($attachment_id);
         
-        nocache_headers();
-        if (ob_get_length()) {
-            ob_clean();
+        // Limpiar buffer para evitar corrupción de archivos
+        while (ob_get_level() > 0) {
+            ob_end_clean();
         }
+        
+        nocache_headers();
         header('Content-Type: ' . $content_type);
         header('Content-Disposition: inline; filename="' . basename($filename) . '"');
         header('Content-Length: ' . filesize($path));
