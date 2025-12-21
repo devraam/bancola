@@ -112,7 +112,6 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
             'approved' => __('Aprobado', 'bankitos'),
             'rejected' => __('No aprobado', 'bankitos'),
         ];
-
         return $labels[$status] ?? $status;
     }
 
@@ -122,7 +121,6 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
             'approved' => 'bankitos-pill--accepted',
             'rejected' => 'bankitos-pill--rejected',
         ];
-
         return $classes[$status] ?? 'bankitos-pill--pending';
     }
 
@@ -196,9 +194,10 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
                   <span class="bankitos-pill"><?php printf(esc_html__('%s meses', 'bankitos'), esc_html(number_format_i18n((int) $request['term_months']))); ?></span>
                 </div>
               </div>
+              
               <div class="bankitos-credit-summary__payments-accordion bankitos-accordion" role="list">
                 <?php $opened_item = false; foreach ($plan as $index => $row):
-                    $input_id = sprintf('bk-payment-%d-%d', (int) $request['id'], $index);
+                    // Construcción del estado
                     $installment = self::get_installment_state($row, $payments_by_amount);
                     $state_label = $installment['state_label'] ?: esc_html__('Pendiente de pago', 'bankitos');
                     $state_class = 'bankitos-pill';
@@ -212,9 +211,16 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
                     } else {
                         $state_class .= ' bankitos-pill--pending';
                     }
+                    
+                    // Lógica de apertura del acordeón
                     $should_open = !$opened_item && ($installment['state'] !== 'approved' || $index === 0);
                     $opened_item = $opened_item || $should_open;
+                    
+                    // ID únicos
+                    $unique_key = (int) $request['id'] . '-' . $index;
+                    $input_id   = 'bk-file-' . $unique_key;
                     ?>
+                    
                     <details class="bankitos-accordion__item bankitos-credit-summary__payment-item bankitos-credit-summary__payment-item--<?php echo esc_attr($installment['state']); ?>" role="listitem" <?php echo $should_open ? 'open' : ''; ?>>
                       <summary class="bankitos-accordion__summary bankitos-credit-summary__payment-summary">
                         <div class="bankitos-accordion__title">
@@ -227,7 +233,12 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
                           <span class="bankitos-accordion__chevron" aria-hidden="true"></span>
                         </div>
                       </summary>
+
                       <div class="bankitos-accordion__content bankitos-credit-summary__payment-content">
+                        <?php if ($installment['can_upload']): ?>
+                            <form class="bankitos-credit-summary__form" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" enctype="multipart/form-data">
+                        <?php endif; ?>
+
                         <dl class="bankitos-accordion__grid bankitos-credit-summary__payment-grid">
                           <div>
                             <dt><?php esc_html_e('Fecha programada', 'bankitos'); ?></dt>
@@ -238,65 +249,64 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
                             <dd><?php echo esc_html(self::format_currency($row['balance'])); ?></dd>
                           </div>
                           <div>
-                            <dt><?php esc_html_e('Cuota estimada', 'bankitos'); ?></dt>
+                            <dt><?php esc_html_e('Cuota total', 'bankitos'); ?></dt>
                             <dd>
                               <span class="bankitos-credit-summary__amount"><?php echo esc_html(self::format_currency($row['amount'])); ?></span>
-                              <span class="bankitos-credit-summary__help"><?php printf(esc_html__('Interés proyectado: %s', 'bankitos'), esc_html(self::format_currency($row['interest']))); ?></span>
+                              <span class="bankitos-credit-summary__help"><?php printf(esc_html__('(Capital: %s + Interés: %s)', 'bankitos'), esc_html(self::format_currency($row['principal'])), esc_html(self::format_currency($row['interest']))); ?></span>
                             </dd>
                           </div>
-                          <div>
-                            <dt><?php esc_html_e('Estado del pago', 'bankitos'); ?></dt>
-                            <dd>
-                              <span class="<?php echo esc_attr($state_class); ?>"><?php echo esc_html($state_label); ?></span>
-                              <?php if ($installment['state'] === 'pending'): ?>
-                                <span class="bankitos-credit-summary__help"><?php esc_html_e('Estamos revisando tu comprobante.', 'bankitos'); ?></span>
-                              <?php elseif ($installment['state'] === 'rejected'): ?>
-                                <span class="bankitos-credit-summary__help"><?php esc_html_e('Vuelve a subir el comprobante para continuar.', 'bankitos'); ?></span>
-                              <?php endif; ?>
-                            </dd>
-                          </div>
+                          
                           <div>
                             <dt><?php esc_html_e('Comprobante', 'bankitos'); ?></dt>
                             <dd class="bankitos-credit-summary__upload">
                               <?php if ($installment['receipt']): ?>
                                 <a class="bankitos-link" href="<?php echo esc_url($installment['receipt']); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e('Ver comprobante', 'bankitos'); ?></a>
                               <?php endif; ?>
+
                               <?php if ($installment['can_upload']): ?>
                                 <label class="bankitos-file">
-                                  <input type="file" id="<?php echo esc_attr($input_id); ?>" name="receipt" accept="image/*,application/pdf,.pdf" form="<?php echo esc_attr($input_id); ?>-form" required>
+                                  <input type="file" id="<?php echo esc_attr($input_id); ?>" name="receipt" accept="image/*,application/pdf,.pdf" required>
                                   <span class="bankitos-file__label" data-default-label><?php esc_html_e('Elegir archivo', 'bankitos'); ?></span>
-                                  <span class="bankitos-file__label" data-default-label><?php esc_html_e('Elegir imagen', 'bankitos'); ?></span>
                                 </label>
-                            <span class="bankitos-credit-summary__help"><?php esc_html_e('Adjunta el soporte antes de registrar el pago.', 'bankitos'); ?></span>
-                                <span class="bankitos-credit-summary__help bankitos-credit-summary__help--error" data-upload-error hidden><?php esc_html_e('Sube un archivo válido (imagen o PDF) para continuar.', 'bankitos'); ?></span>
+                                <span class="bankitos-credit-summary__help bankitos-credit-summary__help--error" data-upload-error hidden><?php esc_html_e('Sube un archivo válido (imagen o PDF).', 'bankitos'); ?></span>
                               <?php elseif (!$installment['receipt']): ?>
                                 <span class="bankitos-credit-summary__help"><?php echo esc_html($state_label); ?></span>
                               <?php endif; ?>
                             </dd>
                           </div>
                         </dl>
+
                         <div class="bankitos-credit-summary__payment-actions">
                           <?php if ($installment['state'] === 'pending'): ?>
-                            <span class="bankitos-pill bankitos-pill--pending"><?php esc_html_e('En revisión', 'bankitos'); ?></span>
+                            <div class="bankitos-credit-summary__alert" style="margin:0; padding:0.5rem; width:100%; text-align:right;">
+                                <strong><?php esc_html_e('Pago en revisión.', 'bankitos'); ?></strong>
+                                <br><small><?php esc_html_e('Espera la aprobación del tesorero.', 'bankitos'); ?></small>
+                            </div>
                           <?php elseif ($installment['state'] === 'approved'): ?>
                             <span class="bankitos-pill bankitos-pill--accepted"><?php esc_html_e('Cuota pagada', 'bankitos'); ?></span>
                           <?php else: ?>
-                            <form id="<?php echo esc_attr($input_id); ?>-form" class="bankitos-credit-summary__form" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" enctype="multipart/form-data">
-                              <?php echo wp_nonce_field('bankitos_credit_payment_submit', '_wpnonce', true, false); ?>
-                              <input type="hidden" name="action" value="bankitos_credit_payment_submit">
-                              <input type="hidden" name="request_id" value="<?php echo esc_attr($request['id']); ?>">
-                              <input type="hidden" name="amount" value="<?php echo esc_attr($row['amount']); ?>">
-                              <input type="hidden" name="installment_date" value="<?php echo esc_attr($row['date']); ?>">
-                              <input type="hidden" name="redirect_to" value="<?php echo esc_url(self::get_current_url()); ?>">
-                              <button type="submit" class="bankitos-btn bankitos-btn--primary" data-bankitos-submit disabled aria-disabled="true"><?php esc_html_e('Registrar pago', 'bankitos'); ?></button>
-                            </form>
+                            <?php echo wp_nonce_field('bankitos_credit_payment_submit', '_wpnonce', true, false); ?>
+                            <input type="hidden" name="action" value="bankitos_credit_payment_submit">
+                            <input type="hidden" name="request_id" value="<?php echo esc_attr($request['id']); ?>">
+                            <input type="hidden" name="amount" value="<?php echo esc_attr($row['amount']); ?>">
+                            <input type="hidden" name="installment_date" value="<?php echo esc_attr($row['date']); ?>">
+                            <input type="hidden" name="redirect_to" value="<?php echo esc_url(self::get_current_url()); ?>">
+                            
+                            <button type="submit" class="bankitos-btn bankitos-btn--primary" data-bankitos-submit disabled aria-disabled="true">
+                                <?php echo $installment['state'] === 'rejected' ? esc_html__('Reintentar pago', 'bankitos') : esc_html__('Registrar pago', 'bankitos'); ?>
+                            </button>
                           <?php endif; ?>
                         </div>
+
+                        <?php if ($installment['can_upload']): ?>
+                            </form>
+                        <?php endif; ?>
                       </div>
                     </details>
                 <?php endforeach; ?>
                 <?php $unmatched_payments = array_sum(array_map('count', $payments_by_amount)); ?>
               </div>
+
               <div class="bankitos-credit-summary__overview">
                 <div class="bankitos-credit-summary__overview-card">
                   <p class="bankitos-credit-summary__foot-label"><?php esc_html_e('Total del crédito', 'bankitos'); ?></p>
@@ -311,10 +321,10 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
                   <p class="bankitos-credit-summary__foot-value"><?php echo esc_html(self::format_currency($total_interest)); ?></p>
                 </div>
               </div>
+
               <?php if ($unmatched_payments > 0): ?>
                 <div class="bankitos-credit-summary__alert">
-                  <p><?php printf(esc_html(_n('Tienes %s pago registrado que está en revisión.', 'Tienes %s pagos registrados que están en revisión.', $unmatched_payments, 'bankitos')), esc_html(number_format_i18n($unmatched_payments))); ?></p>
-                  <p class="bankitos-credit-summary__alert-note"><?php esc_html_e('Se mostrará en el plan apenas coincida con una cuota pendiente.', 'bankitos'); ?></p>
+                  <p><?php printf(esc_html(_n('Tienes %s pago registrado adicional en revisión.', 'Tienes %s pagos registrados adicionales en revisión.', $unmatched_payments, 'bankitos')), esc_html(number_format_i18n($unmatched_payments))); ?></p>
                 </div>
               <?php endif; ?>
             </div>
@@ -361,6 +371,7 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
             $grouped[$key][] = $payment;
         }
 
+        // Ordenar pagos del más antiguo al más reciente para consumirlos en orden
         foreach ($grouped as $key => $list) {
             usort($list, static function ($a, $b) {
                 return strcmp($a['created_at'], $b['created_at']);
@@ -375,36 +386,43 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
         $payment = self::shift_payment_for_amount((float) $row['amount'], $payments_by_amount);
         $status_labels = Bankitos_Credit_Payments::get_status_labels();
         $state = $payment ? self::normalize_state((string) ($payment['status'] ?? '')) : 'open';
-        $receipt = ($payment && !empty($payment['attachment_id']) && class_exists('BK_Credit_Payments_Handler'))
-            ? BK_Credit_Payments_Handler::get_receipt_download_url((int) $payment['id'])
-            : '';
+        
+        $receipt = '';
+        if ($payment && !empty($payment['attachment_id']) && class_exists('BK_Credit_Payments_Handler')) {
+            $receipt = BK_Credit_Payments_Handler::get_receipt_download_url((int) $payment['id']);
+        }
+
+        // Si el estado es pending o approved, no se puede subir nuevo archivo
+        $can_upload = ($state === 'open' || $state === 'rejected');
 
         return [
             'state'       => $state,
-            'state_label' => $status_labels[$state] ?? ($state === 'open' ? '' : __('Estado del pago en revisión', 'bankitos')),
-            'can_upload'  => !$payment || $state === 'rejected',
+            'state_label' => $status_labels[$state] ?? '',
+            'can_upload'  => $can_upload,
             'receipt'     => $receipt,
         ];
     }
 
     private static function shift_payment_for_amount(float $target_amount, array &$payments_by_amount): ?array {
+        // Intento exacto
         $key = self::normalize_amount($target_amount);
         if (!empty($payments_by_amount[$key])) {
             $payment = array_shift($payments_by_amount[$key]);
-            if (!$payments_by_amount[$key]) {
+            if (empty($payments_by_amount[$key])) {
                 unset($payments_by_amount[$key]);
             }
             return $payment;
         }
 
+        // Intento con tolerancia (por temas de redondeo en flotantes)
         $tolerance = 0.05;
         foreach ($payments_by_amount as $stored_key => $list) {
-            if (!$list) {
+            if (empty($list)) {
                 continue;
             }
             if (abs((float) $stored_key - $target_amount) <= $tolerance) {
                 $payment = array_shift($payments_by_amount[$stored_key]);
-                if (!$payments_by_amount[$stored_key]) {
+                if (empty($payments_by_amount[$stored_key])) {
                     unset($payments_by_amount[$stored_key]);
                 }
                 return $payment;
@@ -417,9 +435,6 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
     private static function normalize_state(string $state): string {
         $normalized = strtolower(trim($state));
         $allowed = ['pending', 'approved', 'rejected'];
-        if (!$normalized) {
-            return 'open';
-        }
         return in_array($normalized, $allowed, true) ? $normalized : 'pending';
     }
 
@@ -452,16 +467,20 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
               if(ev.target === modal){ closeModal(modal); }
             });
           });
+          
           var allowedTypes = ['image/jpeg','image/png','image/gif','image/webp','application/pdf'];
           var allowedExt = /(\.jpe?g|\.png|\.gif|\.webp|\.pdf)$/i;
+
           function toggleSubmitState(input){
-            var formId = input.getAttribute('form');
-            var form = formId ? document.getElementById(formId) : null;
-            var submit = form ? form.querySelector('[data-bankitos-submit]') : null;
-            var errorMsg = input.closest('.bankitos-credit-summary__upload') ? input.closest('.bankitos-credit-summary__upload').querySelector('[data-upload-error]') : null;
+            var form = input.closest('form'); // Ahora buscamos el form más cercano
+            if (!form) return;
+            
+            var submit = form.querySelector('[data-bankitos-submit]');
+            var errorMsg = form.querySelector('[data-upload-error]');
             var file = input.files && input.files.length ? input.files[0] : null;
             var hasFile = !!file;
             var isValid = false;
+
             if(hasFile){
               if(file.type && allowedTypes.indexOf(file.type) !== -1){
                 isValid = true;
@@ -476,11 +495,12 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
             if(errorMsg){
               errorMsg.hidden = !hasFile || isValid;
             }
-            return isValid;
           }
+
           document.querySelectorAll('.bankitos-credit-summary__upload input[type=\"file\"]').forEach(function(input){
             var label = input.parentElement ? input.parentElement.querySelector('.bankitos-file__label') : null;
             var defaultText = label && (label.dataset.defaultLabel || label.textContent);
+            
             function updateLabel(){
               var file = input.files && input.files.length ? input.files[0] : null;
               var fileName = file ? file.name : '';
@@ -493,7 +513,7 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
                   label.classList.remove('bankitos-file__label--selected');
                 }
               }
-            toggleSubmitState(input);
+              toggleSubmitState(input);
             }
             updateLabel();
             input.addEventListener('change', updateLabel);
