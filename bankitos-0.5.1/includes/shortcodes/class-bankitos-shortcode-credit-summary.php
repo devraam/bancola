@@ -583,6 +583,19 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
             updateLabel();
             input.addEventListener('change', updateLabel);
           });
+
+          document.querySelectorAll('.bankitos-credit-summary__form').forEach(function(form){
+            var submit = form.querySelector('[data-bankitos-submit]');
+            var fileInput = form.querySelector('input[type=\"file\"][name=\"receipt\"]');
+            if(!submit || !fileInput){ return; }
+
+            form.addEventListener('submit', function(ev){
+              if(submit.disabled || !fileInput.files || !fileInput.files.length){
+                ev.preventDefault();
+                toggleSubmitState(fileInput);
+              }
+            });
+          });
         })();
         </script>
         <?php
