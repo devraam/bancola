@@ -210,7 +210,6 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
                         $interest_paid += (float) $row['interest'];
                     } elseif ($installment['state'] === 'pending') {
                         $state_class .= ' bankitos-pill--pending';
-                        // Forzar etiqueta específica si está pendiente
                         $state_label = esc_html__('Aprobación pendiente', 'bankitos');
                     } elseif ($installment['state'] === 'rejected') {
                         $state_class .= ' bankitos-pill--rejected';
