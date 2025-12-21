@@ -273,7 +273,7 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
 
                               <?php if ($installment['can_upload']): ?>
                                 <label class="bankitos-file">
-                                  <input type="file" id="<?php echo esc_attr($input_id); ?>" name="receipt" accept=".jpg,.jpeg,.png,.pdf" required>
+                                  <input type="file" id="<?php echo esc_attr($input_id); ?>" name="receipt" accept=".jpg,.jpeg,.png,.pdf,image/*" capture="environment" required>
                                   <span class="bankitos-file__label" data-default-label><?php esc_html_e('Elegir archivo', 'bankitos'); ?></span>
                                 </label>
                                 <span class="bankitos-credit-summary__help bankitos-credit-summary__help--error" data-upload-error hidden><?php esc_html_e('Sube un archivo válido (JPG/PNG o PDF).', 'bankitos'); ?></span>

@@ -79,20 +79,16 @@ class BK_Credit_Payments_Handler {
             self::redirect_with('err', 'pago_permiso', $redirect);
         }
 
-        // --- MANEJO DE ARCHIVO ROBUSTO (Sin media_handle_upload) ---
+        // --- MANEJO DE ARCHIVO (alineado con bankitos_aporte_form) ---
         $file = $_FILES['receipt'] ?? null;
         if (!$file || empty($file['name'])) {
             self::redirect_with('err', 'pago_archivo_requerido', $redirect);
         }
 
         // Cargar librerías de WP necesarias
-        if (!function_exists('wp_handle_upload')) {
-            require_once ABSPATH . 'wp-admin/includes/file.php';
-        }
-        if (!function_exists('wp_generate_attachment_metadata')) {
-            require_once ABSPATH . 'wp-admin/includes/image.php';
-            require_once ABSPATH . 'wp-admin/includes/media.php';
-        }
+        require_once ABSPATH . 'wp-admin/includes/file.php';
+        require_once ABSPATH . 'wp-admin/includes/media.php';
+        require_once ABSPATH . 'wp-admin/includes/image.php';
 
         // Validaciones básicas
         if (!empty($file['error']) && (int) $file['error'] !== UPLOAD_ERR_OK) {
@@ -112,41 +108,20 @@ class BK_Credit_Payments_Handler {
             self::redirect_with('err', 'pago_archivo_tipo', $redirect);
         }
 
-        // Subir el archivo físicamente
+        // Subir el archivo usando la misma mecánica que aportes
         add_filter('upload_mimes', [__CLASS__, 'filter_upload_mimes']);
-        $upload_overrides = ['test_form' => false]; // Importante: test_form false permite subida manual
-        $movefile = wp_handle_upload($file, $upload_overrides);
+        $attachment_id = media_handle_upload('receipt', 0);
         remove_filter('upload_mimes', [__CLASS__, 'filter_upload_mimes']);
 
-        if (!$movefile || isset($movefile['error'])) {
-            self::redirect_with('err', 'pago_archivo_subida', $redirect);
-        }
-
-        // Crear el registro del adjunto en la base de datos manualmente
-        $filename  = $movefile['file'];
-        $filetype  = wp_check_filetype(basename($filename), null);
-        $wp_upload_dir = wp_upload_dir();
-        
-        $attachment_data = [
-            'guid'           => $wp_upload_dir['url'] . '/' . basename($filename),
-            'post_mime_type' => $filetype['type'],
-            'post_title'     => preg_replace('/\.[^.]+$/', '', basename($filename)),
-            'post_content'   => '',
-            'post_status'    => 'inherit',
-            'post_author'    => $user_id
-        ];
-
-        $attachment_id = wp_insert_attachment($attachment_data, $filename);
-
         if (is_wp_error($attachment_id) || $attachment_id <= 0) {
-            // Si falla la BD, intentamos borrar el archivo físico para no dejar basura
-            @unlink($filename);
             self::redirect_with('err', 'pago_archivo_subida', $redirect);
         }
 
-        // Generar metadatos (miniaturas para imágenes)
-        $attach_metadata = wp_generate_attachment_metadata($attachment_id, $filename);
-        wp_update_attachment_metadata($attachment_id, $attach_metadata);
+        // Asegurar autor y metadatos consistentes
+        wp_update_post([
+            'ID'          => $attachment_id,
+            'post_author' => $user_id,
+        ]);
 
         // Proteger archivo (mover a carpeta privada si el sistema de seguridad está activo)
         if (class_exists('Bankitos_Secure_Files') && !Bankitos_Secure_Files::protect_attachment($attachment_id)) {
