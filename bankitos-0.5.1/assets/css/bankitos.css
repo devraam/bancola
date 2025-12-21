@@ -86,14 +86,9 @@
 .bankitos-panel__quick-actions a:hover{text-decoration:underline;}
 
 .bankitos-panel__message{margin:.75rem 0 0;font-size:1.05rem;color:rgba(15,23,42,.75);}
-.bankitos-panel__grid{display:grid;gap:1.5rem;margin:1.5rem 0;}
-.bankitos-panel__col{display:flex;flex-direction:column;gap:1rem;}
-
-.bankitos-panel__grid,
 .bankitos-credit-request__group,
 .bankitos-credit-card__details,
 .bankitos-credit-card__committee-list,
-.bankitos-credit-summary__list,
 .bankitos-credit-summary__details,
 .bankitos-invite-portal__details {
   width: 100%;
@@ -142,7 +137,6 @@
 
 .bankitos-btn--ghost{background:var(--bco-blanco);color:var(--bco-azul);border:1px solid rgba(0,115,179,.25);}
 .bankitos-btn--ghost:hover{background:var(--bco-azul-claro);color:var(--bco-azul);}
-.bankitos-members__email{margin:.1rem 0 0;font-size:.9rem;color:rgba(15,23,42,.65);word-break:break-all;}
 
 .bankitos-btn--secondary{background:var(--bco-blanco);color:var(--bco-azul);border:1px solid var(--bco-azul);}
 .bankitos-btn--secondary:hover{background:var(--bco-azul-claro);color:var(--bco-azul);}
@@ -217,18 +211,15 @@
     align-items:flex-start;
   }
 
-  .bankitos-panel__grid,
   .bankitos-credit-request__group,
   .bankitos-credit-card__details,
   .bankitos-credit-card__committee-list,
-  .bankitos-credit-summary__list,
   .bankitos-credit-summary__details,
   .bankitos-invite-portal__details {
     grid-template-columns:1fr;
   }
 
-  .bankitos-credit-card__status,
-  .bankitos-credit-summary__status {
+  .bankitos-credit-card__status {
     align-items:flex-start;
   }
 
@@ -245,10 +236,6 @@
   .bankitos-panel .button {
     width:100%;
   }
-}
-
-@media (min-width:960px){
-  .bankitos-panel__grid{grid-template-columns:repeat(2,minmax(0,1fr));}
 }
 
 @media (min-width:720px){
@@ -590,13 +577,9 @@
   color: rgba(15,23,42,.72);
 }
 
-.bankitos-credit-summary__accordion {
-  gap: .75rem;
-}
-
 .bankitos-credit-summary__summary {
   background: var(--bco-gris);
-  padding: 1.1rem 1.25rem;
+  padding: 1rem 1.2rem;
 }
 
 .bankitos-credit-summary__summary-main {
@@ -746,11 +729,11 @@
   padding: 0 1rem 1rem;
   display: flex;
   flex-direction: column;
-  gap: .75rem;
+  gap: 1rem;
 }
 
 .bankitos-credit-summary__payment-summary {
-  background: #f8fafc;
+  background: var(--bco-gris);
 }
 
 .bankitos-credit-summary__payment-number {
@@ -803,42 +786,6 @@
   box-shadow: 0 4px 14px rgba(15,23,42,.06);
 }
 
-.bankitos-credit-summary__table-wrapper {
-  padding: 0 1rem 1rem;
-}
-
-.bankitos-credit-summary__payments {
-  width: 100%;
-}
-
-.bankitos-credit-summary__payments input[type="file"] {
-  width: 100%;
-}
-
-.bankitos-credit-summary__payments td[data-title] {
-  position: relative;
-}
-
-.bankitos-credit-summary__payments td[data-title]:before {
-  content: attr(data-title);
-  display: none;
-  font-weight: 600;
-  color: var(--bco-text-light);
-  margin-bottom: .35rem;
-}
-
-.bankitos-credit-summary__row--pending {
-  background: #fff8e6;
-}
-
-.bankitos-credit-summary__row--approved {
-  background: #f0fdf4;
-}
-
-.bankitos-credit-summary__row--open {
-  background: #fff;
-}
-
 .bankitos-credit-summary__alert {
   margin: 0 1rem 1rem;
   padding: .85rem 1rem;
@@ -846,12 +793,6 @@
   background: #fff8e6;
   border: 1px solid rgba(245, 158, 11, .25);
   color: var(--bco-text);
-}
-
-.bankitos-credit-summary__alert-note {
-  margin: .35rem 0 0;
-  color: var(--bco-text-light);
-  font-size: .9rem;
 }
 
 .bankitos-credit-summary__help {
@@ -864,12 +805,6 @@
   display: flex;
   flex-direction: column;
   gap: .35rem;
-}
-
-.bankitos-credit-summary__cell {
-  display: flex;
-  flex-direction: column;
-  gap: .15rem;
 }
 
 .bankitos-credit-summary__form {
@@ -890,13 +825,6 @@
   font-weight: 700;
 }
 
-.bankitos-credit-summary__totals {
-  display: flex;
-  gap: 1rem;
-  justify-content: space-between;
-  align-items: center;
-}
-
 @media (max-width: 767px) {
   .bankitos-modal {
     padding: 0;
@@ -911,9 +839,6 @@
     box-shadow: none;
     padding: 1rem 0;
   }
-  .bankitos-credit-summary__payments thead {
-    display: none;
-  }
   .bankitos-credit-summary__modal {
     height: 100vh;
   }
@@ -921,34 +846,6 @@
     max-height: none;
     height: 100%;
     padding: .5rem 1rem 1.25rem;
-  }
-  .bankitos-credit-summary__table-wrapper {
-    padding: 0;
-  }
-  .bankitos-credit-summary__payments tbody tr {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: .75rem;
-    border: 1px solid rgba(0, 115, 179, .08);
-    border-radius: 12px;
-    padding: .75rem;
-  }
-  .bankitos-credit-summary__payments td {
-    display: flex;
-    flex-direction: column;
-  }
-  .bankitos-credit-summary__payments td[data-title]:before {
-    display: block;
-  }
-  .bankitos-credit-summary__totals {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .bankitos-credit-summary__payments tfoot td {
-    display: block;
-    width: 100%;
-    border: none;
-    padding-top: .75rem;
   }
   .bankitos-credit-summary__payment-summary {
     align-items: flex-start;
