@@ -47,6 +47,10 @@ class Bankitos_Access {
                     'bankitos_assign_role',
                     'bankitos_credito_solicitar',
                     'bankitos_credito_resolver',
+                    'bankitos_credit_payment_submit',
+                    'bankitos_credit_payment_approve',
+                    'bankitos_credit_payment_reject',
+                    'bankitos_credit_payment_download',
                 ]
             );
             if (in_array($action, $allowed_actions, true)) {
