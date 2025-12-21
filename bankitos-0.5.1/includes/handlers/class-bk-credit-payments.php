@@ -56,6 +56,7 @@ class BK_Credit_Payments_Handler {
             self::redirect_with('err', 'pago_invalido', $redirect);
         }
 
+        // Verificar propiedad del crédito
         $request = Bankitos_Credit_Requests::get_request($request_id);
         if (!$request || (int) $request['user_id'] !== $user_id) {
             self::redirect_with('err', 'pago_permiso', $redirect);
@@ -64,12 +65,13 @@ class BK_Credit_Payments_Handler {
             self::redirect_with('err', 'pago_permiso', $redirect);
         }
 
+        // Verificar que el usuario pertenezca al banco del crédito
         $banco_id = class_exists('Bankitos_Handlers') ? Bankitos_Handlers::get_user_banco_id($user_id) : 0;
         if ($banco_id <= 0 || (int) $request['banco_id'] !== $banco_id) {
             self::redirect_with('err', 'pago_permiso', $redirect);
         }
 
-        $attachment_id = 0;
+        // Manejo de archivo
         $file = $_FILES['receipt'] ?? null;
         if (!$file || empty($file['name'])) {
             self::redirect_with('err', 'pago_archivo_requerido', $redirect);
@@ -78,29 +80,40 @@ class BK_Credit_Payments_Handler {
         require_once ABSPATH . 'wp-admin/includes/file.php';
         require_once ABSPATH . 'wp-admin/includes/media.php';
         require_once ABSPATH . 'wp-admin/includes/image.php';
+
         if (!empty($file['error']) && (int) $file['error'] !== UPLOAD_ERR_OK) {
             self::redirect_with('err', 'pago_archivo_subida', $redirect);
         }
+        
         $max_size = (int) apply_filters('bankitos_credit_payment_max_filesize', 5 * MB_IN_BYTES);
         if ($max_size > 0 && !empty($file['size']) && (int) $file['size'] > $max_size) {
             self::redirect_with('err', 'pago_archivo_tamano', $redirect);
         }
+
         $allowed_mimes = self::allowed_mimes();
         $filetype = wp_check_filetype_and_ext($file['tmp_name'], $file['name'], $allowed_mimes);
+        
+        // Validación extra de tipo real
         if (empty($filetype['type']) || !in_array($filetype['type'], array_values($allowed_mimes), true)) {
             self::redirect_with('err', 'pago_archivo_tipo', $redirect);
         }
+
+        // Permitir subida filtrando tipos MIME
         add_filter('upload_mimes', [__CLASS__, 'filter_upload_mimes']);
         $attachment_id = media_handle_upload('receipt', 0);
         remove_filter('upload_mimes', [__CLASS__, 'filter_upload_mimes']);
+
         if (is_wp_error($attachment_id)) {
             self::redirect_with('err', 'pago_archivo_subida', $redirect);
         }
+
+        // Proteger archivo
         if (class_exists('Bankitos_Secure_Files') && !Bankitos_Secure_Files::protect_attachment($attachment_id)) {
             wp_delete_attachment($attachment_id, true);
             self::redirect_with('err', 'pago_archivo_seguro', $redirect);
         }
 
+        // Insertar registro en BD
         $payment_id = Bankitos_Credit_Payments::insert_payment([
             'request_id'    => $request_id,
             'user_id'       => $user_id,
@@ -135,14 +148,11 @@ class BK_Credit_Payments_Handler {
         if ($payment_id <= 0) {
             return '';
         }
-
-        $download_base = admin_url('admin-post.php');
-
-        // Siempre usamos el endpoint seguro porque los adjuntos se guardan en bankitos-private.
+        // Usamos el endpoint seguro
         return wp_nonce_url(add_query_arg([
             'action'     => 'bankitos_credit_payment_download',
             'payment_id' => $payment_id,
-        ], $download_base), 'bankitos_credit_payment_download_' . $payment_id);
+        ], admin_url('admin-post.php')), 'bankitos_credit_payment_download_' . $payment_id);
     }
     
     private static function moderate_payment(string $status): void {
@@ -151,23 +161,29 @@ class BK_Credit_Payments_Handler {
             exit;
         }
         check_admin_referer('bankitos_credit_payment_mod');
+        
         if (!current_user_can('approve_aportes')) {
             self::redirect_with('err', 'pago_permiso', site_url('/panel'));
         }
+        
         $payment_id = isset($_REQUEST['payment_id']) ? absint($_REQUEST['payment_id']) : 0;
         $redirect   = site_url('/panel');
-        $payment    = Bankitos_Credit_Payments::get_payment($payment_id);
+        
+        $payment = Bankitos_Credit_Payments::get_payment($payment_id);
         if (!$payment) {
             self::redirect_with('err', 'pago_invalido', $redirect);
         }
+        
         $request = Bankitos_Credit_Requests::get_request((int) $payment['request_id']);
         if (!$request) {
             self::redirect_with('err', 'pago_invalido', $redirect);
         }
+        
         $banco_id = class_exists('Bankitos_Handlers') ? Bankitos_Handlers::get_user_banco_id(get_current_user_id()) : 0;
         if ($banco_id <= 0 || (int) $request['banco_id'] !== $banco_id) {
             self::redirect_with('err', 'pago_permiso', $redirect);
         }
+        
         Bankitos_Credit_Payments::update_status($payment_id, $status);
         $code = $status === 'approved' ? 'pago_aprobado' : 'pago_rechazado';
         self::redirect_with('ok', $code, $redirect);
@@ -180,41 +196,49 @@ class BK_Credit_Payments_Handler {
         }
         $payment_id = isset($_GET['payment_id']) ? absint($_GET['payment_id']) : 0;
         $nonce      = isset($_GET['_wpnonce']) ? sanitize_text_field($_GET['_wpnonce']) : '';
+        
         if ($payment_id <= 0 || !$nonce || !wp_verify_nonce($nonce, 'bankitos_credit_payment_download_' . $payment_id)) {
             wp_die(__('Solicitud inválida.', 'bankitos'), 400);
         }
+        
         $payment = Bankitos_Credit_Payments::get_payment($payment_id);
         if (!$payment) {
             wp_die(__('El comprobante no está disponible.', 'bankitos'), 404);
         }
+        
         $request = Bankitos_Credit_Requests::get_request((int) $payment['request_id']);
         if (!$request) {
             wp_die(__('El comprobante no está disponible.', 'bankitos'), 404);
         }
+        
         $current_user = wp_get_current_user();
         $is_owner = (int) $current_user->ID === (int) $payment['user_id'];
         $can_manage = current_user_can('approve_aportes') || current_user_can('audit_aportes');
         $same_bank = class_exists('Bankitos_Handlers') && (int) Bankitos_Handlers::get_user_banco_id($current_user->ID) === (int) $request['banco_id'];
+        
         if ((!$is_owner && !$can_manage) || !$same_bank) {
             wp_die(__('No tienes permisos para ver este comprobante.', 'bankitos'), 403);
         }
+        
         $attachment_id = (int) $payment['attachment_id'];
         if ($attachment_id <= 0 || !class_exists('Bankitos_Secure_Files')) {
             wp_die(__('El comprobante no está disponible.', 'bankitos'), 404);
         }
+        
         $path = Bankitos_Secure_Files::get_protected_path($attachment_id);
         if (!$path) {
             wp_die(__('El comprobante no está disponible.', 'bankitos'), 404);
         }
+        
         $mime = wp_check_filetype($path);
-        $content_type = $mime['type'] ?: (function_exists('mime_content_type') ? mime_content_type($path) : '');
+        $content_type = $mime['type'] ?: (function_exists('mime_content_type') ? mime_content_type($path) : 'application/octet-stream');
         $filename = Bankitos_Secure_Files::get_download_filename($attachment_id);
         
         nocache_headers();
         if (ob_get_length()) {
             ob_clean();
         }
-        header('Content-Type: ' . ($content_type ?: 'application/octet-stream'));
+        header('Content-Type: ' . $content_type);
         header('Content-Disposition: inline; filename="' . basename($filename) . '"');
         header('Content-Length: ' . filesize($path));
         readfile($path);
