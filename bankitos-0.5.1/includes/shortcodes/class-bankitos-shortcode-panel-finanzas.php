@@ -106,7 +106,7 @@ class Bankitos_Shortcode_Panel_Finanzas extends Bankitos_Shortcode_Panel_Base {
     
     protected static function modal_markup(): string {
         // El <img> se inicializa sin src. El JS lo establecerá condicionalmente.
-        return '<div id="bankitos-modal" class="bankitos-modal" hidden><div class="bankitos-modal__backdrop"></div><div class="bankitos-modal__body"><button type="button" class="bankitos-modal__close" aria-label="' . esc_attr__('Cerrar', 'bankitos') . '">&times;</button><p class="bankitos-modal__error" hidden></p><img src="" alt="" loading="lazy" hidden></div></div>';
+        return '<div id="bankitos-modal" class="bankitos-modal" hidden><div class="bankitos-modal__backdrop"></div><div class="bankitos-modal__body"><button type="button" class="bankitos-modal__close" aria-label="' . esc_attr__('Cerrar', 'bankitos') . '">&times;</button><p class="bankitos-modal__error" hidden></p><iframe class="bankitos-modal__frame" src="" title="' . esc_attr__('Comprobante', 'bankitos') . '" hidden></iframe><img src="" alt="" loading="lazy" hidden></div></div>';
     }
 
     protected static function get_user_approved_total(int $user_id): float {
@@ -153,11 +153,18 @@ class Bankitos_Shortcode_Panel_Finanzas extends Bankitos_Shortcode_Panel_Base {
           if(!modal){return;}
           var backdrop = modal.querySelector('.bankitos-modal__backdrop');
           var closeBtn = modal.querySelector('.bankitos-modal__close');
+          var frame = modal.querySelector('.bankitos-modal__frame');
           var img = modal.querySelector('img');
           var errorBox = modal.querySelector('.bankitos-modal__error');
 
           function close(){
             modal.setAttribute('hidden','hidden'); 
+            if(frame){
+              frame.removeAttribute('src');
+              frame.setAttribute('hidden', '');
+              frame.setAttribute('aria-hidden', 'true');
+              frame.removeAttribute('title');
+            }
             if(img){
               img.removeAttribute('src');
               img.setAttribute('hidden', '');
@@ -176,8 +183,26 @@ class Bankitos_Shortcode_Panel_Finanzas extends Bankitos_Shortcode_Panel_Base {
             errorBox.removeAttribute('hidden');
           }
 
+          function resetContent(){
+            if(img){
+              img.removeAttribute('src');
+              img.setAttribute('hidden', '');
+            }
+            if(frame){
+              frame.removeAttribute('src');
+              frame.setAttribute('hidden', '');
+              frame.setAttribute('aria-hidden', 'true');
+            }
+            if(errorBox){
+              errorBox.textContent = '';
+              errorBox.setAttribute('hidden', '');
+            }
+          }
+
           function openReceipt(receiptUrl, isImage, title){
             if (!receiptUrl){ return; }
+
+            resetContent();
 
             if (isImage && img) {
               img.onload = function(){
@@ -200,11 +225,27 @@ class Bankitos_Shortcode_Panel_Finanzas extends Bankitos_Shortcode_Panel_Base {
               return;
             }
 
-            // Si es PDF o no imagen, mostrar mensaje dentro del modal en lugar de abrir una nueva pestaña
-            if (img) {
-              img.setAttribute('hidden', '');
+           // Si es PDF u otro tipo de archivo, mostrarlo en el iframe del modal
+            if (frame) {
+              frame.onload = function(){
+                frame.onload = null;
+                frame.onerror = null;
+              };
+              frame.onerror = function(){
+                frame.onload = null;
+                frame.onerror = null;
+                frame.setAttribute('hidden', '');
+                showError('No se pudo cargar el comprobante.');
+              };
+              frame.removeAttribute('aria-hidden');
+              frame.removeAttribute('hidden');
+              frame.title = title || '';
+              frame.src = receiptUrl;
+              modal.removeAttribute('hidden');
+              return;
             }
-            showError('Este comprobante debe descargarse o abrirse desde tu gestor de archivos.');
+            
+            showError('No se pudo cargar el comprobante.');
             modal.removeAttribute('hidden');
           }
 
