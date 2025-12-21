@@ -178,11 +178,11 @@ class BK_Credit_Payments_Handler {
         check_admin_referer('bankitos_credit_payment_mod');
         
         if (!current_user_can('approve_aportes')) {
-            self::redirect_with('err', 'pago_permiso', site_url('/panel'));
+            self::redirect_with('err', 'pago_permiso', site_url('/creditos'));
         }
         
         $payment_id = isset($_REQUEST['payment_id']) ? absint($_REQUEST['payment_id']) : 0;
-        $redirect   = site_url('/panel');
+        $redirect   = site_url('/creditos');
         
         $payment = Bankitos_Credit_Payments::get_payment($payment_id);
         if (!$payment) {
