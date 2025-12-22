@@ -57,8 +57,17 @@ class Bankitos_CPT {
             'tesorero'=>__('Tesorero','bankitos'),
             'presidente'=>__('Presidente','bankitos'),
             'veedor'=>__('Veedor','bankitos'),
+            'gestor_global'=>__('Gestor Global','bankitos'),
         ];
-        foreach ($roles_labels as $k=>$label){ if(!get_role($k)) add_role($k,$label,['read'=>true]); }
+        foreach ($roles_labels as $k=>$label){
+            if(!get_role($k)) {
+                $caps = ['read'=>true];
+                if ($k === 'gestor_global') {
+                    $caps[Bankitos_Admin_Reports::CAPABILITY] = true;
+                }
+                add_role($k,$label,$caps);
+            }
+        }
 
         $admin_like_caps = [
             'read_banco','read_private_bancos','edit_banco','edit_bancos','edit_private_bancos','edit_published_bancos','edit_others_bancos','delete_banco','delete_bancos','delete_private_bancos','delete_published_bancos','delete_others_bancos','publish_bancos','create_bancos',
@@ -87,6 +96,7 @@ class Bankitos_CPT {
 
         if ($admin=get_role('administrator')) {
             foreach ($admin_like_caps as $cap) $admin->add_cap($cap);
+            $admin->add_cap(Bankitos_Admin_Reports::CAPABILITY);
         }
     }
     private static function grant_caps_to_role($role_key, array $caps) {

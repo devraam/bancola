@@ -27,6 +27,7 @@ require_once BANKITOS_PATH . 'includes/class-bankitos-recaptcha.php';
 require_once BANKITOS_PATH . 'includes/class-bankitos-secure-files.php';
 require_once BANKITOS_PATH . 'includes/class-bankitos-shortcodes.php';
 require_once BANKITOS_PATH . 'includes/class-bankitos-handlers.php';
+require_once BANKITOS_PATH . 'includes/class-bankitos-admin-reports.php';
 
 /* ========= Bootstrap ========= */
 function bankitos() {
