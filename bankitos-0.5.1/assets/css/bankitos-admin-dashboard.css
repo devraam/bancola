@@ -1,0 +1,82 @@
+.bankitos-admin-dashboard__head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:1rem;
+  margin-bottom:1rem;
+}
+.bankitos-admin-dashboard__actions .button{
+  height:36px;
+  line-height:34px;
+}
+.bankitos-kpi-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:1rem;
+  margin-bottom:1.5rem;
+}
+.bankitos-kpi{
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:8px;
+  padding:1rem;
+  box-shadow:0 4px 12px rgba(0,0,0,0.03);
+}
+.bankitos-kpi__label{color:#6b7280;font-size:12px;margin:0 0 4px;text-transform:uppercase;letter-spacing:.04em;}
+.bankitos-kpi__value{margin:0;font-size:26px;font-weight:700;color:#111827;}
+.bankitos-kpi__sub{margin:4px 0 0;font-size:13px;color:#4b5563;}
+
+.bankitos-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1rem;margin-bottom:1.5rem;}
+.bankitos-card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;box-shadow:0 8px 22px rgba(0,0,0,0.04);} 
+.bankitos-card__header{display:flex;justify-content:space-between;align-items:center;padding:1rem 1.25rem;border-bottom:1px solid #e5e7eb;gap:0.75rem;}
+.bankitos-card__header h2{margin:0;font-size:18px;}
+.bankitos-card__body{padding:1.25rem;}
+.bankitos-flex{display:flex;flex-wrap:wrap;gap:1rem;}
+.bankitos-grid--two{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;}
+
+.bankitos-chart h4{margin:0 0 0.5rem;font-size:15px;}
+.bankitos-bar-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:0.5rem;}
+.bankitos-bar-list__item{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:0.5rem 0.75rem;position:relative;overflow:hidden;}
+.bankitos-bar{position:absolute;left:0;top:0;height:100%;background:#c7f0001a;z-index:0;}
+.bankitos-bar-list__label,.bankitos-bar-list__value{position:relative;z-index:1;display:block;}
+.bankitos-bar-list__label{font-weight:600;color:#111827;}
+.bankitos-bar-list__value{color:#4b5563;font-size:13px;}
+
+.bankitos-pills{display:flex;flex-wrap:wrap;gap:0.5rem;padding:0;margin:0;list-style:none;}
+.bankitos-pill-chip{background:#f9fafb;border:1px solid #e5e7eb;border-radius:999px;padding:6px 10px;display:flex;align-items:center;gap:6px;}
+.bankitos-pill-chip__label{font-weight:600;}
+.bankitos-pill-chip__value{color:#374151;}
+
+.bankitos-metric__label{margin:0;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:#6b7280;}
+.bankitos-metric__value{margin:6px 0;font-size:26px;font-weight:700;color:#111827;}
+
+.bankitos-timeline{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:0.4rem;}
+.bankitos-timeline li{display:flex;justify-content:space-between;padding:0.5rem 0.75rem;border:1px solid #e5e7eb;border-radius:8px;background:#f9fafb;}
+.bankitos-timeline__label{font-weight:600;}
+.bankitos-timeline__value{color:#111827;}
+
+.bankitos-ghost{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:0.5rem;}
+.bankitos-ghost li{padding:0.5rem 0.75rem;border:1px dashed #d1d5db;border-radius:8px;}
+.bankitos-ghost span{display:block;color:#4b5563;font-size:13px;}
+
+.bankitos-search{display:flex;gap:0.5rem;align-items:center;}
+.bankitos-search input[type="search"]{min-width:220px;}
+
+.bankitos-status{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;font-size:12px;font-weight:600;}
+.bankitos-status--active{background:#ecfdf3;color:#15803d;}
+.bankitos-status--inactive{background:#fef2f2;color:#b91c1c;}
+
+.bankitos-actions{display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;}
+.bankitos-inline-form{display:flex;gap:0.35rem;align-items:center;}
+.bankitos-inline-form input[type="text"]{width:120px;}
+.column-actions{text-align:right;}
+
+.bankitos-bar-list__item .bankitos-bar{background:linear-gradient(90deg, #c7f00033, #c7f00080);} 
+
+@media (max-width: 782px){
+  .bankitos-admin-dashboard__head{flex-direction:column;align-items:flex-start;}
+  .bankitos-actions{flex-direction:column;align-items:flex-start;}
+  .bankitos-inline-form{width:100%;}
+  .bankitos-inline-form input[type="text"]{flex:1;}
+  .column-actions{text-align:left;}
+}
