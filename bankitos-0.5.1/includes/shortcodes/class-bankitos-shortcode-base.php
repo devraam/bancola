@@ -283,7 +283,7 @@ abstract class Bankitos_Shortcode_Base {
         $html .= sprintf('<label>%s <input type="date" name="%s" value="%s"></label>', esc_html__('Desde', 'bankitos'), esc_attr($filters['from_key']), esc_attr($filters['from'] ?? ''));
         $html .= sprintf('<label>%s <input type="date" name="%s" value="%s"></label>', esc_html__('Hasta', 'bankitos'), esc_attr($filters['to_key']), esc_attr($filters['to'] ?? ''));
         $html .= sprintf('<input type="hidden" name="%s" value="1" />', esc_attr($filters['page_key']));
-        $html .= '<button type="submit" class="button">' . esc_html__('Aplicar filtros', 'bankitos') . '</button>';
+        $html .= '<button type="submit" class="bankitos-btn">' . esc_html__('Aplicar filtros', 'bankitos') . '</button>';
         $html .= '</fieldset></form>';
         return $html;
     }

@@ -363,6 +363,11 @@
   display: block;
 }
 
+.bankitos-modal__body img[decoding="async"]:not([src]),
+.bankitos-modal__body img[decoding="async"][src=""] {
+  display: none !important;
+}
+
 .bankitos-modal__body iframe {
   width: min(880px, 100%);
   height: 82vh;
