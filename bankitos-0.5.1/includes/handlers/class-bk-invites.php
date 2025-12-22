@@ -935,11 +935,11 @@ class BK_Invites_Handler {
         $stats = isset($existing_data['stats']) && is_array($existing_data['stats']) ? $existing_data['stats'] : [];
         $total_invites = isset($stats['total']) ? (int) $stats['total'] : 0;
 
-        $default_min = $total_invites < 1 ? 4 : 1;
+        $default_min = $total_invites < 1 ? 2 : 1;
         $min_required = (int) apply_filters('bankitos_min_invites_required', $default_min, $banco_id, $existing_data);
         $min_required = max(1, $min_required);
 
-        $initial_needed = max(0, 4 - max(0, $members_count));
+        $initial_needed = max(0, 2 - max(0, $members_count));
         if ($initial_needed > 0) {
             $min_required = max($min_required, $initial_needed);
         }
