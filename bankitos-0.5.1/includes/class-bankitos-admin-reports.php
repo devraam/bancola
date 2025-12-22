@@ -5,6 +5,7 @@ class Bankitos_Admin_Reports {
 
     const PAGE_SLUG   = 'bankitos-global-dashboard';
     const CAPABILITY  = 'view_global_reports';
+    const MANAGE_BANKS_CAPABILITY = 'manage_global_bancos';
     const EXPORT_ACTION = 'bankitos_export_global';
     const TOGGLE_ACTION = 'bankitos_toggle_banco';
     const DELETE_ACTION = 'bankitos_delete_banco';
@@ -108,7 +109,7 @@ class Bankitos_Admin_Reports {
             wp_die(__('Solicitud no válida.', 'bankitos'));
         }
 
-        if (!current_user_can('manage_options')) {
+        if (!current_user_can(self::MANAGE_BANKS_CAPABILITY)) {
             wp_die(__('No tienes permisos para modificar este B@nko.', 'bankitos'));
         }
 
@@ -131,7 +132,7 @@ class Bankitos_Admin_Reports {
         if (strtoupper($confirm) !== 'ELIMINAR') {
             wp_die(__('Debes confirmar la eliminación escribiendo ELIMINAR.', 'bankitos'));
         }
-        if (!current_user_can('manage_options')) {
+        if (!current_user_can(self::MANAGE_BANKS_CAPABILITY)) {
             wp_die(__('No tienes permisos para eliminar este B@nko.', 'bankitos'));
         }
 

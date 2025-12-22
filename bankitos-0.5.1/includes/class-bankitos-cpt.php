@@ -64,10 +64,22 @@ class Bankitos_CPT {
                 $caps = ['read'=>true];
                 if ($k === 'gestor_global') {
                     $caps[Bankitos_Admin_Reports::CAPABILITY] = true;
+                    $caps[Bankitos_Admin_Reports::MANAGE_BANKS_CAPABILITY] = true;
+                    $caps['manage_bankitos_domains'] = true;
                     $caps['edit_bancos'] = true;
                     $caps['edit_banco']  = true;
                     $caps['read_banco']  = true;
                     $caps['read_private_bancos'] = true;
+                    $caps['publish_bancos'] = true;
+                    $caps['create_bancos']  = true;
+                    $caps['edit_private_bancos'] = true;
+                    $caps['edit_published_bancos'] = true;
+                    $caps['edit_others_bancos'] = true;
+                    $caps['delete_banco'] = true;
+                    $caps['delete_bancos'] = true;
+                    $caps['delete_private_bancos'] = true;
+                    $caps['delete_published_bancos'] = true;
+                    $caps['delete_others_bancos'] = true;
                 }
                 add_role($k,$label,$caps);
             }
@@ -99,15 +111,18 @@ class Bankitos_CPT {
         ]);
         self::grant_caps_to_role('gestor_global',[
             Bankitos_Admin_Reports::CAPABILITY,
-            'edit_banco',
-            'edit_bancos',
-            'read_banco',
-            'read_private_bancos',
+            Bankitos_Admin_Reports::MANAGE_BANKS_CAPABILITY,
+            'manage_bankitos_domains',
+            'edit_banco','edit_bancos','read_banco','read_private_bancos','publish_bancos','create_bancos',
+            'edit_private_bancos','edit_published_bancos','edit_others_bancos',
+            'delete_banco','delete_bancos','delete_private_bancos','delete_published_bancos','delete_others_bancos',
         ]);
 
         if ($admin=get_role('administrator')) {
             foreach ($admin_like_caps as $cap) $admin->add_cap($cap);
             $admin->add_cap(Bankitos_Admin_Reports::CAPABILITY);
+            $admin->add_cap(Bankitos_Admin_Reports::MANAGE_BANKS_CAPABILITY);
+            $admin->add_cap('manage_bankitos_domains');
         }
     }
     private static function grant_caps_to_role($role_key, array $caps) {

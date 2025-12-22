@@ -56,6 +56,7 @@ class Bankitos_Access {
                     Bankitos_Admin_Reports::EXPORT_ACTION,
                     Bankitos_Admin_Reports::TOGGLE_ACTION,
                     Bankitos_Admin_Reports::DELETE_ACTION,
+                    class_exists('Bankitos_Domains') ? Bankitos_Domains::ACTION_SAVE : '',
                 ]
             );
             if (in_array($action, $allowed_actions, true)) {
@@ -121,7 +122,7 @@ class Bankitos_Access {
         $screen = $GLOBALS['pagenow'] ?? '';
         if ($screen === 'admin.php') {
             $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
-            return $page === Bankitos_Admin_Reports::PAGE_SLUG;
+            return in_array($page, [Bankitos_Admin_Reports::PAGE_SLUG, class_exists('Bankitos_Domains') ? Bankitos_Domains::PAGE_SLUG : ''], true);
         }
         if ($screen === 'edit.php') {
             $post_type = isset($_GET['post_type']) ? sanitize_key(wp_unslash($_GET['post_type'])) : 'post';

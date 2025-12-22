@@ -203,7 +203,7 @@
                                 </td>
                                 <td class="column-actions">
                                     <div class="bankitos-actions">
-                                        <?php if (current_user_can('manage_options')): ?>
+                                        <?php if (current_user_can(Bankitos_Admin_Reports::MANAGE_BANKS_CAPABILITY)): ?>
                                             <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="bankitos-inline-form">
                                                 <?php wp_nonce_field(Bankitos_Admin_Reports::TOGGLE_ACTION . '_' . $row['id']); ?>
                                                 <input type="hidden" name="action" value="<?php echo esc_attr(Bankitos_Admin_Reports::TOGGLE_ACTION); ?>" />

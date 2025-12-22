@@ -115,6 +115,8 @@ abstract class Bankitos_Shortcode_Base {
             'invite_resend'   => __('No pudimos reenviar la invitación.', 'bankitos'),
             'invite_update'   => __('No pudimos actualizar la invitación.', 'bankitos'),
             'invite_cancel'   => __('No pudimos cancelar la invitación.', 'bankitos'),
+            'invite_domain'   => __('Solo puedes invitar correos con dominios permitidos.', 'bankitos'),
+            'domain_not_allowed' => __('El dominio de correo no está permitido para registrarse.', 'bankitos'),
             'credito_datos'   => __('Completa todos los campos obligatorios de la solicitud.', 'bankitos'),
             'credito_firma'   => __('Debes firmar la solicitud antes de enviarla.', 'bankitos'),
             'credito_sin_fondos'=> __('No hay fondos suficientes para nuevos créditos.', 'bankitos'),
