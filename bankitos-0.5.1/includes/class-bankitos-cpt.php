@@ -64,6 +64,10 @@ class Bankitos_CPT {
                 $caps = ['read'=>true];
                 if ($k === 'gestor_global') {
                     $caps[Bankitos_Admin_Reports::CAPABILITY] = true;
+                    $caps['edit_bancos'] = true;
+                    $caps['edit_banco']  = true;
+                    $caps['read_banco']  = true;
+                    $caps['read_private_bancos'] = true;
                 }
                 add_role($k,$label,$caps);
             }
@@ -92,6 +96,13 @@ class Bankitos_CPT {
         ]);
         self::grant_caps_to_role('socio_general',[
             'read_banco','read_private_bancos','read_aporte','submit_aportes','create_bancos','edit_banco','edit_bancos','publish_bancos'
+        ]);
+        self::grant_caps_to_role('gestor_global',[
+            Bankitos_Admin_Reports::CAPABILITY,
+            'edit_banco',
+            'edit_bancos',
+            'read_banco',
+            'read_private_bancos',
         ]);
 
         if ($admin=get_role('administrator')) {
