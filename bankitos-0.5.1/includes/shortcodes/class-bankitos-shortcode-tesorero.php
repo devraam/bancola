@@ -44,10 +44,8 @@ class Bankitos_Shortcode_Tesorero_List extends Bankitos_Shortcode_Base {
           <?php if (!$q->have_posts()): ?>
             <p><?php esc_html_e('No hay aportes pendientes.', 'bankitos'); ?></p>
           <?php else: ?>
-            <table class="bankitos-ficha">
-              <thead><tr><th><?php esc_html_e('Miembro', 'bankitos'); ?></th><th><?php esc_html_e('Monto', 'bankitos'); ?></th><th><?php esc_html_e('Comprobante', 'bankitos'); ?></th><th><?php esc_html_e('Acciones', 'bankitos'); ?></th></tr></thead>
-              <tbody>
-              <?php while ($q->have_posts()): $q->the_post();
+            <div class="bankitos-accordion" role="list">
+              <?php $is_first = true; $redirect = self::get_current_url(); while ($q->have_posts()): $q->the_post();
                   $aporte_id = get_the_ID();
                   $monto     = get_post_meta($aporte_id, '_bankitos_monto', true);
                   $author    = get_userdata(get_post_field('post_author', $aporte_id));
@@ -57,23 +55,49 @@ class Bankitos_Shortcode_Tesorero_List extends Bankitos_Shortcode_Base {
                       $is_image = BK_Aportes_Handler::is_file_image(get_post_thumbnail_id($aporte_id));
                   }
               ?>
-                <tr>
-                  <td><?php echo esc_html($author ? ($author->display_name ?: $author->user_login) : '—'); ?></td>
-                  <td><strong><?php echo esc_html(self::format_currency((float) $monto)); ?></strong></td>
-                  <td>
-                    <?php if ($thumb): ?>
-                      <button type="button" class="bankitos-link bankitos-link--button bankitos-receipt-link" data-receipt="<?php echo esc_url($thumb); ?>" data-is-image="<?php echo $is_image ? '1' : '0'; ?>" data-title="<?php echo esc_attr(get_the_title()); ?>"><?php esc_html_e('Ver comprobante', 'bankitos'); ?></button>
-                    <?php else: ?>—<?php endif; ?>
-                  </td>
-                  <td>
-                    <?php $redirect = self::get_current_url(); ?>
-                    <a class="button" href="<?php echo esc_url(wp_nonce_url(add_query_arg(['action' => 'bankitos_aporte_approve', 'aporte' => $aporte_id, 'redirect_to' => $redirect], admin_url('admin-post.php')), 'bankitos_aporte_mod')); ?>"><?php esc_html_e('Aprobar', 'bankitos'); ?></a>
-                    <a class="button" href="<?php echo esc_url(wp_nonce_url(add_query_arg(['action' => 'bankitos_aporte_reject', 'aporte' => $aporte_id, 'redirect_to' => $redirect], admin_url('admin-post.php')), 'bankitos_aporte_mod')); ?>"><?php esc_html_e('Rechazar', 'bankitos'); ?></a>
-                  </td>
-                </tr>
-              <?php endwhile; wp_reset_postdata(); ?>
-              </tbody>
-            </table>
+                <details class="bankitos-accordion__item" role="listitem" <?php echo $is_first ? 'open' : ''; ?>>
+                  <summary class="bankitos-accordion__summary">
+                    <div class="bankitos-accordion__title">
+                      <span class="bankitos-accordion__amount"><?php echo esc_html(self::format_currency((float) $monto)); ?></span>
+                      <span class="bankitos-accordion__name"><?php echo esc_html($author ? ($author->display_name ?: $author->user_login) : '—'); ?></span>
+                    </div>
+                    <div class="bankitos-accordion__meta">
+                      <span><?php echo esc_html(get_the_date()); ?></span>
+                      <span class="bankitos-pill bankitos-pill--pending"><?php esc_html_e('Pendiente', 'bankitos'); ?></span>
+                      <span class="bankitos-accordion__chevron" aria-hidden="true"></span>
+                    </div>
+                  </summary>
+                  <div class="bankitos-accordion__content">
+                    <dl class="bankitos-accordion__grid">
+                      <div>
+                        <dt><?php esc_html_e('Miembro', 'bankitos'); ?></dt>
+                        <dd><?php echo esc_html($author ? ($author->display_name ?: $author->user_login) : '—'); ?></dd>
+                      </div>
+                      <div>
+                        <dt><?php esc_html_e('Monto', 'bankitos'); ?></dt>
+                        <dd><?php echo esc_html(self::format_currency((float) $monto)); ?></dd>
+                      </div>
+                      <div>
+                        <dt><?php esc_html_e('Fecha', 'bankitos'); ?></dt>
+                        <dd><?php echo esc_html(get_the_date()); ?></dd>
+                      </div>
+                      <div>
+                        <dt><?php esc_html_e('Comprobante', 'bankitos'); ?></dt>
+                        <dd>
+                          <?php if ($thumb): ?>
+                            <button type="button" class="bankitos-link bankitos-link--button bankitos-receipt-link" data-receipt="<?php echo esc_url($thumb); ?>" data-is-image="<?php echo $is_image ? '1' : '0'; ?>" data-title="<?php echo esc_attr(get_the_title()); ?>"><?php esc_html_e('Ver comprobante', 'bankitos'); ?></button>
+                          <?php else: ?>—<?php endif; ?>
+                        </dd>
+                      </div>
+                    </dl>
+                    <div class="bankitos-accordion__actions" aria-label="<?php esc_attr_e('Acciones del aporte', 'bankitos'); ?>">
+                      <a class="bankitos-btn bankitos-btn--small" href="<?php echo esc_url(wp_nonce_url(add_query_arg(['action' => 'bankitos_aporte_approve', 'aporte' => $aporte_id, 'redirect_to' => $redirect], admin_url('admin-post.php')), 'bankitos_aporte_mod')); ?>"><?php esc_html_e('Aprobar', 'bankitos'); ?></a>
+                      <a class="bankitos-btn bankitos-btn--small bankitos-btn--danger" href="<?php echo esc_url(wp_nonce_url(add_query_arg(['action' => 'bankitos_aporte_reject', 'aporte' => $aporte_id, 'redirect_to' => $redirect], admin_url('admin-post.php')), 'bankitos_aporte_mod')); ?>"><?php esc_html_e('Rechazar', 'bankitos'); ?></a>
+                    </div>
+                  </div>
+                </details>
+              <?php $is_first = false; endwhile; wp_reset_postdata(); ?>
+            </div>
             <?php echo self::render_aporte_pagination($q, $filters['page_key'], $filters['query_args'], $filters['page']); ?>
           <?php endif; ?>
         </div>
