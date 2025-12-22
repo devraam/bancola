@@ -13,7 +13,9 @@ class Bankitos_Domains {
     }
 
     public static function init(): void {
-        add_action('admin_menu', [__CLASS__, 'register_menu']);
+        // CAMBIO IMPORTANTE: Se agregó la prioridad 20 para asegurar que este menú
+        // se registre DESPUÉS de que el menú padre (Dashboard Global) haya sido creado.
+        add_action('admin_menu', [__CLASS__, 'register_menu'], 20);
         add_action('admin_post_' . self::ACTION_SAVE, [__CLASS__, 'handle_save']);
     }
 
