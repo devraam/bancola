@@ -16,6 +16,21 @@ class Bankitos_Credit_Payments {
         ];
     }
 
+    /**
+     * Returns a priority value for a payment status.
+     * Higher numbers indicate more definitive outcomes.
+     */
+    public static function get_status_priority(string $status): int {
+        $map = [
+            'approved' => 3,
+            'pending'  => 2,
+            'rejected' => 1,
+        ];
+
+        $normalized = strtolower(trim($status));
+        return $map[$normalized] ?? 0;
+    }
+    
     public static function insert_payment(array $data): int {
         global $wpdb;
         $table = self::table_name();

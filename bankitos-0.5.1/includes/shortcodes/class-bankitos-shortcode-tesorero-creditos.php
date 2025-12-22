@@ -23,6 +23,7 @@ class Bankitos_Shortcode_Tesorero_Creditos extends Bankitos_Shortcode_Panel_Base
             return '<div class="bankitos-form"><p>' . esc_html__('Debes pertenecer a un B@nko.', 'bankitos') . '</p></div>';
         }
         
+        $tasa = isset($context['meta']['tasa']) ? (float) $context['meta']['tasa'] : 0.0;
         // Obtenemos solo los créditos aprobados, ya que solo estos reciben pagos
         $credits = array_filter(
             Bankitos_Credit_Requests::get_requests($context['banco_id']),
@@ -31,7 +32,7 @@ class Bankitos_Shortcode_Tesorero_Creditos extends Bankitos_Shortcode_Panel_Base
             }
         );
         $status_labels = Bankitos_Credit_Payments::get_status_labels();
-        $payments      = self::collect_payments($credits, $status_labels);
+        $payments      = self::collect_grouped_payments($credits, $status_labels, $tasa);
 
         ob_start(); ?>
         <section class="bankitos-credit-review">
@@ -48,8 +49,8 @@ class Bankitos_Shortcode_Tesorero_Creditos extends Bankitos_Shortcode_Panel_Base
             <p class="bankitos-panel__message"><?php esc_html_e('Aún no se han registrado pagos para los créditos aprobados.', 'bankitos'); ?></p>
         <?php else: ?>
             <div class="bankitos-credit-review__accordion bankitos-accordion" role="list">
-              <?php $is_first = true; foreach ($payments as $payment): ?>
-                <?php echo self::render_payment_item($payment, $can_moderate, $is_first); ?>
+              <?php $is_first = true; foreach ($payments as $payment_group): ?>
+                <?php echo self::render_credit_group($payment_group, $can_moderate, $is_first); ?>
               <?php $is_first = false; endforeach; ?>
             </div>
         <?php endif; ?>
@@ -60,37 +61,105 @@ class Bankitos_Shortcode_Tesorero_Creditos extends Bankitos_Shortcode_Panel_Base
         return ob_get_clean();
     }
 
-    protected static function collect_payments(array $credits, array $status_labels): array {
+    protected static function collect_grouped_payments(array $credits, array $status_labels, float $tasa): array {
         $payments = [];
         foreach ($credits as $credit) {
             $credit_payments = Bankitos_Credit_Payments::get_request_payments((int) $credit['id']);
             if (!$credit_payments) {
                 continue;
             }
-            foreach ($credit_payments as $payment) {
-                $receipt = (!empty($payment['attachment_id']) && class_exists('BK_Credit_Payments_Handler'))
-                    ? BK_Credit_Payments_Handler::get_receipt_download_url((int) $payment['id'])
-                    : '';
-                $mime = !empty($payment['attachment_id']) ? get_post_mime_type((int) $payment['attachment_id']) : '';
-                $is_image = $mime && strpos($mime, 'image/') === 0;
-                $payments[] = [
-                    'credit'       => $credit,
-                    'payment'      => $payment,
-                    'receipt'      => $receipt,
-                    'is_image'     => $is_image,
-                    'status_label' => $status_labels[$payment['status']] ?? $payment['status'],
-                ];
+
+            $plan = self::build_payment_plan((float) $credit['amount'], (int) $credit['term_months'], $credit['approval_date'] ?? '', $tasa);
+            $prepared = self::prepare_payments($credit_payments, $status_labels, $plan);
+            if (!$prepared) {
+                continue;
             }
+
+            $payments[] = [
+                'credit'   => $credit,
+                'payments' => $prepared,
+            ];
         }
         return $payments;
     }
 
-    protected static function render_payment_item(array $data, bool $can_moderate, bool $is_first): string {
-        $credit   = $data['credit'];
-        $payment  = $data['payment'];
-        $receipt  = $data['receipt'] ?? '';
-        $is_image = (bool) ($data['is_image'] ?? false);
-        $status   = $payment['status'];
+    protected static function prepare_payments(array $credit_payments, array $status_labels, array $plan): array {
+        $prepared = [];
+        foreach ($credit_payments as $payment) {
+            $receipt = (!empty($payment['attachment_id']) && class_exists('BK_Credit_Payments_Handler'))
+                ? BK_Credit_Payments_Handler::get_receipt_download_url((int) $payment['id'])
+                : '';
+            $mime = !empty($payment['attachment_id']) ? get_post_mime_type((int) $payment['attachment_id']) : '';
+            $is_image = $mime && strpos($mime, 'image/') === 0;
+            $installment_index = self::find_installment_for_amount((float) $payment['amount'], $plan);
+
+        $prepared[] = [
+                'credit_payment'     => $payment,
+                'receipt'            => $receipt,
+                'is_image'           => $is_image,
+                'status_label'       => $status_labels[$payment['status']] ?? $payment['status'],
+                'installment_number' => $installment_index !== null ? $installment_index + 1 : null,
+            ];
+        }
+
+        return self::sort_payments_by_installment($prepared);
+    }
+
+    protected static function render_credit_group(array $data, bool $can_moderate, bool $is_first): string {
+        $credit    = $data['credit'];
+        $payments  = $data['payments'] ?? [];
+        $member    = $credit['display_name'] ?? '';
+        $term_label   = sprintf(_n('%s mes', '%s meses', (int) $credit['term_months'], 'bankitos'), number_format_i18n((int) $credit['term_months']));
+        $request_date = !empty($credit['request_date']) ? date_i18n(get_option('date_format'), strtotime($credit['request_date'])) : '—';
+
+        ob_start(); ?>
+        <details class="bankitos-accordion__item bankitos-credit-payment__credit" role="listitem" <?php echo $is_first ? 'open' : ''; ?>>
+          <summary class="bankitos-accordion__summary">
+            <div class="bankitos-accordion__title">
+              <span class="bankitos-accordion__amount"><?php echo esc_html(self::format_currency((float) $credit['amount'])); ?></span>
+              <span class="bankitos-accordion__name"><?php echo esc_html($member ?: '—'); ?></span>
+            </div>
+            <div class="bankitos-accordion__meta">
+              <span><?php echo esc_html($request_date); ?></span>
+              <span class="bankitos-pill bankitos-pill--accepted"><?php esc_html_e('Crédito aprobado', 'bankitos'); ?></span>
+              <span class="bankitos-accordion__chevron" aria-hidden="true"></span>
+            </div>
+          </summary>
+          <div class="bankitos-accordion__content">
+            <div class="bankitos-credit-payment__resume">
+              <div class="bankitos-credit-payment__credit">
+                <p class="bankitos-credit-payment__credit-label"><?php esc_html_e('Crédito', 'bankitos'); ?></p>
+                <p class="bankitos-credit-payment__credit-name"><?php echo esc_html($member ?: '—'); ?></p>
+                <div class="bankitos-credit-payment__credit-meta">
+                  <span><?php echo esc_html(self::format_currency((float) $credit['amount'])); ?></span>
+                  <span><?php echo esc_html($term_label); ?></span>
+                  <span><?php echo esc_html($request_date); ?></span>
+                </div>
+              </div>
+              <span class="bankitos-pill bankitos-pill--accepted"><?php esc_html_e('Pagos agrupados por crédito', 'bankitos'); ?></span>
+            </div>
+            <div class="bankitos-credit-review__payments" role="list">
+              <?php if (!$payments): ?>
+                <p class="bankitos-credit-payment__note"><?php esc_html_e('No hay pagos registrados para este crédito.', 'bankitos'); ?></p>
+              <?php else: ?>
+                <?php foreach ($payments as $payment_data): ?>
+                  <?php echo self::render_payment_item($credit, $payment_data, $can_moderate); ?>
+                <?php endforeach; ?>
+              <?php endif; ?>
+            </div>
+            </div>
+        </details>
+        <?php
+        return ob_get_clean();
+    }
+
+    protected static function render_payment_item(array $credit, array $data, bool $can_moderate): string {
+        $payment   = $data['credit_payment'];
+        $receipt   = $data['receipt'] ?? '';
+        $is_image  = (bool) ($data['is_image'] ?? false);
+        $status    = $payment['status'];
+        $status_label = $data['status_label'] ?? $status;
+        $installment_number = $data['installment_number'];
 
         $pill_class = 'bankitos-pill';
         if ($status === 'approved') {
@@ -101,20 +170,20 @@ class Bankitos_Shortcode_Tesorero_Creditos extends Bankitos_Shortcode_Panel_Base
             $pill_class .= ' bankitos-pill--pending';
         }
 
-        $term_label    = sprintf(_n('%s mes', '%s meses', (int) $credit['term_months'], 'bankitos'), number_format_i18n((int) $credit['term_months']));
-        $request_date  = !empty($credit['request_date']) ? date_i18n(get_option('date_format'), strtotime($credit['request_date'])) : '—';
-        $payment_date  = date_i18n(get_option('date_format'), strtotime($payment['created_at']));
-        $member_name   = $credit['display_name'] ?? '';
-        $status_label  = $data['status_label'] ?? $status;
-        $item_classes  = 'bankitos-accordion__item bankitos-credit-payment bankitos-credit-payment--' . sanitize_html_class($status);
-        $title_attr    = esc_attr__('Comprobante de pago', 'bankitos');
-        
+        $payment_date = date_i18n(get_option('date_format'), strtotime($payment['created_at']));
+        $member_name  = $credit['display_name'] ?? '';
+        $item_classes = 'bankitos-accordion__item bankitos-credit-payment bankitos-credit-payment--' . sanitize_html_class($status);
+        $title_attr   = esc_attr__('Comprobante de pago', 'bankitos');
+        $installment_label = $installment_number
+            ? sprintf(__('Cuota %s', 'bankitos'), number_format_i18n($installment_number))
+            : __('Pago sin cuota asignada', 'bankitos');
+
         ob_start(); ?>
-        <details class="<?php echo esc_attr($item_classes); ?>" role="listitem" <?php echo $is_first ? 'open' : ''; ?>>
+        <details class="<?php echo esc_attr($item_classes); ?>" role="listitem">
           <summary class="bankitos-accordion__summary">
             <div class="bankitos-accordion__title">
               <span class="bankitos-accordion__amount"><?php echo esc_html(self::format_currency((float) $payment['amount'])); ?></span>
-              <span class="bankitos-accordion__name"><?php echo esc_html($member_name ?: '—'); ?></span>
+              <span class="bankitos-accordion__name"><?php echo esc_html($installment_label); ?></span>
             </div>
             <div class="bankitos-accordion__meta">
               <span><?php echo esc_html($payment_date); ?></span>
@@ -123,18 +192,6 @@ class Bankitos_Shortcode_Tesorero_Creditos extends Bankitos_Shortcode_Panel_Base
             </div>
           </summary>
           <div class="bankitos-accordion__content">
-            <div class="bankitos-credit-payment__resume">
-              <div class="bankitos-credit-payment__credit">
-                <p class="bankitos-credit-payment__credit-label"><?php esc_html_e('Crédito', 'bankitos'); ?></p>
-                <p class="bankitos-credit-payment__credit-name"><?php echo esc_html($member_name ?: '—'); ?></p>
-                <div class="bankitos-credit-payment__credit-meta">
-                  <span><?php echo esc_html(self::format_currency((float) $credit['amount'])); ?></span>
-                  <span><?php echo esc_html($term_label); ?></span>
-                  <span><?php echo esc_html($request_date); ?></span>
-                </div>
-              </div>
-              <span class="bankitos-pill bankitos-pill--accepted"><?php esc_html_e('Crédito aprobado', 'bankitos'); ?></span>
-            </div>
             <dl class="bankitos-accordion__grid bankitos-credit-payment__grid">
               <div>
                 <dt><?php esc_html_e('Monto del pago', 'bankitos'); ?></dt>
@@ -143,6 +200,10 @@ class Bankitos_Shortcode_Tesorero_Creditos extends Bankitos_Shortcode_Panel_Base
               <div>
                 <dt><?php esc_html_e('Fecha del pago', 'bankitos'); ?></dt>
                 <dd><?php echo esc_html($payment_date); ?></dd>
+              </div>
+              <div>
+                <dt><?php esc_html_e('Cuota', 'bankitos'); ?></dt>
+                <dd><?php echo esc_html($installment_label); ?></dd>
               </div>
               <div>
                 <dt><?php esc_html_e('Estado', 'bankitos'); ?></dt>
@@ -157,14 +218,6 @@ class Bankitos_Shortcode_Tesorero_Creditos extends Bankitos_Shortcode_Panel_Base
                     <?php esc_html_e('No disponible', 'bankitos'); ?>
                   <?php endif; ?>
                 </dd>
-              </div>
-              <div>
-                <dt><?php esc_html_e('Monto del crédito', 'bankitos'); ?></dt>
-                <dd><?php echo esc_html(self::format_currency((float) $credit['amount'])); ?></dd>
-              </div>
-              <div>
-                <dt><?php esc_html_e('Plazo', 'bankitos'); ?></dt>
-                <dd><?php echo esc_html($term_label); ?></dd>
               </div>
             </dl>
             <?php if ($can_moderate): ?>
@@ -193,6 +246,86 @@ class Bankitos_Shortcode_Tesorero_Creditos extends Bankitos_Shortcode_Panel_Base
         </details>
         <?php
         return ob_get_clean();
+    }
+
+    protected static function sort_payments_by_installment(array $payments): array {
+        usort($payments, static function ($a, $b) {
+            $installment_a = (int) ($a['installment_number'] ?? 0);
+            $installment_b = (int) ($b['installment_number'] ?? 0);
+
+            if ($installment_a && $installment_b && $installment_a !== $installment_b) {
+                return $installment_a <=> $installment_b;
+            }
+            if ($installment_a && !$installment_b) {
+                return -1;
+            }
+            if (!$installment_a && $installment_b) {
+                return 1;
+            }
+
+            $priority_a = Bankitos_Credit_Payments::get_status_priority($a['credit_payment']['status'] ?? '');
+            $priority_b = Bankitos_Credit_Payments::get_status_priority($b['credit_payment']['status'] ?? '');
+            if ($priority_a !== $priority_b) {
+                return $priority_b <=> $priority_a;
+            }
+
+            return strcmp($b['credit_payment']['created_at'] ?? '', $a['credit_payment']['created_at'] ?? '');
+        });
+
+        return $payments;
+    }
+
+    protected static function find_installment_for_amount(float $amount, array $plan): ?int {
+        if (!$plan) {
+            return null;
+        }
+
+        $best_index = null;
+        $best_diff  = null;
+        $tolerance  = 1.0;
+
+        foreach ($plan as $index => $row) {
+            if (!isset($row['amount'])) {
+                continue;
+            }
+            $diff = abs((float) $row['amount'] - $amount);
+            if ($diff > $tolerance) {
+                continue;
+            }
+            if ($best_diff === null || $diff < $best_diff) {
+                $best_diff = $diff;
+                $best_index = (int) $index;
+            }
+        }
+
+        return $best_index;
+    }
+
+    protected static function build_payment_plan(float $amount, int $months, string $approval_date, float $tasa): array {
+        if ($amount <= 0 || $months <= 0 || empty($approval_date)) {
+            return [];
+        }
+
+        $rate   = $tasa > 0 ? $tasa / 100 : 0.0;
+        $base   = $months > 0 ? $amount / $months : 0.0;
+        $plan   = [];
+        $cursor = $amount;
+
+        for ($i = 1; $i <= $months; $i++) {
+            $date = date('Y-m-d', strtotime("{$approval_date} +{$i} month"));
+            $interest = $rate > 0 ? $cursor * $rate : 0.0;
+            $installment = $base + $interest;
+            $plan[] = [
+                'date'      => $date,
+                'amount'    => round($installment, 2),
+                'balance'   => round($cursor, 2),
+                'interest'  => round($interest, 2),
+                'principal' => round($base, 2),
+            ];
+            $cursor = max(0, $cursor - $base);
+        }
+
+        return $plan;
     }
 
     protected static function modal_markup(): string {
