@@ -165,6 +165,18 @@
 .bankitos-accordion__grid button{padding:0;font-weight:800;}
 .bankitos-accordion__actions{display:flex;flex-wrap:wrap;gap:.65rem;margin-top:.5rem;}
 .bankitos-accordion__actions .bankitos-btn{width:auto;min-width:140px;}
+.bankitos-credit-review__accordion{margin-top:1rem;}
+.bankitos-credit-payment__resume{display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;margin:0 0 .75rem;}
+.bankitos-credit-payment__credit{display:flex;flex-direction:column;gap:.25rem;}
+.bankitos-credit-payment__credit-label{margin:0;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;color:rgba(15,23,42,.55);}
+.bankitos-credit-payment__credit-name{margin:0;font-size:1.05rem;font-weight:800;color:var(--bco-texto);}
+.bankitos-credit-payment__credit-meta{display:flex;flex-wrap:wrap;gap:.65rem;color:rgba(15,23,42,.65);font-weight:700;}
+.bankitos-credit-payment__grid dd{display:flex;align-items:center;gap:.35rem;}
+.bankitos-credit-payment__actions{align-items:center;}
+.bankitos-credit-payment__note{margin:0;font-weight:700;color:rgba(15,23,42,.65);}
+.bankitos-credit-payment--pending .bankitos-accordion__summary{background:var(--bco-gris);}
+.bankitos-credit-payment--approved .bankitos-accordion__summary{background:rgba(220,252,231,.45);}
+.bankitos-credit-payment--rejected .bankitos-accordion__summary{background:rgba(254,226,226,.5);}
 
 .bankitos-invite-rows{display:flex;flex-direction:column;gap:1rem;margin:1rem 0;}
 .bankitos-invite-row{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));align-items:end;position:relative;padding-right:2.5rem;}

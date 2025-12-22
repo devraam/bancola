@@ -30,7 +30,9 @@ class Bankitos_Shortcode_Tesorero_Creditos extends Bankitos_Shortcode_Panel_Base
                 return $row['status'] === 'approved';
             }
         );
-        
+        $status_labels = Bankitos_Credit_Payments::get_status_labels();
+        $payments      = self::collect_payments($credits, $status_labels);
+
         ob_start(); ?>
         <section class="bankitos-credit-review">
           <div class="bankitos-credit-review__header">
@@ -42,11 +44,13 @@ class Bankitos_Shortcode_Tesorero_Creditos extends Bankitos_Shortcode_Panel_Base
         
         <?php if (!$credits): ?>
             <p class="bankitos-panel__message"><?php esc_html_e('No hay créditos aprobados activos.', 'bankitos'); ?></p>
+        <?php elseif (!$payments): ?>
+            <p class="bankitos-panel__message"><?php esc_html_e('Aún no se han registrado pagos para los créditos aprobados.', 'bankitos'); ?></p>
         <?php else: ?>
-            <div class="bankitos-credit-review__list">
-              <?php foreach ($credits as $credit): ?>
-                <?php echo self::render_credit_block($credit, $can_moderate); ?>
-              <?php endforeach; ?>
+            <div class="bankitos-credit-review__accordion bankitos-accordion" role="list">
+              <?php $is_first = true; foreach ($payments as $payment): ?>
+                <?php echo self::render_payment_item($payment, $can_moderate, $is_first); ?>
+              <?php $is_first = false; endforeach; ?>
             </div>
         <?php endif; ?>
       </section>
@@ -56,97 +60,143 @@ class Bankitos_Shortcode_Tesorero_Creditos extends Bankitos_Shortcode_Panel_Base
         return ob_get_clean();
     }
 
-    protected static function render_credit_block(array $credit, bool $can_moderate): string {
-        // Obtenemos todos los pagos asociados a este crédito
-        $payments = Bankitos_Credit_Payments::get_request_payments((int) $credit['id']);
-        $status_labels = Bankitos_Credit_Payments::get_status_labels();
+    protected static function collect_payments(array $credits, array $status_labels): array {
+        $payments = [];
+        foreach ($credits as $credit) {
+            $credit_payments = Bankitos_Credit_Payments::get_request_payments((int) $credit['id']);
+            if (!$credit_payments) {
+                continue;
+            }
+            foreach ($credit_payments as $payment) {
+                $receipt = (!empty($payment['attachment_id']) && class_exists('BK_Credit_Payments_Handler'))
+                    ? BK_Credit_Payments_Handler::get_receipt_download_url((int) $payment['id'])
+                    : '';
+                $mime = !empty($payment['attachment_id']) ? get_post_mime_type((int) $payment['attachment_id']) : '';
+                $is_image = $mime && strpos($mime, 'image/') === 0;
+                $payments[] = [
+                    'credit'       => $credit,
+                    'payment'      => $payment,
+                    'receipt'      => $receipt,
+                    'is_image'     => $is_image,
+                    'status_label' => $status_labels[$payment['status']] ?? $payment['status'],
+                ];
+            }
+        }
+        return $payments;
+    }
+
+    protected static function render_payment_item(array $data, bool $can_moderate, bool $is_first): string {
+        $credit   = $data['credit'];
+        $payment  = $data['payment'];
+        $receipt  = $data['receipt'] ?? '';
+        $is_image = (bool) ($data['is_image'] ?? false);
+        $status   = $payment['status'];
+
+        $pill_class = 'bankitos-pill';
+        if ($status === 'approved') {
+            $pill_class .= ' bankitos-pill--accepted';
+        } elseif ($status === 'rejected') {
+            $pill_class .= ' bankitos-pill--rejected';
+        } else {
+            $pill_class .= ' bankitos-pill--pending';
+        }
+
+        $term_label    = sprintf(_n('%s mes', '%s meses', (int) $credit['term_months'], 'bankitos'), number_format_i18n((int) $credit['term_months']));
+        $request_date  = !empty($credit['request_date']) ? date_i18n(get_option('date_format'), strtotime($credit['request_date'])) : '—';
+        $payment_date  = date_i18n(get_option('date_format'), strtotime($payment['created_at']));
+        $member_name   = $credit['display_name'] ?? '';
+        $status_label  = $data['status_label'] ?? $status;
+        $item_classes  = 'bankitos-accordion__item bankitos-credit-payment bankitos-credit-payment--' . sanitize_html_class($status);
+        $title_attr    = esc_attr__('Comprobante de pago', 'bankitos');
         
         ob_start(); ?>
-        <article class="bankitos-credit-card">
-          <header class="bankitos-credit-card__header">
-            <div>
-              <p class="bankitos-credit-card__badge"><?php esc_html_e('Crédito en curso', 'bankitos'); ?></p>
-              <h4><?php echo esc_html($credit['display_name'] ?? ''); ?></h4>
+        <details class="<?php echo esc_attr($item_classes); ?>" role="listitem" <?php echo $is_first ? 'open' : ''; ?>>
+          <summary class="bankitos-accordion__summary">
+            <div class="bankitos-accordion__title">
+              <span class="bankitos-accordion__amount"><?php echo esc_html(self::format_currency((float) $payment['amount'])); ?></span>
+              <span class="bankitos-accordion__name"><?php echo esc_html($member_name ?: '—'); ?></span>
             </div>
-            <div class="bankitos-credit-card__status">
-              <span class="bankitos-pill bankitos-pill--accepted"><?php esc_html_e('Aprobado', 'bankitos'); ?></span>
-              <span class="bankitos-credit-card__date"><?php echo esc_html(date_i18n(get_option('date_format'), strtotime($credit['request_date']))); ?></span>
+            <div class="bankitos-accordion__meta">
+              <span><?php echo esc_html($payment_date); ?></span>
+              <span class="<?php echo esc_attr($pill_class); ?>"><?php echo esc_html($status_label); ?></span>
+              <span class="bankitos-accordion__chevron" aria-hidden="true"></span>
             </div>
-          </header>
-          <dl class="bankitos-credit-card__details">
-            <div><dt><?php esc_html_e('Monto Total', 'bankitos'); ?></dt><dd><?php echo esc_html(self::format_currency((float) $credit['amount'])); ?></dd></div>
-            <div><dt><?php esc_html_e('Plazo', 'bankitos'); ?></dt><dd><?php echo esc_html(sprintf(_n('%s mes', '%s meses', (int) $credit['term_months'], 'bankitos'), number_format_i18n((int) $credit['term_months']))); ?></dd></div>
-          </dl>
-          
-          <div class="bankitos-table-wrapper" style="margin-top:1rem;">
-            <table class="bankitos-table">
-              <thead>
-                <tr>
-                  <th><?php esc_html_e('Fecha Pago', 'bankitos'); ?></th>
-                  <th><?php esc_html_e('Monto', 'bankitos'); ?></th>
-                  <th><?php esc_html_e('Soporte', 'bankitos'); ?></th>
-                  <th><?php esc_html_e('Estado', 'bankitos'); ?></th>
-                  <?php if ($can_moderate): ?><th><?php esc_html_e('Acciones', 'bankitos'); ?></th><?php endif; ?>
-                </tr>
-              </thead>
-              <tbody>
-                <?php if (!$payments): ?>
-                  <tr><td colspan="<?php echo $can_moderate ? '5' : '4'; ?>"><?php esc_html_e('Aún no se han registrado pagos para este crédito.', 'bankitos'); ?></td></tr>
-                <?php else: foreach ($payments as $payment):
-                    $receipt = !empty($payment['attachment_id']) ? BK_Credit_Payments_Handler::get_receipt_download_url((int) $payment['id']) : '';
-                    $st = $payment['status'];
-                    $pill_class = 'bankitos-pill';
-                    if($st === 'approved') $pill_class .= ' bankitos-pill--accepted';
-                    elseif($st === 'rejected') $pill_class .= ' bankitos-pill--rejected';
-                    else $pill_class .= ' bankitos-pill--pending';
-                    ?>
-                    <tr>
-                      <td data-title="<?php esc_attr_e('Fecha', 'bankitos'); ?>"><?php echo esc_html(date_i18n(get_option('date_format'), strtotime($payment['created_at']))); ?></td>
-                      <td data-title="<?php esc_attr_e('Monto', 'bankitos'); ?>"><?php echo esc_html(self::format_currency((float) $payment['amount'])); ?></td>
-                      <td data-title="<?php esc_attr_e('Soporte', 'bankitos'); ?>">
-                          <?php if ($receipt): ?>
-                            <button type="button" class="bankitos-link bankitos-link--button bankitos-receipt-link" data-receipt="<?php echo esc_url($receipt); ?>" data-title="<?php echo esc_attr__('Comprobante de pago', 'bankitos'); ?>"><?php esc_html_e('Ver soporte', 'bankitos'); ?></button>
-                          <?php else: ?>
-                            <?php esc_html_e('No disponible', 'bankitos'); ?>
-                          <?php endif; ?>
-                      </td>
-                      <td data-title="<?php esc_attr_e('Estado', 'bankitos'); ?>"><span class="<?php echo esc_attr($pill_class); ?>"><?php echo esc_html($status_labels[$st] ?? $st); ?></span></td>
-                      <?php if ($can_moderate): ?>
-                        <td data-title="<?php esc_attr_e('Acciones', 'bankitos'); ?>">
-                          <?php if ($st === 'pending'): ?>
-                            <div style="display:flex; gap:0.5rem;">
-                                <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-                                  <?php echo wp_nonce_field('bankitos_credit_payment_mod', '_wpnonce', true, false); ?>
-                                  <input type="hidden" name="action" value="bankitos_credit_payment_approve">
-                                  <input type="hidden" name="payment_id" value="<?php echo esc_attr($payment['id']); ?>">
-                                  <input type="hidden" name="redirect_to" value="<?php echo esc_url(self::get_current_url()); ?>">
-                                  <button type="submit" class="bankitos-btn bankitos-btn--small"><?php esc_html_e('Aprobar', 'bankitos'); ?></button>
-                                </form>
-                                <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-                                  <?php echo wp_nonce_field('bankitos_credit_payment_mod', '_wpnonce', true, false); ?>
-                                  <input type="hidden" name="action" value="bankitos_credit_payment_reject">
-                                  <input type="hidden" name="payment_id" value="<?php echo esc_attr($payment['id']); ?>">
-                                  <input type="hidden" name="redirect_to" value="<?php echo esc_url(self::get_current_url()); ?>">
-                                  <button type="submit" class="bankitos-btn bankitos-btn--small bankitos-btn--danger"><?php esc_html_e('Rechazar', 'bankitos'); ?></button>
-                                </form>
-                            </div>
-                          <?php else: ?>
-                            <span class="bankitos-text-muted">—</span>
-                          <?php endif; ?>
-                        </td>
-                      <?php endif; ?>
-                    </tr>
-                <?php endforeach; endif; ?>
-              </tbody>
-            </table>
+          </summary>
+          <div class="bankitos-accordion__content">
+            <div class="bankitos-credit-payment__resume">
+              <div class="bankitos-credit-payment__credit">
+                <p class="bankitos-credit-payment__credit-label"><?php esc_html_e('Crédito', 'bankitos'); ?></p>
+                <p class="bankitos-credit-payment__credit-name"><?php echo esc_html($member_name ?: '—'); ?></p>
+                <div class="bankitos-credit-payment__credit-meta">
+                  <span><?php echo esc_html(self::format_currency((float) $credit['amount'])); ?></span>
+                  <span><?php echo esc_html($term_label); ?></span>
+                  <span><?php echo esc_html($request_date); ?></span>
+                </div>
+              </div>
+              <span class="bankitos-pill bankitos-pill--accepted"><?php esc_html_e('Crédito aprobado', 'bankitos'); ?></span>
+            </div>
+            <dl class="bankitos-accordion__grid bankitos-credit-payment__grid">
+              <div>
+                <dt><?php esc_html_e('Monto del pago', 'bankitos'); ?></dt>
+                <dd><?php echo esc_html(self::format_currency((float) $payment['amount'])); ?></dd>
+              </div>
+              <div>
+                <dt><?php esc_html_e('Fecha del pago', 'bankitos'); ?></dt>
+                <dd><?php echo esc_html($payment_date); ?></dd>
+              </div>
+              <div>
+                <dt><?php esc_html_e('Estado', 'bankitos'); ?></dt>
+                <dd><span class="<?php echo esc_attr($pill_class); ?>"><?php echo esc_html($status_label); ?></span></dd>
+              </div>
+              <div>
+                <dt><?php esc_html_e('Comprobante', 'bankitos'); ?></dt>
+                <dd>
+                  <?php if ($receipt): ?>
+                    <button type="button" class="bankitos-link bankitos-link--button bankitos-receipt-link" data-receipt="<?php echo esc_url($receipt); ?>" data-is-image="<?php echo $is_image ? '1' : '0'; ?>" data-title="<?php echo $title_attr; ?>"><?php esc_html_e('Ver comprobante', 'bankitos'); ?></button>
+                  <?php else: ?>
+                    <?php esc_html_e('No disponible', 'bankitos'); ?>
+                  <?php endif; ?>
+                </dd>
+              </div>
+              <div>
+                <dt><?php esc_html_e('Monto del crédito', 'bankitos'); ?></dt>
+                <dd><?php echo esc_html(self::format_currency((float) $credit['amount'])); ?></dd>
+              </div>
+              <div>
+                <dt><?php esc_html_e('Plazo', 'bankitos'); ?></dt>
+                <dd><?php echo esc_html($term_label); ?></dd>
+              </div>
+            </dl>
+            <?php if ($can_moderate): ?>
+              <div class="bankitos-accordion__actions bankitos-credit-payment__actions" aria-label="<?php esc_attr_e('Acciones del pago', 'bankitos'); ?>">
+                <?php if ($status === 'pending'): ?>
+                  <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                    <?php echo wp_nonce_field('bankitos_credit_payment_mod', '_wpnonce', true, false); ?>
+                    <input type="hidden" name="action" value="bankitos_credit_payment_approve">
+                    <input type="hidden" name="payment_id" value="<?php echo esc_attr($payment['id']); ?>">
+                    <input type="hidden" name="redirect_to" value="<?php echo esc_url(self::get_current_url()); ?>">
+                    <button type="submit" class="bankitos-btn bankitos-btn--small"><?php esc_html_e('Aprobar', 'bankitos'); ?></button>
+                  </form>
+                  <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                    <?php echo wp_nonce_field('bankitos_credit_payment_mod', '_wpnonce', true, false); ?>
+                    <input type="hidden" name="action" value="bankitos_credit_payment_reject">
+                    <input type="hidden" name="payment_id" value="<?php echo esc_attr($payment['id']); ?>">
+                    <input type="hidden" name="redirect_to" value="<?php echo esc_url(self::get_current_url()); ?>">
+                    <button type="submit" class="bankitos-btn bankitos-btn--small bankitos-btn--danger"><?php esc_html_e('Rechazar', 'bankitos'); ?></button>
+                  </form>
+                <?php else: ?>
+                  <p class="bankitos-credit-payment__note"><?php esc_html_e('Este pago ya fue revisado.', 'bankitos'); ?></p>
+                <?php endif; ?>
+              </div>
+            <?php endif; ?>
           </div>
-        </article>
+        </details>
         <?php
         return ob_get_clean();
     }
 
     protected static function modal_markup(): string {
-        return '<div id="bankitos-modal" class="bankitos-modal" hidden><div class="bankitos-modal__backdrop"></div><div class="bankitos-modal__body"><button type="button" class="bankitos-modal__close" aria-label="' . esc_attr__('Cerrar', 'bankitos') . '">&times;</button><img src="" alt="" loading="lazy"></div></div>';
+        return '<div id="bankitos-modal" class="bankitos-modal" hidden><div class="bankitos-modal__backdrop"></div><div class="bankitos-modal__body"><button type="button" class="bankitos-modal__close" aria-label="' . esc_attr__('Cerrar', 'bankitos') . '">&times;</button><p class="bankitos-modal__error" hidden></p><iframe class="bankitos-modal__frame" src="" title="' . esc_attr__('Comprobante', 'bankitos') . '" hidden></iframe><img src="" alt="" loading="lazy" hidden></div></div>';
     }
 
     protected static function inline_scripts(): string {
@@ -157,45 +207,108 @@ class Bankitos_Shortcode_Tesorero_Creditos extends Bankitos_Shortcode_Panel_Base
           if(!modal){return;}
           var backdrop = modal.querySelector('.bankitos-modal__backdrop');
           var closeBtn = modal.querySelector('.bankitos-modal__close');
+          var frame = modal.querySelector('.bankitos-modal__frame');
           var img = modal.querySelector('img');
-          
+          var errorBox = modal.querySelector('.bankitos-modal__error');
+
           function close(){
-            modal.setAttribute('hidden','hidden');
+            modal.setAttribute('hidden','hidden'); 
+            if(frame){
+              frame.removeAttribute('src');
+              frame.setAttribute('hidden', '');
+              frame.setAttribute('aria-hidden', 'true');
+              frame.removeAttribute('title');
+            } 
             if(img){
               img.removeAttribute('src');
-              img.setAttribute('hidden','');
+              img.setAttribute('hidden', '');
+            }
+            if(errorBox){
+              errorBox.textContent = '';
+              errorBox.setAttribute('hidden', ''); 
             }
           }
-          [backdrop, closeBtn].forEach(function(el){ if(el){ el.addEventListener('click', close); }});
           
-          document.querySelectorAll('.bankitos-receipt-link').forEach(function(link){
-            link.addEventListener('click', function(ev){
-              ev.preventDefault();
-              var receiptUrl = link.getAttribute('data-receipt');
-              var title = link.getAttribute('data-title') || '';
-              
-              if (img) {
-                // Intentamos cargar la imagen
-                img.onload = function(){
-                  img.onload = null;
-                  img.onerror = null;
-                  img.removeAttribute('hidden');
-                  modal.removeAttribute('hidden');
-                };
-                img.onerror = function(){
-                  // Si falla (es PDF u otro), abrimos en nueva pestaña
-                  img.onload = null;
-                  img.onerror = null;
-                  img.setAttribute('hidden','');
-                  modal.setAttribute('hidden','hidden');
-                  window.open(receiptUrl, '_blank');
-                };
-                img.alt = title;
-                img.src = receiptUrl;
-              } else {
-                window.open(receiptUrl, '_blank');
-              }
-            });
+          [backdrop, closeBtn].forEach(function(el){ if(el){ el.addEventListener('click', close); }});
+
+          function showError(message){
+            if(!errorBox){ return; }
+            errorBox.textContent = message || '';
+            errorBox.removeAttribute('hidden');
+          }
+
+          function resetContent(){
+            if(img){
+              img.removeAttribute('src');
+              img.setAttribute('hidden', '');
+            }
+            if(frame){
+              frame.removeAttribute('src');
+              frame.setAttribute('hidden', '');
+              frame.setAttribute('aria-hidden', 'true');
+            }
+            if(errorBox){
+              errorBox.textContent = '';
+              errorBox.setAttribute('hidden', '');
+            }
+          }
+
+          function openReceipt(receiptUrl, isImage, title){
+            if (!receiptUrl){ return; }
+
+            resetContent();
+
+            if (isImage && img) {
+              img.onload = function(){
+                img.onload = null;
+                img.onerror = null;
+                img.removeAttribute('hidden');
+                modal.removeAttribute('hidden');
+              };
+              img.onerror = function(){
+                img.onload = null;
+                img.onerror = null;
+                img.setAttribute('hidden', '');
+                showError('No se pudo cargar el comprobante.');
+                modal.removeAttribute('hidden');
+              };
+              img.alt = title || '';
+              img.src = receiptUrl;
+              modal.removeAttribute('hidden');
+              return;
+            }
+
+            if (frame) {
+              frame.onload = function(){
+                frame.onload = null;
+                frame.onerror = null;
+              };
+              frame.onerror = function(){
+                frame.onload = null;
+                frame.onerror = null;
+                frame.setAttribute('hidden', '');
+                showError('No se pudo cargar el comprobante.');
+              };
+              frame.removeAttribute('aria-hidden');
+              frame.removeAttribute('hidden');
+              frame.title = title || '';
+              frame.src = receiptUrl;
+              modal.removeAttribute('hidden');
+              return;
+            }
+            
+            showError('No se pudo cargar el comprobante.');
+            modal.removeAttribute('hidden');
+          }
+
+          document.addEventListener('click', function(ev){
+            var link = ev.target.closest('.bankitos-receipt-link');
+            if (!link){ return; }
+            ev.preventDefault();
+            var receiptUrl = link.getAttribute('data-receipt');
+            var isImage = link.getAttribute('data-is-image') === '1';
+            var title = link.getAttribute('data-title') || '';
+            openReceipt(receiptUrl, isImage, title);
           });
         })();
         </script>
