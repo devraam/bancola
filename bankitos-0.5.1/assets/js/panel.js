@@ -237,11 +237,11 @@
       if (!form) return;
 
       // Encontrar los elementos relativos
-      const actionsWrapper = toggle.closest(selectors.actionsCell); // Contenedor <td>
+      const actionsWrapper = toggle.closest(selectors.actionsCell); // Contenedor <td> o bloque de acciones
       if (!actionsWrapper) return;
       
       const defaultActions = actionsWrapper.querySelector(selectors.defaultActions);
-      const row = toggle.closest('tr');
+      const row = toggle.closest('[data-bankitos-invite-row]') || toggle.closest('tr');
       const editFields = row ? row.querySelectorAll(selectors.editField) : [];
       const displayFields = row ? row.querySelectorAll(selectors.editDisplay) : [];
       const inlineInputs = row ? row.querySelectorAll(`[data-bankitos-invite-edit-input="${targetId}"]`) : [];

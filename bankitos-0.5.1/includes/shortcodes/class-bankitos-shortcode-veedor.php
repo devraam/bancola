@@ -43,10 +43,8 @@ class Bankitos_Shortcode_Veedor_List extends Bankitos_Shortcode_Base {
           <?php if (!$q->have_posts()): ?>
             <p><?php esc_html_e('No hay aportes aprobados.', 'bankitos'); ?></p>
           <?php else: ?>
-            <table class="bankitos-ficha">
-              <thead><tr><th><?php esc_html_e('Miembro', 'bankitos'); ?></th><th><?php esc_html_e('Monto', 'bankitos'); ?></th><th><?php esc_html_e('Comprobante', 'bankitos'); ?></th><th><?php esc_html_e('Fecha', 'bankitos'); ?></th></tr></thead>
-              <tbody>
-              <?php while ($q->have_posts()): $q->the_post();
+            <div class="bankitos-accordion" role="list">
+              <?php $is_first = true; while ($q->have_posts()): $q->the_post();
                   $aporte_id = get_the_ID();
                   $monto     = get_post_meta($aporte_id, '_bankitos_monto', true);
                   $author    = get_userdata(get_post_field('post_author', $aporte_id));
@@ -55,20 +53,47 @@ class Bankitos_Shortcode_Veedor_List extends Bankitos_Shortcode_Base {
                   if ($thumb && class_exists('BK_Aportes_Handler')) {
                       $is_image = BK_Aportes_Handler::is_file_image(get_post_thumbnail_id($aporte_id));
                   }
+                  $member_name = $author ? ($author->display_name ?: $author->user_login) : '—';
               ?>
-                <tr>
-                  <td><?php echo esc_html($author ? ($author->display_name ?: $author->user_login) : '—'); ?></td>
-                  <td><strong><?php echo esc_html(self::format_currency((float) $monto)); ?></strong></td>
-                  <td>
-                    <?php if ($thumb): ?>
-                      <button type="button" class="bankitos-link bankitos-link--button bankitos-receipt-link" data-receipt="<?php echo esc_url($thumb); ?>" data-is-image="<?php echo $is_image ? '1' : '0'; ?>" data-title="<?php echo esc_attr(get_the_title()); ?>"><?php esc_html_e('Ver comprobante', 'bankitos'); ?></button>
-                    <?php else: ?>—<?php endif; ?>
-                  </td>
-                  <td><?php echo esc_html(get_the_date()); ?></td>
-                </tr>
-              <?php endwhile; wp_reset_postdata(); ?>
-              </tbody>
-            </table>
+                <details class="bankitos-accordion__item" role="listitem" <?php echo $is_first ? 'open' : ''; ?>>
+                  <summary class="bankitos-accordion__summary">
+                    <div class="bankitos-accordion__title">
+                      <span class="bankitos-accordion__amount"><?php echo esc_html(self::format_currency((float) $monto)); ?></span>
+                      <span class="bankitos-accordion__name"><?php echo esc_html($member_name); ?></span>
+                    </div>
+                    <div class="bankitos-accordion__meta">
+                      <span><?php echo esc_html(get_the_date()); ?></span>
+                      <span class="bankitos-pill bankitos-pill--accepted"><?php esc_html_e('Aprobado', 'bankitos'); ?></span>
+                      <span class="bankitos-accordion__chevron" aria-hidden="true"></span>
+                    </div>
+                  </summary>
+                  <div class="bankitos-accordion__content">
+                    <dl class="bankitos-accordion__grid">
+                      <div>
+                        <dt><?php esc_html_e('Miembro', 'bankitos'); ?></dt>
+                        <dd><?php echo esc_html($member_name); ?></dd>
+                      </div>
+                      <div>
+                        <dt><?php esc_html_e('Monto', 'bankitos'); ?></dt>
+                        <dd><?php echo esc_html(self::format_currency((float) $monto)); ?></dd>
+                      </div>
+                      <div>
+                        <dt><?php esc_html_e('Fecha', 'bankitos'); ?></dt>
+                        <dd><?php echo esc_html(get_the_date()); ?></dd>
+                      </div>
+                      <div>
+                        <dt><?php esc_html_e('Comprobante', 'bankitos'); ?></dt>
+                        <dd>
+                          <?php if ($thumb): ?>
+                            <button type="button" class="bankitos-link bankitos-link--button bankitos-receipt-link" data-receipt="<?php echo esc_url($thumb); ?>" data-is-image="<?php echo $is_image ? '1' : '0'; ?>" data-title="<?php echo esc_attr(get_the_title()); ?>"><?php esc_html_e('Ver comprobante', 'bankitos'); ?></button>
+                          <?php else: ?>—<?php endif; ?>
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
+                </details>
+              <?php $is_first = false; endwhile; wp_reset_postdata(); ?>
+            </div>
             <?php echo self::render_aporte_pagination($q, $filters['page_key'], $filters['query_args'], $filters['page']); ?>
           <?php endif; ?>
         </div>
@@ -80,7 +105,7 @@ class Bankitos_Shortcode_Veedor_List extends Bankitos_Shortcode_Base {
 
     protected static function modal_markup(): string {
         // El <img> se inicializa sin src. El JS lo establecerá condicionalmente.
-        return '<div id="bankitos-modal" class="bankitos-modal" hidden><div class="bankitos-modal__backdrop"></div><div class="bankitos-modal__body"><button type="button" class="bankitos-modal__close" aria-label="' . esc_attr__('Cerrar', 'bankitos') . '">&times;</button><img src="" alt="" loading="lazy"></div></div>';
+        return '<div id="bankitos-modal" class="bankitos-modal" hidden><div class="bankitos-modal__backdrop"></div><div class="bankitos-modal__body"><button type="button" class="bankitos-modal__close" aria-label="' . esc_attr__('Cerrar', 'bankitos') . '">&times;</button><p class="bankitos-modal__error" hidden></p><iframe class="bankitos-modal__frame" src="" title="' . esc_attr__('Comprobante', 'bankitos') . '" hidden></iframe><img src="" alt="" loading="lazy" hidden></div></div>';
     }
 
     protected static function inline_scripts(): string {
@@ -91,51 +116,108 @@ class Bankitos_Shortcode_Veedor_List extends Bankitos_Shortcode_Base {
           if(!modal){return;}
           var backdrop = modal.querySelector('.bankitos-modal__backdrop');
           var closeBtn = modal.querySelector('.bankitos-modal__close');
+          var frame = modal.querySelector('.bankitos-modal__frame');
           var img = modal.querySelector('img');
+          var errorBox = modal.querySelector('.bankitos-modal__error');
 
-          function close(){ 
+          function close(){
             modal.setAttribute('hidden','hidden'); 
+            if(frame){
+              frame.removeAttribute('src');
+              frame.setAttribute('hidden', '');
+              frame.setAttribute('aria-hidden', 'true');
+              frame.removeAttribute('title');
+            }
             if(img){
-              img.removeAttribute('src'); 
-              img.setAttribute('hidden', ''); 
+              img.removeAttribute('src');
+              img.setAttribute('hidden', '');
+            }
+            if(errorBox){
+              errorBox.textContent = '';
+              errorBox.setAttribute('hidden', ''); 
             }
           }
           [backdrop, closeBtn].forEach(function(el){ if(el){ el.addEventListener('click', close); }});
 
-          document.querySelectorAll('.bankitos-receipt-link').forEach(function(link){
-            link.addEventListener('click', function(ev){
-              ev.preventDefault();
-              var receiptUrl = link.getAttribute('data-receipt');
-              var isImage = link.getAttribute('data-is-image') === '1';
-              var title = link.getAttribute('data-title') || '';
-              
-              if (isImage) {
-                  // Mostrar en modal solo si la imagen carga bien; en caso contrario, abrir en nueva pestaña.
-                  if (img) {
-                    img.onload = function(){
-                      img.onload = null;
-                      img.onerror = null;
-                      img.removeAttribute('hidden');
-                      modal.removeAttribute('hidden');
-                    };
-                    img.onerror = function(){
-                      img.onload = null;
-                      img.onerror = null;
-                      img.setAttribute('hidden', '');
-                      modal.setAttribute('hidden','hidden');
-                      window.open(receiptUrl, '_blank');
-                    };
-                    img.alt = title;
-                    img.src = receiptUrl;
-                  } else {
-                    window.open(receiptUrl, '_blank');
-                  }
-              } else {
-                  // Si es PDF o no imagen, ocultar <img> y abrir en nueva pestaña para forzar descarga/vista en navegador
-                  img.setAttribute('hidden', '');
-                  window.open(receiptUrl, '_blank');
-              }
-            });
+          function showError(message){
+            if(!errorBox){ return; }
+            errorBox.textContent = message || '';
+            errorBox.removeAttribute('hidden');
+          }
+
+          function resetContent(){
+            if(img){
+              img.removeAttribute('src');
+              img.setAttribute('hidden', '');
+            }
+            if(frame){
+              frame.removeAttribute('src');
+              frame.setAttribute('hidden', '');
+              frame.setAttribute('aria-hidden', 'true');
+            }
+            if(errorBox){
+              errorBox.textContent = '';
+              errorBox.setAttribute('hidden', '');
+            }
+          }
+
+          function openReceipt(receiptUrl, isImage, title){
+            if (!receiptUrl){ return; }
+
+            resetContent();
+
+            if (isImage && img) {
+              img.onload = function(){
+                img.onload = null;
+                img.onerror = null;
+                img.removeAttribute('hidden');
+                modal.removeAttribute('hidden');
+              };
+              img.onerror = function(){
+                img.onload = null;
+                img.onerror = null;
+                img.setAttribute('hidden', '');
+                showError('No se pudo cargar el comprobante.');
+                modal.removeAttribute('hidden');
+              };
+              img.alt = title || '';
+              img.src = receiptUrl;
+              modal.removeAttribute('hidden');
+              return;
+            }
+
+            // Si es PDF u otro tipo de archivo, mostrarlo en el iframe del modal
+            if (frame) {
+              frame.onload = function(){
+                frame.onload = null;
+                frame.onerror = null;
+              };
+              frame.onerror = function(){
+                frame.onload = null;
+                frame.onerror = null;
+                frame.setAttribute('hidden', '');
+                showError('No se pudo cargar el comprobante.');
+              };
+              frame.removeAttribute('aria-hidden');
+              frame.removeAttribute('hidden');
+              frame.title = title || '';
+              frame.src = receiptUrl;
+              modal.removeAttribute('hidden');
+              return;
+            }
+            
+            showError('No se pudo cargar el comprobante.');
+            modal.removeAttribute('hidden');
+          }
+
+          document.addEventListener('click', function(ev){
+            var link = ev.target.closest('.bankitos-receipt-link');
+            if (!link){ return; }
+            ev.preventDefault();
+            var receiptUrl = link.getAttribute('data-receipt');
+            var isImage = link.getAttribute('data-is-image') === '1';
+            var title = link.getAttribute('data-title') || '';
+            openReceipt(receiptUrl, isImage, title);
           });
         })();
         </script>
