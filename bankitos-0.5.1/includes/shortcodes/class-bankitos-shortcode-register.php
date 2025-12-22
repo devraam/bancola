@@ -26,6 +26,7 @@ class Bankitos_Shortcode_Register extends Bankitos_Shortcode_Base {
         ob_start(); ?>
         <div class="bankitos-register-wrap">
           <h2><?php esc_html_e('Crear cuenta', 'bankitos'); ?></h2>
+          <?php echo self::top_notice_from_query(); ?>
           <?php $register_recaptcha = class_exists('Bankitos_Recaptcha') ? Bankitos_Recaptcha::field('register') : ''; ?>
           <form class="bankitos-form" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>"<?php if ($register_recaptcha) echo ' data-bankitos-recaptcha="register"'; ?>>
             <?php echo wp_nonce_field('bankitos_do_register', '_wpnonce', true, false); ?>
