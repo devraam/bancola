@@ -10,6 +10,14 @@ class Bankitos_Admin_Reports {
     const TOGGLE_ACTION = 'bankitos_toggle_banco';
     const DELETE_ACTION = 'bankitos_delete_banco';
 
+    private static function can_view_reports(): bool {
+        return current_user_can(self::CAPABILITY) || current_user_can('manage_options');
+    }
+
+    private static function can_manage_banks(): bool {
+        return current_user_can(self::MANAGE_BANKS_CAPABILITY) || current_user_can('manage_options');
+    }
+
     public static function init(): void {
         add_action('admin_menu', [__CLASS__, 'register_menu']);
         add_action('admin_enqueue_scripts', [__CLASS__, 'enqueue_assets']);
@@ -42,7 +50,7 @@ class Bankitos_Admin_Reports {
     }
 
     public static function render_page(): void {
-        if (!current_user_can(self::CAPABILITY)) {
+        if (!self::can_view_reports()) {
             wp_die(__('No tienes permiso para ver este informe.', 'bankitos'));
         }
 
@@ -57,7 +65,7 @@ class Bankitos_Admin_Reports {
     }
 
     public static function handle_export(): void {
-        if (!current_user_can(self::CAPABILITY)) {
+        if (!self::can_view_reports()) {
             wp_die(__('No tienes permiso para exportar estos datos.', 'bankitos'));
         }
         check_admin_referer(self::EXPORT_ACTION);
@@ -109,7 +117,7 @@ class Bankitos_Admin_Reports {
             wp_die(__('Solicitud no válida.', 'bankitos'));
         }
 
-        if (!current_user_can(self::MANAGE_BANKS_CAPABILITY)) {
+        if (!self::can_manage_banks()) {
             wp_die(__('No tienes permisos para modificar este B@nko.', 'bankitos'));
         }
 
@@ -132,7 +140,7 @@ class Bankitos_Admin_Reports {
         if (strtoupper($confirm) !== 'ELIMINAR') {
             wp_die(__('Debes confirmar la eliminación escribiendo ELIMINAR.', 'bankitos'));
         }
-        if (!current_user_can(self::MANAGE_BANKS_CAPABILITY)) {
+        if (!self::can_manage_banks()) {
             wp_die(__('No tienes permisos para eliminar este B@nko.', 'bankitos'));
         }
 

@@ -8,6 +8,10 @@ class Bankitos_Domains {
     const CAPABILITY = 'manage_bankitos_domains';
     const ACTION_SAVE = 'bankitos_save_domains';
 
+    private static function can_manage_domains(): bool {
+        return current_user_can(self::CAPABILITY) || current_user_can('manage_options');
+    }
+
     public static function init(): void {
         add_action('admin_menu', [__CLASS__, 'register_menu']);
         add_action('admin_post_' . self::ACTION_SAVE, [__CLASS__, 'handle_save']);
@@ -27,7 +31,7 @@ class Bankitos_Domains {
     }
 
     public static function render_page(): void {
-        if (!current_user_can(self::CAPABILITY)) {
+        if (!self::can_manage_domains()) {
             wp_die(__('No tienes permisos para gestionar dominios.', 'bankitos'));
         }
 
@@ -64,7 +68,7 @@ class Bankitos_Domains {
     }
 
     public static function handle_save(): void {
-        if (!current_user_can(self::CAPABILITY)) {
+        if (!self::can_manage_domains()) {
             wp_die(__('No tienes permisos para gestionar dominios.', 'bankitos'));
         }
 
