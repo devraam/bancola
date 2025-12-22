@@ -58,11 +58,16 @@ class BK_Invites_Handler {
         $emails = isset($_POST['invite_email']) ? (array) $_POST['invite_email'] : [];
 
         $invites = [];
+        $blocked_domains = false;
         $total   = max(count($names), count($emails));
         for ($i = 0; $i < $total; $i++) {
             $name  = isset($names[$i]) ? sanitize_text_field(wp_unslash($names[$i])) : '';
             $email = isset($emails[$i]) ? sanitize_email(wp_unslash($emails[$i])) : '';
             if (!$name || !$email || !is_email($email)) {
+                continue;
+            }
+            if (class_exists('Bankitos_Domains') && !Bankitos_Domains::is_email_allowed($email)) {
+                $blocked_domains = true;
                 continue;
             }
             $invites[strtolower($email)] = [
@@ -71,8 +76,14 @@ class BK_Invites_Handler {
             ];
         }
 
+        if ($blocked_domains && !$invites) {
+            self::redirect_with('err', 'invite_domain', $redirect);
+        }
         if (!$invites) {
             self::redirect_with('err', 'invite_min', $redirect);
+        }
+        if ($blocked_domains) {
+            self::redirect_with('err', 'invite_domain', $redirect);
         }
 
         $existing_data  = self::get_bank_invites($banco_id);
@@ -139,6 +150,10 @@ class BK_Invites_Handler {
             self::redirect_with('err', 'invite_resend', $redirect);
         }
 
+        if (class_exists('Bankitos_Domains') && !Bankitos_Domains::is_email_allowed($invite['email'])) {
+            self::redirect_with('err', 'invite_domain', $redirect);
+        }
+
         $regen = self::regenerate_invite($invite, $user_id);
         if (is_wp_error($regen)) {
             self::redirect_with('err', 'invite_resend', $redirect);
@@ -189,6 +204,9 @@ class BK_Invites_Handler {
 
         if (!$name || !$email || !is_email($email)) {
             self::redirect_with('err', 'invite_update', $redirect);
+        }
+        if (class_exists('Bankitos_Domains') && !Bankitos_Domains::is_email_allowed($email)) {
+            self::redirect_with('err', 'invite_domain', $redirect);
         }
 
         $data = [

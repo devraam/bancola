@@ -63,6 +63,9 @@ class BK_Auth_Handler {
 
         $email = sanitize_email($_POST['email'] ?? ''); $pass  = (string)($_POST['password'] ?? ''); $name  = sanitize_text_field($_POST['name'] ?? '');
         if (!$email || !$pass) { wp_safe_redirect(add_query_arg('err','validacion', wp_get_referer() ?: site_url('/registrarse'))); exit; }
+        if (class_exists('Bankitos_Domains') && !Bankitos_Domains::is_email_allowed($email)) {
+            wp_safe_redirect(add_query_arg('err','domain_not_allowed', wp_get_referer() ?: site_url('/registrarse'))); exit;
+        }
         $username = sanitize_user(current(explode('@', $email)));
         if (username_exists($username)) $username .= wp_generate_password(4, false, false);
         $user_id = wp_create_user($username, $pass, $email);
