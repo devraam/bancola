@@ -425,7 +425,16 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
         // Ordenar pagos del más antiguo al más reciente
         foreach ($grouped as $key => $list) {
             usort($list, static function ($a, $b) {
-                return strcmp($a['created_at'], $b['created_at']);
+                $priority_a = Bankitos_Credit_Payments::get_status_priority($a['status'] ?? '');
+                $priority_b = Bankitos_Credit_Payments::get_status_priority($b['status'] ?? '');
+
+                if ($priority_a !== $priority_b) {
+                    // Mayor prioridad primero (aprobado > pendiente > rechazado)
+                    return $priority_b <=> $priority_a;
+                }
+
+                // En igualdad de prioridad, priorizar el pago más reciente
+                return strcmp($b['created_at'] ?? '', $a['created_at'] ?? '');
             });
             $grouped[$key] = $list;
         }
