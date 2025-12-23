@@ -114,6 +114,7 @@ class Bankitos_Shortcode_Tesorero_Desembolsos extends Bankitos_Shortcode_Panel_B
                             </label>
                             <span class="bankitos-credit-summary__help bankitos-credit-summary__help--error" data-upload-error hidden><?php esc_html_e('Sube un archivo válido (JPG/PNG o PDF).', 'bankitos'); ?></span>
                             <span class="bankitos-credit-summary__help bankitos-credit-summary__help--error" data-upload-size-error hidden><?php esc_html_e('El archivo no debe superar 1MB.', 'bankitos'); ?></span>
+                            <span class="bankitos-credit-summary__help bankitos-credit-summary__help--error" data-upload-load-error hidden><?php esc_html_e('No se pudo cargar la imagen. Intenta con otro archivo.', 'bankitos'); ?></span>
                           </div>
 
                           <div class="bankitos-accordion__actions bankitos-credit-payment__actions">
@@ -193,6 +194,7 @@ class Bankitos_Shortcode_Tesorero_Desembolsos extends Bankitos_Shortcode_Panel_B
           var allowedTypes = ['image/jpeg','image/png','application/pdf'];
           var allowedExt = /(\.jpe?g|\.png|\.pdf)$/i;
           var maxSize = 1024 * 1024; // 1MB
+          var loadTokens = new WeakMap();
 
           function closeModal(){
             if(!modal){ return; }
@@ -277,16 +279,40 @@ class Bankitos_Shortcode_Tesorero_Desembolsos extends Bankitos_Shortcode_Panel_B
             });
           }
 
+          function setSubmitState(submit, enabled){
+            if(!submit){ return; }
+            submit.disabled = !enabled;
+            submit.setAttribute('aria-disabled', submit.disabled ? 'true' : 'false');
+          }
+
+          function validateImageLoad(file, onSuccess, onError){
+            var url = URL.createObjectURL(file);
+            var img = new Image();
+            img.onload = function(){
+              URL.revokeObjectURL(url);
+              onSuccess();
+            };
+            img.onerror = function(){
+              URL.revokeObjectURL(url);
+              onError();
+            };
+            img.src = url;
+          }
+
           function toggleSubmitState(input){
             var form = input.closest('form');
             if(!form){ return; }
             var submit = form.querySelector('[data-bankitos-submit]');
             var errorMsg = form.querySelector('[data-upload-error]');
             var sizeMsg = form.querySelector('[data-upload-size-error]');
+            var loadMsg = form.querySelector('[data-upload-load-error]');
             var file = input.files && input.files.length ? input.files[0] : null;
             var hasFile = !!file;
             var isValid = false;
             var isSizeValid = true;
+            if(loadMsg){
+              loadMsg.hidden = true;
+            }
 
             if(hasFile){
               if((file.type && allowedTypes.indexOf(file.type) !== -1) || (file.name && allowedExt.test(file.name))){
@@ -297,10 +323,25 @@ class Bankitos_Shortcode_Tesorero_Desembolsos extends Bankitos_Shortcode_Panel_B
               }
             }
 
-            if(submit){
-              submit.disabled = !isValid || !isSizeValid;
-              submit.setAttribute('aria-disabled', submit.disabled ? 'true' : 'false');
+            var shouldEnable = hasFile && isValid && isSizeValid;
+
+            if(shouldEnable && file && file.type && file.type.indexOf('image/') === 0){
+              var token = Date.now().toString();
+              loadTokens.set(input, token);
+              setSubmitState(submit, false);
+              validateImageLoad(file, function(){
+                if(loadTokens.get(input) !== token){ return; }
+                if(loadMsg){ loadMsg.hidden = true; }
+                setSubmitState(submit, true);
+              }, function(){
+                if(loadTokens.get(input) !== token){ return; }
+                setSubmitState(submit, false);
+                if(loadMsg){ loadMsg.hidden = false; }
+              });
+            } else {
+              setSubmitState(submit, shouldEnable);
             }
+            
             if(errorMsg){
               errorMsg.hidden = !hasFile || isValid;
             }
