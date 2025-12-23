@@ -47,12 +47,12 @@ class BK_Credit_Disbursements_Handler {
         check_admin_referer('bankitos_credit_disburse_' . $request_id);
 
         if (!current_user_can('approve_aportes')) {
-            self::redirect_with('err', 'desembolso_permiso', site_url('/panel'));
+            self::redirect_with('err', 'desembolso_permiso', site_url('/desembolsos'));
         }
 
         $disbursement_date = isset($_POST['disbursement_date']) ? sanitize_text_field(wp_unslash($_POST['disbursement_date'])) : '';
         $file              = $_FILES['disbursement_receipt'] ?? null;
-        $redirect          = site_url('/panel');
+        $redirect          = site_url('/desembolsos');
 
         if ($request_id <= 0 || !$disbursement_date) {
             self::redirect_with('err', 'desembolso_invalido', $redirect);
