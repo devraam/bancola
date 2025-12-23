@@ -286,7 +286,16 @@ class Bankitos_Admin_Reports {
             ];
         }
 
-        $types = $wpdb->get_results("SELECT credit_type, COUNT(*) AS total, SUM(amount) AS volume FROM {$table} WHERE status = 'approved' GROUP BY credit_type", ARRAY_A);
+        $approved_statuses = ['approved', 'disbursement_pending', 'disbursed'];
+        $placeholders = implode(',', array_fill(0, count($approved_statuses), '%s'));
+
+        $types = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT credit_type, COUNT(*) AS total, SUM(amount) AS volume FROM {$table} WHERE status IN ({$placeholders}) GROUP BY credit_type",
+                $approved_statuses
+            ),
+            ARRAY_A
+        );
         $status = $wpdb->get_results("SELECT status, COUNT(*) AS total FROM {$table} GROUP BY status", OBJECT_K);
         $totals = self::sum_credits();
 
@@ -399,8 +408,11 @@ class Bankitos_Admin_Reports {
         if (!$exists) {
             return ['amount' => 0.0, 'count' => 0];
         }
-        $amount = $wpdb->get_var($wpdb->prepare("SELECT SUM(amount) FROM {$table} WHERE status = %s", 'approved'));
-        $count  = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE status = %s", 'approved'));
+        $statuses = ['approved', 'disbursement_pending', 'disbursed'];
+        $placeholders = implode(',', array_fill(0, count($statuses), '%s'));
+
+        $amount = $wpdb->get_var($wpdb->prepare("SELECT SUM(amount) FROM {$table} WHERE status IN ({$placeholders})", $statuses));
+        $count  = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE status IN ({$placeholders})", $statuses));
         return [
             'amount' => $amount ? (float) $amount : 0.0,
             'count'  => $count ? (int) $count : 0,
@@ -518,7 +530,15 @@ class Bankitos_Admin_Reports {
             return 0.0;
         }
 
-        $requests = $wpdb->get_results("SELECT id, banco_id, amount, term_months, approval_date FROM {$requests_table} WHERE status = 'approved'", ARRAY_A);
+        $approved_statuses = ['approved', 'disbursement_pending', 'disbursed'];
+        $placeholders = implode(',', array_fill(0, count($approved_statuses), '%s'));
+        $requests = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT id, banco_id, amount, term_months, approval_date, disbursement_date FROM {$requests_table} WHERE status IN ({$placeholders})",
+                $approved_statuses
+            ),
+            ARRAY_A
+        );
         if (!$requests) {
             return 0.0;
         }
@@ -533,7 +553,8 @@ class Bankitos_Admin_Reports {
                 $cache_tasa[$banco_id] = (float) get_post_meta($banco_id, '_bk_tasa', true);
             }
             $tasa = $cache_tasa[$banco_id];
-            $plan = self::build_payment_plan((float) $request['amount'], (int) $request['term_months'], (string) $request['approval_date'], $tasa);
+            $base_date = !empty($request['disbursement_date']) ? (string) $request['disbursement_date'] : (string) $request['approval_date'];
+            $plan = self::build_payment_plan((float) $request['amount'], (int) $request['term_months'], $base_date, $tasa);
             if (!$plan) {
                 continue;
             }

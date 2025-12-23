@@ -22,6 +22,7 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
         $tasa         = isset($context['meta']['tasa']) ? (float) $context['meta']['tasa'] : 0.0;
         $redirect_url = self::get_creditos_redirect_url($atts);
         $modals       = [];
+        $has_disbursement_receipts = false;
 
         ob_start(); ?>
         <div class="bankitos-credit-summary">
@@ -41,6 +42,10 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
                   $type_label   = $types[$request['credit_type']] ?? ucfirst($request['credit_type']);
                   $status_class = self::get_status_class($request['status']);
                   $status_label = self::get_status_label($request['status']);
+                  $disbursement_receipt = self::get_disbursement_receipt($request);
+                  if ($disbursement_receipt['url']) {
+                      $has_disbursement_receipts = true;
+                  }
                   $modal_id     = 'bk-modal-credit-' . (int) $request['id'];
                   $modal_markup = self::render_modal_for_request($request, $modal_id, $tasa, $redirect_url);
                   if ($modal_markup) {
@@ -83,7 +88,20 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
                         </div>
                         <div>
                           <dt><?php esc_html_e('Estado', 'bankitos'); ?></dt>
-                          <dd><?php echo esc_html($status_label); ?></dd>
+                          <dd class="bankitos-credit-summary__state">
+                            <span class="bankitos-pill <?php echo esc_attr($status_class); ?>"><?php echo esc_html($status_label); ?></span>
+                            <?php if ($request['status'] === 'disbursement_pending' && !empty($request['approval_date'])): ?>
+                              <span class="bankitos-credit-summary__help"><?php printf('%s %s', esc_html__('Aprobado el', 'bankitos'), esc_html(date_i18n(get_option('date_format'), strtotime($request['approval_date'])))); ?></span>
+                            <?php endif; ?>
+                            <?php if ($request['status'] === 'disbursed'): ?>
+                              <?php if (!empty($request['disbursement_date'])): ?>
+                                <span class="bankitos-credit-summary__help"><?php printf('%s %s', esc_html__('Desembolsado el', 'bankitos'), esc_html(date_i18n(get_option('date_format'), strtotime($request['disbursement_date'])))); ?></span>
+                              <?php endif; ?>
+                              <?php if (!empty($disbursement_receipt['url'])): ?>
+                                <button type="button" class="bankitos-link bankitos-link--button bankitos-receipt-link" data-receipt="<?php echo esc_url($disbursement_receipt['url']); ?>" data-is-image="<?php echo $disbursement_receipt['is_image'] ? '1' : '0'; ?>" data-title="<?php esc_attr_e('Comprobante de desembolso', 'bankitos'); ?>"><?php esc_html_e('Ver comprobante', 'bankitos'); ?></button>
+                              <?php endif; ?>
+                            <?php endif; ?>
+                          </dd>
                         </div>
                       </dl>
                       <?php if ($modal_markup): ?>
@@ -101,6 +119,11 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
         </div>
         <?php if ($modals): ?>
           <?php foreach ($modals as $modal_html) { echo $modal_html; } ?>
+          <?php endif; ?>
+        <?php if ($has_disbursement_receipts): ?>
+          <?php echo self::receipt_modal_markup(); ?>
+        <?php endif; ?>
+        <?php if ($modals || $has_disbursement_receipts): ?>
           <?php echo self::inline_scripts(); ?>
         <?php endif; ?>
         <?php
@@ -143,6 +166,8 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
         $labels = [
             'pending'  => __('Pendiente de revisión', 'bankitos'),
             'approved' => __('Aprobado', 'bankitos'),
+            'disbursement_pending' => __('Pendiente de desembolso', 'bankitos'),
+            'disbursed' => __('Desembolsado', 'bankitos'),
             'rejected' => __('No aprobado', 'bankitos'),
         ];
         return $labels[$status] ?? $status;
@@ -152,6 +177,8 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
         $classes = [
             'pending'  => 'bankitos-pill--pending',
             'approved' => 'bankitos-pill--accepted',
+            'disbursement_pending' => 'bankitos-pill--pending',
+            'disbursed' => 'bankitos-pill--accepted',
             'rejected' => 'bankitos-pill--rejected',
         ];
         return $classes[$status] ?? 'bankitos-pill--pending';
@@ -161,7 +188,7 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
         if ($request['status'] === 'rejected') {
             return self::render_rejection_modal($request, $modal_id);
         }
-        if ($request['status'] === 'approved') {
+        if ($request['status'] === 'disbursed') {
            return self::render_payment_modal($request, $modal_id, $tasa, $redirect_url);
         }
         return '';
@@ -187,11 +214,12 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
     }
 
     private static function render_payment_modal(array $request, string $modal_id, float $tasa, string $redirect_url): string {
-        if (empty($request['approval_date'])) {
+        $base_date = self::get_schedule_base_date($request);
+        if (empty($base_date)) {
             return '';
         }
 
-        $plan = self::build_payment_plan((float) $request['amount'], (int) $request['term_months'], $request['approval_date'], $tasa);
+        $plan = self::build_payment_plan((float) $request['amount'], (int) $request['term_months'], $base_date, $tasa);
         if (!$plan) {
             return '';
         }
@@ -384,6 +412,14 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
         return ob_get_clean();
     }
 
+    private static function get_schedule_base_date(array $request): string {
+        if (!empty($request['disbursement_date'])) {
+            return (string) $request['disbursement_date'];
+        }
+
+        return (string) ($request['approval_date'] ?? '');
+    }
+
     private static function build_payment_plan(float $amount, int $months, string $approval_date, float $tasa): array {
         if ($amount <= 0 || $months <= 0) {
             return [];
@@ -507,6 +543,29 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
         return number_format($amount, 2, '.', '');
     }
     
+    private static function get_disbursement_receipt(array $request): array {
+        $attachment_id = isset($request['disbursement_attachment_id']) ? (int) $request['disbursement_attachment_id'] : 0;
+        if ($attachment_id <= 0 || $request['status'] !== 'disbursed') {
+            return ['url' => '', 'is_image' => false];
+        }
+
+        $receipt_url = class_exists('BK_Credit_Disbursements_Handler')
+            ? BK_Credit_Disbursements_Handler::get_receipt_download_url((int) $request['id'])
+            : '';
+
+        $mime = $attachment_id > 0 ? get_post_mime_type($attachment_id) : '';
+        $is_image = $mime && strpos($mime, 'image/') === 0;
+
+        return [
+            'url'      => $receipt_url,
+            'is_image' => $is_image,
+        ];
+    }
+
+    private static function receipt_modal_markup(): string {
+        return '<div id="bankitos-modal" class="bankitos-modal" hidden><div class="bankitos-modal__backdrop"></div><div class="bankitos-modal__body"><button type="button" class="bankitos-modal__close" aria-label="' . esc_attr__('Cerrar', 'bankitos') . '">&times;</button><p class="bankitos-modal__error" hidden></p><iframe class="bankitos-modal__frame" src="" title="' . esc_attr__('Comprobante', 'bankitos') . '" hidden></iframe><img src="" alt="" loading="lazy" hidden></div></div>';
+    }
+
     private static function inline_scripts(): string {
         ob_start(); ?>
         <script>
@@ -605,6 +664,83 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
               }
             });
           });
+          
+          var receiptModal = document.getElementById('bankitos-modal');
+          if(receiptModal){
+            var backdrop = receiptModal.querySelector('.bankitos-modal__backdrop');
+            var closeBtn = receiptModal.querySelector('.bankitos-modal__close');
+            var frame = receiptModal.querySelector('.bankitos-modal__frame');
+            var img = receiptModal.querySelector('img');
+            var errorBox = receiptModal.querySelector('.bankitos-modal__error');
+
+            function closeReceiptModal(){
+              receiptModal.setAttribute('hidden','hidden');
+              if(frame){
+                frame.removeAttribute('src');
+                frame.setAttribute('hidden','');
+                frame.setAttribute('aria-hidden','true');
+              }
+              if(img){
+                img.removeAttribute('src');
+                img.setAttribute('hidden','');
+              }
+              if(errorBox){
+                errorBox.textContent = '';
+                errorBox.setAttribute('hidden','');
+              }
+            }
+
+            [backdrop, closeBtn].forEach(function(el){ if(el){ el.addEventListener('click', closeReceiptModal); }});
+
+            function showReceiptError(message){
+              if(!errorBox){ return; }
+              errorBox.textContent = message || '';
+              errorBox.removeAttribute('hidden');
+            }
+
+            function openReceipt(url, isImage, title){
+              if(!url){ return; }
+              if(img){
+                img.removeAttribute('src');
+                img.setAttribute('hidden','');
+              }
+              if(frame){
+                frame.removeAttribute('src');
+                frame.setAttribute('hidden','');
+                frame.setAttribute('aria-hidden','true');
+              }
+
+              if(isImage && img){
+                img.onload = function(){ img.removeAttribute('hidden'); receiptModal.removeAttribute('hidden'); };
+                img.onerror = function(){ img.setAttribute('hidden',''); showReceiptError('No se pudo cargar el comprobante.'); receiptModal.removeAttribute('hidden'); };
+                img.alt = title || '';
+                img.src = url;
+                receiptModal.removeAttribute('hidden');
+                return;
+              }
+
+              if(frame){
+                frame.onload = function(){};
+                frame.onerror = function(){ frame.setAttribute('hidden',''); showReceiptError('No se pudo cargar el comprobante.'); };
+                frame.removeAttribute('hidden');
+                frame.removeAttribute('aria-hidden');
+                frame.title = title || '';
+                frame.src = url;
+                receiptModal.removeAttribute('hidden');
+                return;
+              }
+            }
+
+            document.addEventListener('click', function(ev){
+              var link = ev.target.closest('.bankitos-receipt-link');
+              if(!link){ return; }
+              ev.preventDefault();
+              var url = link.getAttribute('data-receipt');
+              var isImage = link.getAttribute('data-is-image') === '1';
+              var title = link.getAttribute('data-title') || '';
+              openReceipt(url, isImage, title);
+            });
+          }
         })();
         </script>
         <?php

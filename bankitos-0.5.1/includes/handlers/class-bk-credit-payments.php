@@ -73,7 +73,7 @@ class BK_Credit_Payments_Handler {
         if (!$request || (int) $request['user_id'] !== $user_id) {
             self::redirect_with('err', 'pago_permiso', $redirect);
         }
-        if ($request['status'] !== 'approved') {
+        if (!in_array($request['status'], ['disbursed'], true)) {
             self::redirect_with('err', 'pago_permiso', $redirect);
         }
 
@@ -196,6 +196,10 @@ class BK_Credit_Payments_Handler {
         $request = Bankitos_Credit_Requests::get_request((int) $payment['request_id']);
         if (!$request) {
             self::redirect_with('err', 'pago_invalido', $redirect);
+        }
+        
+        if (!in_array($request['status'], ['disbursed', 'approved'], true)) {
+            self::redirect_with('err', 'pago_permiso', $redirect);
         }
         
         $banco_id = class_exists('Bankitos_Handlers') ? Bankitos_Handlers::get_user_banco_id(get_current_user_id()) : 0;

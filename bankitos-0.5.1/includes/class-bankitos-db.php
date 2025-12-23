@@ -111,6 +111,8 @@ class Bankitos_DB {
             approved_veedor VARCHAR(20) NOT NULL DEFAULT 'pending',
             committee_notes TEXT NULL,
             approval_date DATETIME NULL,
+            disbursement_date DATETIME NULL,
+            disbursement_attachment_id BIGINT UNSIGNED NULL,
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY  (id),

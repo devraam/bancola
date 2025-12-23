@@ -72,6 +72,7 @@ abstract class Bankitos_Shortcode_Base {
                 'pago_enviado'      => __('Pago enviado al tesorero para revisión.', 'bankitos'),
                 'pago_aprobado'     => __('Pago aprobado correctamente.', 'bankitos'),
                 'pago_rechazado'    => __('Pago marcado como rechazado.', 'bankitos'),
+                'desembolso_registrado' => __('Desembolso registrado correctamente.', 'bankitos'),
             ];
             if (!empty($map_ok[$ok])) {
                 $html .= '<div class="bankitos-success">' . esc_html($map_ok[$ok]) . '</div>';
@@ -133,6 +134,15 @@ abstract class Bankitos_Shortcode_Base {
             'pago_archivo_requerido' => __('Debes adjuntar un comprobante de pago.', 'bankitos'),
             'pago_archivo_seguro' => __('No pudimos proteger el comprobante subido.', 'bankitos'),
             'pago_guardar'    => __('No fue posible guardar el pago.', 'bankitos'),
+            'desembolso_invalido' => __('La información del desembolso es inválida.', 'bankitos'),
+            'desembolso_permiso' => __('No tienes permisos para registrar el desembolso.', 'bankitos'),
+            'desembolso_estado' => __('El crédito debe estar aprobado para desembolsarse.', 'bankitos'),
+            'desembolso_fecha' => __('Selecciona una fecha de desembolso válida.', 'bankitos'),
+            'desembolso_archivo' => __('Hubo un problema subiendo el comprobante de desembolso.', 'bankitos'),
+            'desembolso_archivo_tamano' => __('El comprobante excede el tamaño permitido.', 'bankitos'),
+            'desembolso_archivo_tipo' => __('El comprobante debe ser una imagen o PDF válido.', 'bankitos'),
+            'desembolso_archivo_seguro' => __('No pudimos proteger el comprobante subido.', 'bankitos'),
+            'desembolso_guardar' => __('No fue posible guardar el desembolso.', 'bankitos'),
         ];
         $msg = $map[$err] ?? __('Ha ocurrido un error. Intenta nuevamente.', 'bankitos');
         $html .= '<div class="bankitos-error">' . esc_html($msg) . '</div>';
@@ -409,16 +419,19 @@ abstract class Bankitos_Shortcode_Base {
         $table_exists  = (bool) $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $credits_table));
 
         if ($table_exists) {
-           $approved_sum = $wpdb->get_var($wpdb->prepare(
-                "SELECT SUM(amount) FROM {$credits_table} WHERE banco_id = %d AND status = %s",
-                $banco_id,
-                'approved'
-            ));
-            $approved_count = $wpdb->get_var($wpdb->prepare(
-                "SELECT COUNT(*) FROM {$credits_table} WHERE banco_id = %d AND status = %s",
-                $banco_id,
-                'approved'
-            ));
+           $approved_statuses = ['approved', 'disbursement_pending', 'disbursed'];
+           $placeholders = implode(',', array_fill(0, count($approved_statuses), '%s'));
+           $sum_sql = $wpdb->prepare(
+                "SELECT SUM(amount) FROM {$credits_table} WHERE banco_id = %d AND status IN ({$placeholders})",
+                array_merge([$banco_id], $approved_statuses)
+            );
+            $count_sql = $wpdb->prepare(
+                "SELECT COUNT(*) FROM {$credits_table} WHERE banco_id = %d AND status IN ({$placeholders})",
+                array_merge([$banco_id], $approved_statuses)
+            );
+
+            $approved_sum = $wpdb->get_var($sum_sql);
+            $approved_count = $wpdb->get_var($count_sql);
 
             if ($approved_sum) {
                 $totals['creditos'] = (float) $approved_sum;

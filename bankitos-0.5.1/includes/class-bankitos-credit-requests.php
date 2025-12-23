@@ -206,10 +206,13 @@ class Bankitos_Credit_Requests {
             $request['committee_notes'] = $notes;
         }
         $final_status = self::calculate_status($request);
+        if ($final_status === 'approved') {
+            $final_status = 'disbursement_pending';
+        }
         if ($final_status !== $request['status']) {
             $fields = ['status' => $final_status];
             $formats = ['%s'];
-            if ($final_status === 'approved') {
+            if ($final_status === 'disbursement_pending') {
                 $fields['approval_date'] = current_time('mysql');
                 $formats[] = '%s';
             } elseif ($final_status === 'rejected') {
@@ -240,8 +243,82 @@ class Bankitos_Credit_Requests {
         return 'approved';
     }
 
+    /**
+     * Marca un crédito como desembolsado, guardando fecha y comprobante.
+     *
+     * @return true|WP_Error
+     */
+    public static function mark_disbursed(int $request_id, string $date, int $attachment_id) {
+        if ($request_id <= 0 || $attachment_id <= 0) {
+            return new WP_Error('bankitos_credit_disburse_data', __('La información del desembolso es inválida.', 'bankitos'));
+        }
+
+        $request = self::get_request($request_id);
+        if (!$request) {
+            return new WP_Error('bankitos_credit_request_missing', __('La solicitud no existe.', 'bankitos'));
+        }
+
+        // Solo se puede desembolsar si ya está aprobado por el comité.
+        if (!in_array($request['status'], ['disbursement_pending', 'approved'], true)) {
+            return new WP_Error('bankitos_credit_request_locked', __('El crédito no está listo para desembolso.', 'bankitos'));
+        }
+
+        $date_obj = date_create($date);
+        if (!$date_obj) {
+            return new WP_Error('bankitos_credit_disburse_date', __('La fecha de desembolso no es válida.', 'bankitos'));
+        }
+
+        $formatted_date = $date_obj->format('Y-m-d 00:00:00');
+
+        global $wpdb;
+        $table = self::table_name();
+
+        $updated = $wpdb->update(
+            $table,
+            [
+                'status'                     => 'disbursed',
+                'disbursement_date'          => $formatted_date,
+                'disbursement_attachment_id' => $attachment_id,
+            ],
+            ['id' => $request_id],
+            ['%s','%s','%d'],
+            ['%d']
+        );
+
+        if ($updated === false) {
+            return new WP_Error('bankitos_credit_disburse_update', __('No fue posible registrar el desembolso.', 'bankitos'));
+        }
+
+        return true;
+    }
+
     private static function prepare_row(array $row): array {
         $row['display_name'] = $row['display_name'] ?: $row['user_login'];
+        $row['status'] = self::normalize_status($row);
         return $row;
+    }
+
+    private static function normalize_status(array $row): string {
+        $status = strtolower(trim((string) ($row['status'] ?? 'pending')));
+
+        // Compatibilidad hacia atrás: un crédito "approved" sin desembolso se considera pendiente de desembolso.
+        if ($status === 'approved') {
+            if (!empty($row['disbursement_date'])) {
+                return 'disbursed';
+            }
+            return 'disbursement_pending';
+        }
+
+        if ($status === 'disbursement_pending' && !empty($row['disbursement_date'])) {
+            return 'disbursed';
+        }
+
+        $allowed = ['pending', 'rejected', 'disbursement_pending', 'disbursed'];
+
+        if (!in_array($status, $allowed, true)) {
+            return 'pending';
+        }
+
+        return $status;
     }
 }
