@@ -28,7 +28,7 @@ class Bankitos_Shortcode_Tesorero_Creditos extends Bankitos_Shortcode_Panel_Base
         $credits = array_filter(
             Bankitos_Credit_Requests::get_requests($context['banco_id']),
             static function ($row) {
-                return $row['status'] === 'approved';
+                return in_array($row['status'], ['disbursed', 'approved'], true);
             }
         );
         $status_labels = Bankitos_Credit_Payments::get_status_labels();
@@ -69,7 +69,7 @@ class Bankitos_Shortcode_Tesorero_Creditos extends Bankitos_Shortcode_Panel_Base
                 continue;
             }
 
-            $plan = self::build_payment_plan((float) $credit['amount'], (int) $credit['term_months'], $credit['approval_date'] ?? '', $tasa);
+            $plan = self::build_payment_plan((float) $credit['amount'], (int) $credit['term_months'], self::get_schedule_base_date($credit), $tasa);
             $prepared = self::prepare_payments($credit_payments, $status_labels, $plan);
             if (!$prepared) {
                 continue;
@@ -111,6 +111,7 @@ class Bankitos_Shortcode_Tesorero_Creditos extends Bankitos_Shortcode_Panel_Base
         $member    = $credit['display_name'] ?? '';
         $term_label   = sprintf(_n('%s mes', '%s meses', (int) $credit['term_months'], 'bankitos'), number_format_i18n((int) $credit['term_months']));
         $request_date = !empty($credit['request_date']) ? date_i18n(get_option('date_format'), strtotime($credit['request_date'])) : '—';
+        $status_meta  = self::get_credit_status_meta($credit['status'] ?? '');
 
         ob_start(); ?>
         <details class="bankitos-accordion__item bankitos-credit-payment__credit" role="listitem" <?php echo $is_first ? 'open' : ''; ?>>
@@ -121,7 +122,7 @@ class Bankitos_Shortcode_Tesorero_Creditos extends Bankitos_Shortcode_Panel_Base
             </div>
             <div class="bankitos-accordion__meta">
               <span><?php echo esc_html($request_date); ?></span>
-              <span class="bankitos-pill bankitos-pill--accepted"><?php esc_html_e('Crédito aprobado', 'bankitos'); ?></span>
+              <span class="<?php echo esc_attr($status_meta['class']); ?>"><?php echo esc_html($status_meta['label']); ?></span>
               <span class="bankitos-accordion__chevron" aria-hidden="true"></span>
             </div>
           </summary>
@@ -301,6 +302,36 @@ class Bankitos_Shortcode_Tesorero_Creditos extends Bankitos_Shortcode_Panel_Base
         return $best_index;
     }
 
+    protected static function get_schedule_base_date(array $credit): string {
+        if (!empty($credit['disbursement_date'])) {
+            return (string) $credit['disbursement_date'];
+        }
+
+        return (string) ($credit['approval_date'] ?? '');
+    }
+
+    protected static function get_credit_status_meta(string $status): array {
+        $map = [
+            'disbursed' => [
+                'label' => __('Crédito desembolsado', 'bankitos'),
+                'class' => 'bankitos-pill bankitos-pill--accepted',
+            ],
+            'disbursement_pending' => [
+                'label' => __('Pendiente de desembolso', 'bankitos'),
+                'class' => 'bankitos-pill bankitos-pill--pending',
+            ],
+            'approved' => [
+                'label' => __('Crédito aprobado', 'bankitos'),
+                'class' => 'bankitos-pill bankitos-pill--accepted',
+            ],
+        ];
+
+        return $map[$status] ?? [
+            'label' => $status,
+            'class' => 'bankitos-pill bankitos-pill--pending',
+        ];
+    }
+    
     protected static function build_payment_plan(float $amount, int $months, string $approval_date, float $tasa): array {
         if ($amount <= 0 || $months <= 0 || empty($approval_date)) {
             return [];

@@ -49,11 +49,15 @@ class Bankitos_Shortcode_Credit_Review extends Bankitos_Shortcode_Panel_Base {
             'pending'  => 'bankitos-pill--pending',
             'approved' => 'bankitos-pill--accepted',
             'rejected' => 'bankitos-pill--rejected',
+            'disbursement_pending' => 'bankitos-pill--pending',
+            'disbursed' => 'bankitos-pill--accepted',
         ];
         $status_labels = [
             'pending'  => __('Pendiente', 'bankitos'),
             'approved' => __('Aprobado', 'bankitos'),
-            'rejected' => __('No aprobado', 'bankitos'),
+            'disbursement_pending' => __('Pendiente de desembolso', 'bankitos'),
+            'disbursed' => __('Desembolsado', 'bankitos'),
+            'rejected' => __('No aprobado', 'bankitos'),    
         ];
         $committee = Bankitos_Credit_Requests::get_committee_roles();
         $columns = [
@@ -153,7 +157,7 @@ class Bankitos_Shortcode_Credit_Review extends Bankitos_Shortcode_Panel_Base {
                       </li>
                   <?php endforeach; ?>
                 </ul>
-                <?php if ($request['approval_date'] && $request['status'] === 'approved'): ?>
+                <?php if ($request['approval_date'] && in_array($request['status'], ['approved','disbursement_pending','disbursed'], true)): ?>
                   <p class="bankitos-credit-card__approval-date"><?php printf('%s %s', esc_html__('Fecha de aprobación:', 'bankitos'), esc_html(date_i18n(get_option('date_format'), strtotime($request['approval_date'])))); ?></p>
                 <?php endif; ?>
                 <div class="bankitos-credit-card__observaciones">
