@@ -13,20 +13,20 @@ class Bankitos_Shortcode_Aporte_Form extends Bankitos_Shortcode_Base {
      */
     public static function render($atts = [], $content = null): string {
         if (!is_user_logged_in()) {
-            return '<div class="bankitos-form"><p>' . esc_html__('Inicia sesión para subir tu aporte.', 'bankitos') . '</p></div>';
+            return '<div class="bankitos-form bankitos-panel"><p>' . esc_html__('Inicia sesión para subir tu aporte.', 'bankitos') . '</p></div>';
         }
         $user_id = get_current_user_id();
         $banco_id = class_exists('Bankitos_Handlers') ? Bankitos_Handlers::get_user_banco_id($user_id) : 0;
         if ($banco_id <= 0) {
-            return '<div class="bankitos-form"><p>' . esc_html__('No perteneces a un B@nko.', 'bankitos') . '</p></div>';
+            return '<div class="bankitos-form bankitos-panel"><p>' . esc_html__('No perteneces a un B@nko.', 'bankitos') . '</p></div>';
         }
 
         if (!current_user_can('submit_aportes')) {
-            return '<div class="bankitos-form"><p>' . esc_html__('No tienes permiso para enviar aportes.', 'bankitos') . '</p></div>';
+            return '<div class="bankitos-form bankitos-panel"><p>' . esc_html__('No tienes permiso para enviar aportes.', 'bankitos') . '</p></div>';
         }
 
         ob_start(); ?>
-        <div class="bankitos-form">
+        <div class="bankitos-form bankitos-panel">
           <h3><?php esc_html_e('Subir aporte', 'bankitos'); ?></h3>
           <?php echo self::top_notice_from_query(); ?>
           <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" enctype="multipart/form-data">

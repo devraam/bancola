@@ -22,7 +22,7 @@ class Bankitos_Shortcode_Panel_Info extends Bankitos_Shortcode_Panel_Base {
         ob_start(); ?>
         <div class="bankitos-panel-info" role="group" aria-label="<?php esc_attr_e('Información general del b@nko', 'bankitos'); ?>">
           <div class="bankitos-panel-info__header">
-            <span class="bankitos-panel-info__icon" aria-hidden="true">🏦</span>
+            <img decoding="async" width="80" class="df_ab_blurb_image_img" src="https://bancola.tarcem.com/wp-content/uploads/2025/12/Icono-banco2.svg" alt="">
             <div>
               <p class="bankitos-panel-info__title"><?php esc_html_e('Información del b@nko', 'bankitos'); ?></p>
               <p class="bankitos-panel-info__subtitle"><?php esc_html_e('Resumen visible para todos los asociados.', 'bankitos'); ?></p>

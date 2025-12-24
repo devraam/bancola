@@ -12,12 +12,12 @@ class Bankitos_Shortcode_Veedor_List extends Bankitos_Shortcode_Base {
             return '';
         }
         if (!current_user_can('audit_aportes')) {
-            return '<div class="bankitos-form"><p>' . esc_html__('No tienes permisos para auditar aportes.', 'bankitos') . '</p></div>';
+            return '<div class="bankitos-form bankitos-panel"><p>' . esc_html__('No tienes permisos para auditar aportes.', 'bankitos') . '</p></div>';
         }
         $user_id = get_current_user_id();
         $banco_id = class_exists('Bankitos_Handlers') ? Bankitos_Handlers::get_user_banco_id($user_id) : 0;
         if ($banco_id <= 0) {
-            return '<div class="bankitos-form"><p>' . esc_html__('No perteneces a un B@nko.', 'bankitos') . '</p></div>';
+            return '<div class="bankitos-form bankitos-panel"><p>' . esc_html__('No perteneces a un B@nko.', 'bankitos') . '</p></div>';
         }
         $filters  = self::get_aporte_filters('veedor');
         $per_page = (int) apply_filters('bankitos_aportes_per_page', 20, 'publish');
@@ -37,7 +37,7 @@ class Bankitos_Shortcode_Veedor_List extends Bankitos_Shortcode_Base {
         }
         $q = new WP_Query($args);
         ob_start(); ?>
-        <div class="bankitos-form">
+        <div class="bankitos-form bankitos-panel">
           <h3><?php esc_html_e('Aportes aprobados', 'bankitos'); ?></h3>
           <?php echo self::render_aporte_filter_form('veedor', $filters); ?>
           <?php if (!$q->have_posts()): ?>

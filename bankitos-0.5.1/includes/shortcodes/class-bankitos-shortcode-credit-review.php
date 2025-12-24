@@ -22,7 +22,7 @@ class Bankitos_Shortcode_Credit_Review extends Bankitos_Shortcode_Panel_Base {
         $role     = Bankitos_Credit_Requests::get_user_role_key();
         $current_url = self::get_current_url();
         ob_start(); ?>
-        <div class="bankitos-credit-review">
+        <div class="bankitos-credit-review bankitos-panel">
           <div class="bankitos-credit-review__header">
             <h3><?php esc_html_e('Solicitudes de crédito', 'bankitos'); ?></h3>
             <p><?php esc_html_e('Consulta y firma las solicitudes creadas por los socios.', 'bankitos'); ?></p>

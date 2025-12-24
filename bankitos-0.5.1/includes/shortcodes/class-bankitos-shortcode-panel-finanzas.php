@@ -28,12 +28,17 @@ class Bankitos_Shortcode_Panel_Finanzas extends Bankitos_Shortcode_Panel_Base {
         $credit_capacity  = $approved_total * 4;
         $q                = new WP_Query($args);
         ob_start(); ?>
-        <div class="bankitos-form">
-          <?php echo self::top_notice_from_query(); ?>
-          <h3><?php esc_html_e('Mis Aportes', 'bankitos'); ?></h3>
-           <div class="bankitos-finanzas__summary">
-            <p><strong><?php esc_html_e('Total de mis aportes:', 'bankitos'); ?></strong> <?php echo esc_html(self::format_currency($approved_total)); ?></p>
-            <p><strong><?php esc_html_e('Capacidad de crédito:', 'bankitos'); ?></strong> <?php echo esc_html(self::format_currency($credit_capacity)); ?></p>
+        <div class="bankitos-form bankitos-panel">
+          <div class="bankitos-panel-info__header">
+            <?php echo self::top_notice_from_query(); ?>
+            <img decoding="async" width="80" class="df_ab_blurb_image_img" src="https://bancola.tarcem.com/wp-content/uploads/2025/12/Icono-aportes.svg" alt="">
+            <div>
+              <h3><?php esc_html_e('Mis Aportes', 'bankitos'); ?></h3>
+              <div class="bankitos-finanzas__summary">
+                <p><strong><?php esc_html_e('Total de mis aportes:', 'bankitos'); ?></strong> <?php echo esc_html(self::format_currency($approved_total)); ?></p>
+                <p><strong><?php esc_html_e('Mi Capacidad de crédito:', 'bankitos'); ?></strong> <?php echo esc_html(self::format_currency($credit_capacity)); ?></p>
+              </div>
+            </div>
           </div>
           <?php if (!$q->have_posts()): ?>
             <p><?php esc_html_e('No tienes aportes registrados.', 'bankitos'); ?></p>
