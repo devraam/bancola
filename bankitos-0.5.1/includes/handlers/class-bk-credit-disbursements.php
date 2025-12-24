@@ -11,7 +11,6 @@ class BK_Credit_Disbursements_Handler {
     private static function get_redirect_target(string $fallback): string {
         $redirect = isset($_REQUEST['redirect_to']) ? wp_unslash($_REQUEST['redirect_to']) : '';
         if ($redirect) {
-            // Validamos contra la URL del sitio para seguridad, pero permitimos params
             $validated = wp_validate_redirect(esc_url_raw($redirect), $fallback);
             if ($validated) {
                 return $validated;
@@ -47,7 +46,6 @@ class BK_Credit_Disbursements_Handler {
         $request_id = isset($_POST['request_id']) ? absint($_POST['request_id']) : 0;
         check_admin_referer('bankitos_credit_disburse_' . $request_id);
 
-        // Definimos el fallback predeterminado por si falla el redirect_to
         $redirect = site_url('/desembolsos');
 
         if (!current_user_can('approve_aportes')) {
@@ -72,7 +70,6 @@ class BK_Credit_Disbursements_Handler {
             self::redirect_with('err', 'desembolso_permiso', $redirect);
         }
 
-        // Permitimos también 'approved' para retrocompatibilidad
         if (!in_array($request['status'], ['disbursement_pending', 'approved'], true)) {
             self::redirect_with('err', 'desembolso_estado', $redirect);
         }
@@ -113,7 +110,6 @@ class BK_Credit_Disbursements_Handler {
             self::redirect_with('err', 'desembolso_archivo', $redirect);
         }
 
-        // Asegurar autor y proteger archivo
         wp_update_post([
             'ID'          => $attachment_id,
             'post_author' => $user_id,
@@ -152,8 +148,10 @@ class BK_Credit_Disbursements_Handler {
             wp_safe_redirect(site_url('/acceder'));
             exit;
         }
+        
         $request_id = isset($_GET['request_id']) ? absint($_GET['request_id']) : 0;
         $nonce      = isset($_GET['_wpnonce']) ? sanitize_text_field($_GET['_wpnonce']) : '';
+        
         if ($request_id <= 0 || !$nonce || !wp_verify_nonce($nonce, 'bankitos_credit_disbursement_download_' . $request_id)) {
             wp_die(__('Solicitud inválida.', 'bankitos'), 400);
         }
@@ -178,14 +176,17 @@ class BK_Credit_Disbursements_Handler {
         }
 
         $path = Bankitos_Secure_Files::get_protected_path($attachment_id);
-        if (!$path) {
-            wp_die(__('El comprobante no está disponible.', 'bankitos'), 404);
+        if (!$path || !file_exists($path)) {
+            wp_die(__('El archivo del comprobante no se encuentra.', 'bankitos'), 404);
         }
 
         $mime         = wp_check_filetype($path);
         $content_type = $mime['type'] ?: (function_exists('mime_content_type') ? mime_content_type($path) : 'application/octet-stream');
         $filename     = Bankitos_Secure_Files::get_download_filename($attachment_id);
 
+        // --- CORRECCIÓN CLAVE: Limpiar buffer y desactivar compresión ---
+        @ini_set('zlib.output_compression', 'Off');
+        
         while (ob_get_level() > 0) {
             ob_end_clean();
         }
@@ -194,6 +195,7 @@ class BK_Credit_Disbursements_Handler {
         header('Content-Type: ' . $content_type);
         header('Content-Disposition: inline; filename="' . basename($filename) . '"');
         header('Content-Length: ' . filesize($path));
+        
         readfile($path);
         exit;
     }

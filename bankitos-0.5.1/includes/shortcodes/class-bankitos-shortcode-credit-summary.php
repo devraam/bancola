@@ -42,10 +42,13 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
                   $type_label   = $types[$request['credit_type']] ?? ucfirst($request['credit_type']);
                   $status_class = self::get_status_class($request['status']);
                   $status_label = self::get_status_label($request['status']);
+                  
+                  // Obtener datos del comprobante de desembolso
                   $disbursement_receipt = self::get_disbursement_receipt($request);
-                  if ($disbursement_receipt['url']) {
+                  if (!empty($disbursement_receipt['url'])) {
                       $has_disbursement_receipts = true;
                   }
+
                   $modal_id     = 'bk-modal-credit-' . (int) $request['id'];
                   $modal_markup = self::render_modal_for_request($request, $modal_id, $tasa, $redirect_url);
                   if ($modal_markup) {
@@ -98,7 +101,9 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
                                 <span class="bankitos-credit-summary__help"><?php printf('%s %s', esc_html__('Desembolsado el', 'bankitos'), esc_html(date_i18n(get_option('date_format'), strtotime($request['disbursement_date'])))); ?></span>
                               <?php endif; ?>
                               <?php if (!empty($disbursement_receipt['url'])): ?>
-                                <button type="button" class="bankitos-link bankitos-link--button bankitos-receipt-link" data-receipt="<?php echo esc_url($disbursement_receipt['url']); ?>" data-is-image="<?php echo $disbursement_receipt['is_image'] ? '1' : '0'; ?>" data-title="<?php esc_attr_e('Comprobante de desembolso', 'bankitos'); ?>"><?php esc_html_e('Ver comprobante', 'bankitos'); ?></button>
+                                <div style="margin-top:0.5rem;">
+                                    <button type="button" class="bankitos-link bankitos-link--button bankitos-receipt-link" data-receipt="<?php echo esc_url($disbursement_receipt['url']); ?>" data-is-image="<?php echo $disbursement_receipt['is_image'] ? '1' : '0'; ?>" data-title="<?php esc_attr_e('Comprobante de desembolso', 'bankitos'); ?>"><?php esc_html_e('Ver comprobante', 'bankitos'); ?></button>
+                                </div>
                               <?php endif; ?>
                             <?php endif; ?>
                           </dd>
@@ -117,48 +122,44 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
             </div>
           <?php endif; ?>
         </div>
-        <?php if ($modals): ?>
-          <?php foreach ($modals as $modal_html) { echo $modal_html; } ?>
-          <?php endif; ?>
-        <?php if ($has_disbursement_receipts): ?>
-          <?php echo self::receipt_modal_markup(); ?>
-        <?php endif; ?>
-        <?php if ($modals || $has_disbursement_receipts): ?>
-          <?php echo self::inline_scripts(); ?>
-        <?php endif; ?>
+        
+        <?php 
+        // Imprimir modales de pago/rechazo
+        if ($modals): 
+            foreach ($modals as $modal_html) { echo $modal_html; } 
+        endif; 
+        
+        // Imprimir modal de comprobante si es necesario
+        if ($has_disbursement_receipts): 
+            echo self::receipt_modal_markup(); 
+        endif; 
+        
+        // Cargar scripts si hay modales o comprobantes
+        if ($modals || $has_disbursement_receipts): 
+            echo self::inline_scripts(); 
+        endif; 
+        ?>
+        
         <?php
         return ob_get_clean();
     }
 
-    /**
-     * Obtiene la URL de redirección para los formularios del resumen de créditos.
-     * Se intenta mantener al usuario en la misma página donde se muestra el shortcode
-     * (por ejemplo, https://bancola.tarcem.com/creditos/).
-     *
-     * @param array|string $atts
-     */
     private static function get_creditos_redirect_url($atts): string {
         $creditos_url = trailingslashit(site_url('/creditos/'));
-
-        // Permitir definir una URL explícita vía atributo del shortcode (ej: [bankitos_credit_summary redirect="/creditos/"]).
         $candidate = '';
         if (is_array($atts)) {
             $candidate = $atts['redirect'] ?? ($atts['redirect_to'] ?? '');
         }
-
         if ($candidate) {
             $validated = wp_validate_redirect(esc_url_raw($candidate), $creditos_url);
             if ($validated && strpos($validated, $creditos_url) === 0) {
                 return $validated;
             }
         }
-
-        // Si ya estamos en /creditos/, respetamos la URL actual con sus parámetros.
         $current = self::get_current_url();
         if ($current && strpos($current, $creditos_url) === 0) {
             return $current;
         }
-
         return $creditos_url;
     }
 
@@ -215,25 +216,19 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
 
     private static function render_payment_modal(array $request, string $modal_id, float $tasa, string $redirect_url): string {
         $base_date = self::get_schedule_base_date($request);
-        if (empty($base_date)) {
-            return '';
-        }
+        if (empty($base_date)) return '';
 
         $plan = self::build_payment_plan((float) $request['amount'], (int) $request['term_months'], $base_date, $tasa);
-        if (!$plan) {
-            return '';
-        }
+        if (!$plan) return '';
 
         $can_submit = current_user_can('submit_aportes');
-
-        // Recuperar los pagos ya registrados en BD
-        $payments           = Bankitos_Credit_Payments::get_request_payments((int) $request['id']);
+        $payments = Bankitos_Credit_Payments::get_request_payments((int) $request['id']);
         $payments_by_amount = self::index_payments_by_amount($payments);
         
-        $total_interest     = array_reduce($plan, static function ($carry, $row) {
+        $total_interest = array_reduce($plan, static function ($carry, $row) {
             return $carry + (float) $row['interest'];
         }, 0.0);
-        $interest_paid      = 0.0;
+        $interest_paid = 0.0;
         $unmatched_payments = 0;
 
         ob_start(); ?>
@@ -246,13 +241,7 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
                 <div>
                   <p class="bankitos-credit-summary__modal-tag"><?php esc_html_e('Plan de pagos', 'bankitos'); ?></p>
                   <h4 class="bankitos-credit-summary__modal-title"><?php echo esc_html($request['display_name'] ?? ''); ?></h4>
-                  <p class="bankitos-credit-summary__modal-subtitle">
-                    <?php printf(
-                        /* translators: %s: interest rate percentage */
-                        esc_html__('Tasa mensual del banco: %s%%', 'bankitos'),
-                        esc_html(number_format_i18n($tasa, 2))
-                    ); ?>
-                  </p>
+                  <p class="bankitos-credit-summary__modal-subtitle"><?php printf(esc_html__('Tasa mensual del banco: %s%%', 'bankitos'), esc_html(number_format_i18n($tasa, 2))); ?></p>
                 </div>
                 <div class="bankitos-credit-summary__modal-badges">
                   <span class="bankitos-pill bankitos-pill--accepted"><?php echo esc_html(self::format_currency((float) $request['amount'])); ?></span>
@@ -262,14 +251,11 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
               
               <div class="bankitos-credit-summary__payments-accordion bankitos-accordion" role="list">
                 <?php $opened_item = false; foreach ($plan as $index => $row):
-                    // Determinar el estado comparando el plan teórico con los pagos en BD
                     $installment = self::get_installment_state($row, $payments_by_amount);
                     $installment['can_upload'] = $installment['can_upload'] && $can_submit;
                     $upload_blocked = !$can_submit && ($installment['state'] === 'open' || $installment['state'] === 'rejected');
-                    
                     $state_label = $installment['state_label'] ?: esc_html__('Pendiente de pago', 'bankitos');
                     $state_class = 'bankitos-pill';
-                    
                     if ($installment['state'] === 'approved') {
                         $state_class .= ' bankitos-pill--accepted';
                         $interest_paid += (float) $row['interest'];
@@ -281,11 +267,8 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
                     } else {
                         $state_class .= ' bankitos-pill--pending';
                     }
-                    
-                    // Abrir la primera cuota pendiente o rechazada
                     $should_open = !$opened_item && ($installment['state'] !== 'approved' || $index === 0);
                     $opened_item = $opened_item || $should_open;
-                    
                     $unique_key = (int) $request['id'] . '-' . $index;
                     $input_id   = 'bk-file-' . $unique_key;
                     ?>
@@ -365,7 +348,6 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
                             <input type="hidden" name="amount" value="<?php echo esc_attr(number_format((float)$row['amount'], 2, '.', '')); ?>">
                             <input type="hidden" name="installment_date" value="<?php echo esc_attr($row['date']); ?>">
                             <input type="hidden" name="redirect_to" value="<?php echo esc_url($redirect_url); ?>">
-                            
                             <button type="submit" class="bankitos-btn bankitos-btn--primary" data-bankitos-submit disabled aria-disabled="true">
                                 <?php echo $installment['state'] === 'rejected' ? esc_html__('Reintentar pago', 'bankitos') : esc_html__('Registrar pago', 'bankitos'); ?>
                             </button>
@@ -402,7 +384,7 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
 
               <?php if ($unmatched_payments > 0): ?>
                 <div class="bankitos-credit-summary__alert">
-                  <p><?php printf(esc_html(_n('Tienes %s pago registrado adicional en revisión (monto no coincide exactamente con ninguna cuota).', 'Tienes %s pagos registrados adicionales en revisión.', $unmatched_payments, 'bankitos')), esc_html(number_format_i18n($unmatched_payments))); ?></p>
+                  <p><?php printf(esc_html(_n('Tienes %s pago registrado adicional en revisión.', 'Tienes %s pagos registrados adicionales en revisión.', $unmatched_payments, 'bankitos')), esc_html(number_format_i18n($unmatched_payments))); ?></p>
                 </div>
               <?php endif; ?>
             </div>
@@ -416,82 +398,61 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
         if (!empty($request['disbursement_date'])) {
             return (string) $request['disbursement_date'];
         }
-
         return (string) ($request['approval_date'] ?? '');
     }
 
     private static function build_payment_plan(float $amount, int $months, string $approval_date, float $tasa): array {
-        if ($amount <= 0 || $months <= 0) {
-            return [];
-        }
-
-        $rate         = $tasa > 0 ? $tasa / 100 : 0.0;
-        $base         = $months > 0 ? $amount / $months : 0.0;
-        $plan         = [];
-        $cursor       = $amount;
-
+        if ($amount <= 0 || $months <= 0) return [];
+        $rate = $tasa > 0 ? $tasa / 100 : 0.0;
+        $base = $months > 0 ? $amount / $months : 0.0;
+        $plan = [];
+        $cursor = $amount;
         for ($i = 1; $i <= $months; $i++) {
             $date = date('Y-m-d', strtotime("{$approval_date} +{$i} month"));
             $interest = $rate > 0 ? $cursor * $rate : 0.0;
             $installment = $base + $interest;
             $plan[] = [
-                'date'      => $date,
-                'amount'    => round($installment, 2),
-                'balance'   => round($cursor, 2),
-                'interest'  => round($interest, 2),
+                'date' => $date,
+                'amount' => round($installment, 2),
+                'balance' => round($cursor, 2),
+                'interest' => round($interest, 2),
                 'principal' => round($base, 2),
             ];
             $cursor = max(0, $cursor - $base);
         }
-
         return $plan;
     }
 
     private static function index_payments_by_amount(array $payments): array {
         $grouped = [];
         foreach ($payments as $payment) {
-            // Normalizamos la llave para agrupar pagos
             $key = self::normalize_amount((float) $payment['amount']);
-            if (!isset($grouped[$key])) {
-                $grouped[$key] = [];
-            }
+            if (!isset($grouped[$key])) $grouped[$key] = [];
             $grouped[$key][] = $payment;
         }
-
-        // Ordenar pagos del más antiguo al más reciente
         foreach ($grouped as $key => $list) {
             usort($list, static function ($a, $b) {
                 $priority_a = Bankitos_Credit_Payments::get_status_priority($a['status'] ?? '');
                 $priority_b = Bankitos_Credit_Payments::get_status_priority($b['status'] ?? '');
-
                 if ($priority_a !== $priority_b) {
-                    // Mayor prioridad primero (aprobado > pendiente > rechazado)
                     return $priority_b <=> $priority_a;
                 }
-
-                // En igualdad de prioridad, priorizar el pago más reciente
                 return strcmp($b['created_at'] ?? '', $a['created_at'] ?? '');
             });
             $grouped[$key] = $list;
         }
-
         return $grouped;
     }
 
     private static function get_installment_state(array $row, array &$payments_by_amount): array {
-        // Buscar si existe un pago en DB que coincida con el monto de esta cuota
         $payment = self::shift_payment_for_amount((float) $row['amount'], $payments_by_amount);
         $status_labels = Bankitos_Credit_Payments::get_status_labels();
         $state = $payment ? self::normalize_state((string) ($payment['status'] ?? '')) : 'open';
-        
         $receipt = '';
         if ($payment && !empty($payment['attachment_id']) && class_exists('BK_Credit_Payments_Handler')) {
             $receipt = BK_Credit_Payments_Handler::get_receipt_download_url((int) $payment['id']);
         }
-
-        // Si el estado es pending o approved, NO se debe poder subir otro archivo
         $can_upload = ($state === 'open' || $state === 'rejected');
-
         return [
             'state'       => $state,
             'state_label' => $status_labels[$state] ?? '',
@@ -501,35 +462,21 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
     }
 
     private static function shift_payment_for_amount(float $target_amount, array &$payments_by_amount): ?array {
-        // 1. Intento exacto
         $key = self::normalize_amount($target_amount);
         if (!empty($payments_by_amount[$key])) {
             $payment = array_shift($payments_by_amount[$key]);
-            if (empty($payments_by_amount[$key])) {
-                unset($payments_by_amount[$key]);
-            }
+            if (empty($payments_by_amount[$key])) unset($payments_by_amount[$key]);
             return $payment;
         }
-
-        // 2. Intento con tolerancia (crucial para solucionar errores de redondeo)
-        // Buscamos cualquier pago que esté dentro de un rango de +/- 1.0 unidad
         $tolerance = 1.0; 
-        
         foreach ($payments_by_amount as $stored_key => $list) {
-            if (empty($list)) {
-                continue;
-            }
-            // Comparamos floats
+            if (empty($list)) continue;
             if (abs((float) $stored_key - $target_amount) <= $tolerance) {
-                // Encontramos un pago cercano, lo tomamos y lo removemos del array
                 $payment = array_shift($payments_by_amount[$stored_key]);
-                if (empty($payments_by_amount[$stored_key])) {
-                    unset($payments_by_amount[$stored_key]);
-                }
+                if (empty($payments_by_amount[$stored_key])) unset($payments_by_amount[$stored_key]);
                 return $payment;
             }
         }
-
         return null;
     }
 
@@ -599,7 +546,6 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
           function toggleSubmitState(input){
             var form = input.closest('form'); 
             if (!form) return;
-            
             var submit = form.querySelector('[data-bankitos-submit]');
             var errorMsg = form.querySelector('[data-upload-error]');
             var sizeMsg = form.querySelector('[data-upload-size-error]');
@@ -607,33 +553,22 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
             var hasFile = !!file;
             var isValid = false;
             var isSizeValid = true;
-
             if(hasFile){
-              if(file.type && allowedTypes.indexOf(file.type) !== -1){
-                isValid = true;
-              } else if(file.name && allowedExt.test(file.name)){
-                isValid = true;
-              }
-              if(file.size && file.size > maxSize){
-                isSizeValid = false;
-              }
+              if(file.type && allowedTypes.indexOf(file.type) !== -1){ isValid = true; }
+              else if(file.name && allowedExt.test(file.name)){ isValid = true; }
+              if(file.size && file.size > maxSize){ isSizeValid = false; }
             }
             if(submit){
               submit.disabled = !isValid || !isSizeValid;
               submit.setAttribute('aria-disabled', submit.disabled ? 'true' : 'false');
             }
-            if(errorMsg){
-              errorMsg.hidden = !hasFile || isValid;
-            }
-            if(sizeMsg){
-              sizeMsg.hidden = !hasFile || isSizeValid;
-            }
+            if(errorMsg){ errorMsg.hidden = !hasFile || isValid; }
+            if(sizeMsg){ sizeMsg.hidden = !hasFile || isSizeValid; }
           }
 
-          document.querySelectorAll('.bankitos-credit-summary__upload input[type=\"file\"]').forEach(function(input){
+          document.querySelectorAll('.bankitos-credit-summary__upload input[type="file"]').forEach(function(input){
             var label = input.parentElement ? input.parentElement.querySelector('.bankitos-file__label') : null;
             var defaultText = label && (label.dataset.defaultLabel || label.textContent);
-            
             function updateLabel(){
               var file = input.files && input.files.length ? input.files[0] : null;
               var fileName = file ? file.name : '';
@@ -654,9 +589,8 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
 
           document.querySelectorAll('.bankitos-credit-summary__form').forEach(function(form){
             var submit = form.querySelector('[data-bankitos-submit]');
-            var fileInput = form.querySelector('input[type=\"file\"][name=\"receipt\"]');
+            var fileInput = form.querySelector('input[type="file"][name="receipt"]');
             if(!submit || !fileInput){ return; }
-
             form.addEventListener('submit', function(ev){
               if(submit.disabled || !fileInput.files || !fileInput.files.length){
                 ev.preventDefault();
@@ -675,21 +609,10 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
 
             function closeReceiptModal(){
               receiptModal.setAttribute('hidden','hidden');
-              if(frame){
-                frame.removeAttribute('src');
-                frame.setAttribute('hidden','');
-                frame.setAttribute('aria-hidden','true');
-              }
-              if(img){
-                img.removeAttribute('src');
-                img.setAttribute('hidden','');
-              }
-              if(errorBox){
-                errorBox.textContent = '';
-                errorBox.setAttribute('hidden','');
-              }
+              if(frame){ frame.removeAttribute('src'); frame.setAttribute('hidden',''); frame.setAttribute('aria-hidden','true'); }
+              if(img){ img.removeAttribute('src'); img.setAttribute('hidden',''); }
+              if(errorBox){ errorBox.textContent = ''; errorBox.setAttribute('hidden',''); }
             }
-
             [backdrop, closeBtn].forEach(function(el){ if(el){ el.addEventListener('click', closeReceiptModal); }});
 
             function showReceiptError(message){
@@ -700,15 +623,8 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
 
             function openReceipt(url, isImage, title){
               if(!url){ return; }
-              if(img){
-                img.removeAttribute('src');
-                img.setAttribute('hidden','');
-              }
-              if(frame){
-                frame.removeAttribute('src');
-                frame.setAttribute('hidden','');
-                frame.setAttribute('aria-hidden','true');
-              }
+              if(img){ img.removeAttribute('src'); img.setAttribute('hidden',''); }
+              if(frame){ frame.removeAttribute('src'); frame.setAttribute('hidden',''); frame.setAttribute('aria-hidden','true'); }
 
               if(isImage && img){
                 img.onload = function(){ img.removeAttribute('hidden'); receiptModal.removeAttribute('hidden'); };
@@ -718,7 +634,6 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
                 receiptModal.removeAttribute('hidden');
                 return;
               }
-
               if(frame){
                 frame.onload = function(){};
                 frame.onerror = function(){ frame.setAttribute('hidden',''); showReceiptError('No se pudo cargar el comprobante.'); };
