@@ -53,6 +53,8 @@ class Bankitos_Access {
                     'bankitos_credit_payment_approve',
                     'bankitos_credit_payment_reject',
                     'bankitos_credit_payment_download',
+                    'bankitos_credit_disburse', // <--- Agregado
+                    'bankitos_credit_disbursement_download', // <--- Agregado
                     Bankitos_Admin_Reports::EXPORT_ACTION,
                     Bankitos_Admin_Reports::TOGGLE_ACTION,
                     Bankitos_Admin_Reports::DELETE_ACTION,
