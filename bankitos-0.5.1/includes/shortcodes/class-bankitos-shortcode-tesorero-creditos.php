@@ -13,14 +13,14 @@ class Bankitos_Shortcode_Tesorero_Creditos extends Bankitos_Shortcode_Panel_Base
 
     protected static function render_list(bool $can_moderate): string {
         if (!is_user_logged_in()) {
-            return '<div class="bankitos-form"><p>' . esc_html__('Inicia sesión para continuar.', 'bankitos') . '</p></div>';
+            return '<div class="bankitos-form bankitos-panel"><p>' . esc_html__('Inicia sesión para continuar.', 'bankitos') . '</p></div>';
         }
         if ($can_moderate && !current_user_can('approve_aportes')) {
-            return '<div class="bankitos-form"><p>' . esc_html__('No tienes permisos para aprobar pagos.', 'bankitos') . '</p></div>';
+            return '<div class="bankitos-form bankitos-panel"><p>' . esc_html__('No tienes permisos para aprobar pagos.', 'bankitos') . '</p></div>';
         }
         $context = self::get_panel_context();
         if ($context['banco_id'] <= 0) {
-            return '<div class="bankitos-form"><p>' . esc_html__('Debes pertenecer a un B@nko.', 'bankitos') . '</p></div>';
+            return '<div class="bankitos-form bankitos-panel"><p>' . esc_html__('Debes pertenecer a un B@nko.', 'bankitos') . '</p></div>';
         }
         
         $tasa = isset($context['meta']['tasa']) ? (float) $context['meta']['tasa'] : 0.0;
@@ -35,7 +35,7 @@ class Bankitos_Shortcode_Tesorero_Creditos extends Bankitos_Shortcode_Panel_Base
         $payments      = self::collect_grouped_payments($credits, $status_labels, $tasa);
 
         ob_start(); ?>
-        <section class="bankitos-credit-review">
+        <section class="bankitos-credit-review bankitos-panel">
           <div class="bankitos-credit-review__header">
             <h3><?php esc_html_e('Pagos de créditos', 'bankitos'); ?></h3>
             <p><?php echo $can_moderate ? esc_html__('Aprueba o rechaza los pagos enviados por los socios.', 'bankitos') : esc_html__('Consulta los pagos registrados en el banco.', 'bankitos'); ?></p>

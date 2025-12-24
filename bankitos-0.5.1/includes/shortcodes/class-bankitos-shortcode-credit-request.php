@@ -9,7 +9,7 @@ class Bankitos_Shortcode_Credit_Request extends Bankitos_Shortcode_Panel_Base {
 
     public static function render($atts = [], $content = null): string {
         if (!is_user_logged_in()) {
-            return '<div class="bankitos-form"><p>' . esc_html__('Inicia sesión para solicitar un crédito.', 'bankitos') . '</p></div>';
+            return '<div class="bankitos-form bankitos-panel"><p>' . esc_html__('Inicia sesión para solicitar un crédito.', 'bankitos') . '</p></div>';
         }
 
         $context = self::get_panel_context();

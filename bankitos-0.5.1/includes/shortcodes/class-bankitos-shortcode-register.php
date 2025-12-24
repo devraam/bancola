@@ -20,7 +20,7 @@ class Bankitos_Shortcode_Register extends Bankitos_Shortcode_Base {
         }
 
         if (class_exists('Bankitos_Recaptcha') && !Bankitos_Recaptcha::is_enabled()) {
-            return '<div class="bankitos-form"><p>' . esc_html__('El registro está temporalmente deshabilitado hasta que el administrador configure reCAPTCHA.', 'bankitos') . '</p></div>';
+            return '<div class="bankitos-form bankitos-panel"><p>' . esc_html__('El registro está temporalmente deshabilitado hasta que el administrador configure reCAPTCHA.', 'bankitos') . '</p></div>';
         }
         
         ob_start(); ?>
