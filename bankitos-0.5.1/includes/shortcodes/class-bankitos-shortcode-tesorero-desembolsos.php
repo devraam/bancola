@@ -9,15 +9,15 @@ class Bankitos_Shortcode_Tesorero_Desembolsos extends Bankitos_Shortcode_Panel_B
 
     public static function render($atts = [], $content = null): string {
         if (!is_user_logged_in()) {
-            return '<div class="bankitos-form bankitos-panel"><p>' . esc_html__('Inicia sesión para continuar.', 'bankitos') . '</p></div>';
+            return '<div class="bankitos-form"><p>' . esc_html__('Inicia sesión para continuar.', 'bankitos') . '</p></div>';
         }
         if (!current_user_can('approve_aportes')) {
-            return '<div class="bankitos-form bankitos-panel"><p>' . esc_html__('No tienes permisos para aprobar desembolsos.', 'bankitos') . '</p></div>';
+            return '<div class="bankitos-form"><p>' . esc_html__('No tienes permisos para aprobar desembolsos.', 'bankitos') . '</p></div>';
         }
 
         $context = self::get_panel_context();
         if ($context['banco_id'] <= 0) {
-            return '<div class="bankitos-form bankitos-panel"><p>' . esc_html__('Debes pertenecer a un B@nko.', 'bankitos') . '</p></div>';
+            return '<div class="bankitos-form"><p>' . esc_html__('Debes pertenecer a un B@nko.', 'bankitos') . '</p></div>';
         }
 
         $credits = array_filter(
@@ -28,10 +28,11 @@ class Bankitos_Shortcode_Tesorero_Desembolsos extends Bankitos_Shortcode_Panel_B
         );
 
         $types       = Bankitos_Credit_Requests::get_credit_types();
+        // IMPORTANTE: Capturamos la URL actual para que el handler sepa a dónde volver
         $current_url = self::get_current_url();
 
         ob_start(); ?>
-        <section class="bankitos-credit-review bankitos-panel">
+        <section class="bankitos-credit-review">
           <div class="bankitos-credit-review__header">
             <h3><?php esc_html_e('Desembolsos de créditos', 'bankitos'); ?></h3>
             <p><?php esc_html_e('Gestiona los desembolsos de créditos aprobados y registra sus comprobantes.', 'bankitos'); ?></p>

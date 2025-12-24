@@ -11,6 +11,7 @@ class BK_Credit_Disbursements_Handler {
     private static function get_redirect_target(string $fallback): string {
         $redirect = isset($_REQUEST['redirect_to']) ? wp_unslash($_REQUEST['redirect_to']) : '';
         if ($redirect) {
+            // Validamos contra la URL del sitio para seguridad, pero permitimos params
             $validated = wp_validate_redirect(esc_url_raw($redirect), $fallback);
             if ($validated) {
                 return $validated;
@@ -46,13 +47,15 @@ class BK_Credit_Disbursements_Handler {
         $request_id = isset($_POST['request_id']) ? absint($_POST['request_id']) : 0;
         check_admin_referer('bankitos_credit_disburse_' . $request_id);
 
+        // Definimos el fallback predeterminado por si falla el redirect_to
+        $redirect = site_url('/desembolsos');
+
         if (!current_user_can('approve_aportes')) {
-            self::redirect_with('err', 'desembolso_permiso', site_url('/desembolsos'));
+            self::redirect_with('err', 'desembolso_permiso', $redirect);
         }
 
         $disbursement_date = isset($_POST['disbursement_date']) ? sanitize_text_field(wp_unslash($_POST['disbursement_date'])) : '';
         $file              = $_FILES['disbursement_receipt'] ?? null;
-        $redirect          = site_url('/desembolsos');
 
         if ($request_id <= 0 || !$disbursement_date) {
             self::redirect_with('err', 'desembolso_invalido', $redirect);
@@ -69,6 +72,7 @@ class BK_Credit_Disbursements_Handler {
             self::redirect_with('err', 'desembolso_permiso', $redirect);
         }
 
+        // Permitimos también 'approved' para retrocompatibilidad
         if (!in_array($request['status'], ['disbursement_pending', 'approved'], true)) {
             self::redirect_with('err', 'desembolso_estado', $redirect);
         }
