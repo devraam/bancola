@@ -317,11 +317,11 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
 
                               <?php if ($installment['can_upload']): ?>
                                 <label class="bankitos-file">
-                                  <input type="file" id="<?php echo esc_attr($input_id); ?>" name="receipt" accept=".jpg,.jpeg,.png,.pdf,image/*" capture="environment" required>
+                                  <input type="file" id="<?php echo esc_attr($input_id); ?>" name="receipt" accept=".jpg,.jpeg,.png,.pdf,image/*" required>
                                   <span class="bankitos-file__label" data-default-label><?php esc_html_e('Elegir archivo', 'bankitos'); ?></span>
                                 </label>
                                 <span class="bankitos-credit-summary__help bankitos-credit-summary__help--error" data-upload-error hidden><?php esc_html_e('Sube un archivo válido (JPG/PNG o PDF).', 'bankitos'); ?></span>
-                                <span class="bankitos-credit-summary__help bankitos-credit-summary__help--error" data-upload-size-error hidden><?php esc_html_e('El archivo no debe superar 1MB.', 'bankitos'); ?></span>
+                                <span class="bankitos-credit-summary__help bankitos-credit-summary__help--error" data-upload-size-error hidden><?php esc_html_e('El archivo no debe superar 10MB.', 'bankitos'); ?></span>
                               <?php elseif ($installment['state'] === 'pending'): ?>
                                 <span class="bankitos-credit-summary__help"><?php esc_html_e('Archivo enviado. Esperando revisión.', 'bankitos'); ?></span>
                                 <?php elseif ($upload_blocked): ?>
@@ -541,7 +541,8 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
           
           var allowedTypes = ['image/jpeg','image/png','application/pdf'];
           var allowedExt = /(\.jpe?g|\.png|\.pdf)$/i;
-          var maxSize = 1024 * 1024; // 1MB
+          // MODIFICADO: Aumento del límite de 1MB a 10MB para soportar fotos de cámara móvil
+          var maxSize = 10 * 1024 * 1024; // 10MB
 
           function toggleSubmitState(input){
             var form = input.closest('form'); 

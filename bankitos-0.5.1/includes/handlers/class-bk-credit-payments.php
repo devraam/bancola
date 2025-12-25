@@ -99,7 +99,8 @@ class BK_Credit_Payments_Handler {
             self::redirect_with('err', 'pago_archivo_subida', $redirect);
         }
         
-        $max_size = (int) apply_filters('bankitos_credit_payment_max_filesize', 1 * MB_IN_BYTES);
+        // MODIFICADO: Aumento del límite a 10MB
+        $max_size = (int) apply_filters('bankitos_credit_payment_max_filesize', 10 * MB_IN_BYTES);
         if ($max_size > 0 && !empty($file['size']) && (int) $file['size'] > $max_size) {
             self::redirect_with('err', 'pago_archivo_tamano', $redirect);
         }

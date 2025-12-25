@@ -91,7 +91,8 @@ class BK_Credit_Disbursements_Handler {
             self::redirect_with('err', 'desembolso_archivo', $redirect);
         }
 
-        $max_size = (int) apply_filters('bankitos_credit_disbursement_max_filesize', 1 * MB_IN_BYTES);
+        // MODIFICADO: Aumento del límite a 10MB
+        $max_size = (int) apply_filters('bankitos_credit_disbursement_max_filesize', 10 * MB_IN_BYTES);
         if ($max_size > 0 && !empty($file['size']) && (int) $file['size'] > $max_size) {
             self::redirect_with('err', 'desembolso_archivo_tamano', $redirect);
         }
