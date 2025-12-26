@@ -108,13 +108,13 @@ class Bankitos_Shortcode_Tesorero_Desembolsos extends Bankitos_Shortcode_Panel_B
                           </div>
 
                           <div class="bankitos-field bankitos-credit-summary__upload">
-                            <label for="bk_disbursement_file_<?php echo esc_attr($credit['id']); ?>"><?php esc_html_e('Comprobante (imagen o PDF, máximo 1MB)', 'bankitos'); ?></label>
+                            <label for="bk_disbursement_file_<?php echo esc_attr($credit['id']); ?>"><?php esc_html_e('Comprobante (imagen o PDF, máximo 10MB)', 'bankitos'); ?></label>
                             <label class="bankitos-file">
-                              <input id="bk_disbursement_file_<?php echo esc_attr($credit['id']); ?>" type="file" name="disbursement_receipt" accept=".jpg,.jpeg,.png,.pdf,image/*" capture="environment" required>
+                              <input id="bk_disbursement_file_<?php echo esc_attr($credit['id']); ?>" type="file" name="disbursement_receipt" accept=".jpg,.jpeg,.png,.pdf,image/*" required>
                               <span class="bankitos-file__label" data-default-label><?php esc_html_e('Elegir archivo', 'bankitos'); ?></span>
                             </label>
                             <span class="bankitos-credit-summary__help bankitos-credit-summary__help--error" data-upload-error hidden><?php esc_html_e('Sube un archivo válido (JPG/PNG o PDF).', 'bankitos'); ?></span>
-                            <span class="bankitos-credit-summary__help bankitos-credit-summary__help--error" data-upload-size-error hidden><?php esc_html_e('El archivo no debe superar 1MB.', 'bankitos'); ?></span>
+                            <span class="bankitos-credit-summary__help bankitos-credit-summary__help--error" data-upload-size-error hidden><?php esc_html_e('El archivo no debe superar 10MB.', 'bankitos'); ?></span>
                             <span class="bankitos-credit-summary__help bankitos-credit-summary__help--error" data-upload-load-error hidden><?php esc_html_e('No se pudo cargar la imagen. Intenta con otro archivo.', 'bankitos'); ?></span>
                           </div>
 
@@ -194,7 +194,8 @@ class Bankitos_Shortcode_Tesorero_Desembolsos extends Bankitos_Shortcode_Panel_B
           var modal = document.getElementById('bankitos-modal');
           var allowedTypes = ['image/jpeg','image/png','application/pdf'];
           var allowedExt = /(\.jpe?g|\.png|\.pdf)$/i;
-          var maxSize = 1024 * 1024; // 1MB
+          // MODIFICADO: Aumento del límite de 1MB a 10MB
+          var maxSize = 10 * 1024 * 1024; // 10MB
           var loadTokens = new WeakMap();
 
           function closeModal(){
