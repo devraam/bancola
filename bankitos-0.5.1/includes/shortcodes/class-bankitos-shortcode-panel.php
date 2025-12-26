@@ -21,9 +21,9 @@ class Bankitos_Shortcode_Panel extends Bankitos_Shortcode_Panel_Base {
         $can_create_bank = $context['banco_id'] <= 0 && !empty($context['is_general_member']);
 
         ob_start(); ?>
-        <div class="bankitos-panel">
+        <div class="bankitos-panel bienvenida">
           <?php echo self::top_notice_from_query(); ?>
-          <h2><?php echo sprintf(esc_html__('Bienvenido, %s', 'bankitos'), esc_html($name)); ?></h2>
+          <h2><?php echo sprintf(esc_html__('Hol@ %s', 'bankitos'), esc_html($name)); ?></h2>
           <p class="bankitos-panel__message"><?php echo $welcome_message; ?></p>
           <?php if ($can_create_bank): ?>
             <div class="bankitos-panel__cta">

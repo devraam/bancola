@@ -36,6 +36,8 @@ p {padding-bottom: 0;}
   box-sizing: border-box;
 }
 
+.bankitos-panel.bienvenida {background: #e8ff90;}
+
 .bankitos-panel,
 .bankitos-login-wrap,
 .bankitos-register-wrap {
