@@ -4,7 +4,12 @@ if (!defined('ABSPATH')) exit;
 class Bankitos_Settings {
 
     const OPTION_KEY = 'bankitos_options';
-    const PAGE_SLUG  = 'bankitos-settings';
+    const MENU_SLUG  = 'bankitos-config';
+    const PAGE_SLUG_RECAPTCHA   = 'bankitos-config';
+    const PAGE_SLUG_MAILJET     = 'bankitos-config-mailjet';
+    const PAGE_SLUG_INVITATION  = 'bankitos-config-invitacion';
+    const PAGE_SLUG_MOBILE_MENU = 'bankitos-config-menu-movil';
+    const PAGE_SLUG_SHORTCODES  = 'bankitos-config-shortcodes';
 
     public static function init() : void {
         add_action('admin_menu',        [__CLASS__, 'add_menu']);
@@ -22,7 +27,55 @@ class Bankitos_Settings {
     }
 
     public static function add_menu() : void {
-        add_options_page('Bankitos','Bankitos','manage_options',self::PAGE_SLUG,[__CLASS__,'render_page']);
+         add_menu_page(
+            'B@nkos Config',
+            'B@nkos Config',
+            'manage_options',
+            self::MENU_SLUG,
+            [__CLASS__, 'render_recaptcha_page'],
+            'dashicons-admin-generic',
+            58
+        );
+        add_submenu_page(
+            self::MENU_SLUG,
+            __('Configuración reCAPTCHA', 'bankitos'),
+            __('reCAPTCHA', 'bankitos'),
+            'manage_options',
+            self::PAGE_SLUG_RECAPTCHA,
+            [__CLASS__, 'render_recaptcha_page']
+        );
+        add_submenu_page(
+            self::MENU_SLUG,
+            __('Configuración Mailjet', 'bankitos'),
+            __('Mailjet', 'bankitos'),
+            'manage_options',
+            self::PAGE_SLUG_MAILJET,
+            [__CLASS__, 'render_mailjet_page']
+        );
+        add_submenu_page(
+            self::MENU_SLUG,
+            __('Plantilla de invitación', 'bankitos'),
+            __('Correo de invitación', 'bankitos'),
+            'manage_options',
+            self::PAGE_SLUG_INVITATION,
+            [__CLASS__, 'render_invitation_page']
+        );
+        add_submenu_page(
+            self::MENU_SLUG,
+            __('Menú móvil por roles', 'bankitos'),
+            __('Menú móvil', 'bankitos'),
+            'manage_options',
+            self::PAGE_SLUG_MOBILE_MENU,
+            [__CLASS__, 'render_mobile_menu_page']
+        );
+        add_submenu_page(
+            self::MENU_SLUG,
+            __('Documentación de shortcodes', 'bankitos'),
+            __('Shortcodes', 'bankitos'),
+            'manage_options',
+            self::PAGE_SLUG_SHORTCODES,
+            [__CLASS__, 'render_shortcodes_page']
+        );
     }
 
     public static function register_settings() : void {
@@ -32,29 +85,39 @@ class Bankitos_Settings {
             'default'           => [],
         ]);
 
-        add_settings_section('bankitos_section_main','Ajustes generales de Bankitos',function(){
-            echo '<p>Configura reCAPTCHA, caducidad de invitaciones y remitente.</p>';
-        }, self::PAGE_SLUG);
+        add_settings_section('bankitos_section_recaptcha', __('Configuración reCAPTCHA', 'bankitos'), function () {
+            echo '<p>' . esc_html__('Configura las llaves de reCAPTCHA v3 para proteger el acceso y registro.', 'bankitos') . '</p>';
+        }, self::PAGE_SLUG_RECAPTCHA);
 
-        add_settings_field('recaptcha_site','reCAPTCHA v3 - Site key',[__CLASS__,'field_text'], self::PAGE_SLUG,'bankitos_section_main',['key'=>'recaptcha_site']);
-        add_settings_field('recaptcha_secret','reCAPTCHA v3 - Secret key',[__CLASS__,'field_text'], self::PAGE_SLUG,'bankitos_section_main',['key'=>'recaptcha_secret']);
-        add_settings_field('invite_expiry_days','Caducidad de invitaciones (días)',[__CLASS__,'field_number'], self::PAGE_SLUG,'bankitos_section_main',['key'=>'invite_expiry_days','min'=>1,'step'=>1,'placeholder'=>7]);
-        add_settings_field('from_name','Nombre remitente',[__CLASS__,'field_text'], self::PAGE_SLUG,'bankitos_section_main',['key'=>'from_name','placeholder'=>get_bloginfo('name')]);
-        add_settings_field('from_email','Correo remitente',[__CLASS__,'field_text'], self::PAGE_SLUG,'bankitos_section_main',['key'=>'from_email','placeholder'=>get_bloginfo('admin_email')]);
-        add_settings_field('mailjet_api_key','Mailjet API Key',[__CLASS__,'field_text'], self::PAGE_SLUG,'bankitos_section_main',['key'=>'mailjet_api_key','placeholder'=>'public key']);
-        add_settings_field('mailjet_secret_key','Mailjet Secret Key',[__CLASS__,'field_text'], self::PAGE_SLUG,'bankitos_section_main',['key'=>'mailjet_secret_key','placeholder'=>'private key','type'=>'password']);
-        add_settings_field('email_template_invite','Plantilla de correo (Invitación)',[__CLASS__,'field_textarea'], self::PAGE_SLUG,'bankitos_section_main',['key'=>'email_template_invite']);
+        add_settings_field('recaptcha_site','reCAPTCHA v3 - Site key',[__CLASS__,'field_text'], self::PAGE_SLUG_RECAPTCHA,'bankitos_section_recaptcha',['key'=>'recaptcha_site']);
+        add_settings_field('recaptcha_secret','reCAPTCHA v3 - Secret key',[__CLASS__,'field_text'], self::PAGE_SLUG_RECAPTCHA,'bankitos_section_recaptcha',['key'=>'recaptcha_secret']);
+
+        add_settings_section('bankitos_section_mailjet', __('Configuración Mailjet', 'bankitos'), function () {
+            echo '<p>' . esc_html__('Define las credenciales para el envío de correos con Mailjet.', 'bankitos') . '</p>';
+        }, self::PAGE_SLUG_MAILJET);
+
+        add_settings_field('mailjet_api_key','Mailjet API Key',[__CLASS__,'field_text'], self::PAGE_SLUG_MAILJET,'bankitos_section_mailjet',['key'=>'mailjet_api_key','placeholder'=>'public key']);
+        add_settings_field('mailjet_secret_key','Mailjet Secret Key',[__CLASS__,'field_text'], self::PAGE_SLUG_MAILJET,'bankitos_section_mailjet',['key'=>'mailjet_secret_key','placeholder'=>'private key','type'=>'password']);
+
+        add_settings_section('bankitos_section_invitation', __('Correo de invitación', 'bankitos'), function () {
+            echo '<p>' . esc_html__('Configura el remitente, la vigencia y la plantilla del correo de invitación.', 'bankitos') . '</p>';
+        }, self::PAGE_SLUG_INVITATION);
+
+        add_settings_field('invite_expiry_days','Caducidad de invitaciones (días)',[__CLASS__,'field_number'], self::PAGE_SLUG_INVITATION,'bankitos_section_invitation',['key'=>'invite_expiry_days','min'=>1,'step'=>1,'placeholder'=>7]);
+        add_settings_field('from_name','Nombre remitente',[__CLASS__,'field_text'], self::PAGE_SLUG_INVITATION,'bankitos_section_invitation',['key'=>'from_name','placeholder'=>get_bloginfo('name')]);
+        add_settings_field('from_email','Correo remitente',[__CLASS__,'field_text'], self::PAGE_SLUG_INVITATION,'bankitos_section_invitation',['key'=>'from_email','placeholder'=>get_bloginfo('admin_email')]);
+        add_settings_field('email_template_invite','Plantilla de correo (Invitación)',[__CLASS__,'field_textarea'], self::PAGE_SLUG_INVITATION,'bankitos_section_invitation',['key'=>'email_template_invite']);
 
         add_settings_section('bankitos_section_mobile_menu', __('Menú móvil por roles', 'bankitos'), function () {
             echo '<p>' . esc_html__('Configura los botones del menú móvil (solo visible en celulares y para usuarios autenticados).', 'bankitos') . '</p>';
-        }, self::PAGE_SLUG);
+        }, self::PAGE_SLUG_MOBILE_MENU);
 
         foreach (self::get_mobile_menu_roles() as $role_key => $role_label) {
             add_settings_field(
                 'mobile_menu_' . $role_key,
                 sprintf(__('Menú para %s', 'bankitos'), $role_label),
                 [__CLASS__, 'field_mobile_menu'],
-                self::PAGE_SLUG,
+                self::PAGE_SLUG_MOBILE_MENU,
                 'bankitos_section_mobile_menu',
                 ['role' => $role_key]
             );
@@ -94,14 +157,41 @@ class Bankitos_Settings {
         return $out;
     }
 
-    public static function render_page() : void {
-        if (!current_user_can('manage_options')) return; ?>
+    public static function render_recaptcha_page() : void {
+        self::render_settings_page(__('B@nkos Config - reCAPTCHA', 'bankitos'), self::PAGE_SLUG_RECAPTCHA);
+    }
+
+    public static function render_mailjet_page() : void {
+        self::render_settings_page(__('B@nkos Config - Mailjet', 'bankitos'), self::PAGE_SLUG_MAILJET);
+    }
+
+    public static function render_invitation_page() : void {
+        self::render_settings_page(__('B@nkos Config - Correo de invitación', 'bankitos'), self::PAGE_SLUG_INVITATION);
+    }
+
+    public static function render_mobile_menu_page() : void {
+        self::render_settings_page(__('B@nkos Config - Menú móvil por roles', 'bankitos'), self::PAGE_SLUG_MOBILE_MENU);
+    }
+
+    public static function render_shortcodes_page() : void {
+        if (!current_user_can('manage_options')) {
+            return;
+        } ?>
         <div class="wrap bankitos-wrap">
-            <h1>Bankitos – Ajustes</h1>
-            <form method="post" action="options.php">
-                <?php settings_fields('bankitos'); do_settings_sections(self::PAGE_SLUG); submit_button('Guardar cambios'); ?>
-            </form>
+            <h1><?php echo esc_html__('B@nkos Config - Documentación de shortcodes', 'bankitos'); ?></h1>
             <?php self::render_shortcodes_help(); ?>
+        </div>
+    <?php }
+
+    protected static function render_settings_page(string $title, string $page_slug): void {
+        if (!current_user_can('manage_options')) {
+            return;
+        } ?>
+        <div class="wrap bankitos-wrap">
+            <h1><?php echo esc_html($title); ?></h1>
+            <form method="post" action="options.php">
+                <?php settings_fields('bankitos'); do_settings_sections($page_slug); submit_button('Guardar cambios'); ?>
+            </form>
         </div>
     <?php }
 
@@ -137,7 +227,14 @@ class Bankitos_Settings {
              sprintf(esc_html__('Busca iconos aquí: %s (copia el nombre de la clase, ej: dashicons-chart-pie)', 'bankitos'), '<a href="https://developer.wordpress.org/resource/dashicons/" target="_blank">Dashicons</a>') . '</p>';
     }
     public static function enqueue_admin_assets($hook) : void {
-        if ($hook === 'settings_page_' . self::PAGE_SLUG) {
+        $allowed_hooks = [
+            'toplevel_page_' . self::MENU_SLUG,
+            self::MENU_SLUG . '_page_' . self::PAGE_SLUG_MAILJET,
+            self::MENU_SLUG . '_page_' . self::PAGE_SLUG_INVITATION,
+            self::MENU_SLUG . '_page_' . self::PAGE_SLUG_MOBILE_MENU,
+            self::MENU_SLUG . '_page_' . self::PAGE_SLUG_SHORTCODES,
+        ];
+        if (in_array($hook, $allowed_hooks, true)) {
             wp_enqueue_style('bankitos-admin', plugins_url('assets/css/bankitos.css', dirname(__FILE__)), [], '1.0');
         }
     }
@@ -406,6 +503,17 @@ class Bankitos_Settings {
                             __('Permite aprobar o rechazar según corresponda.', 'bankitos'),
                         ],
                         'usage'   => __('Inclúyelo en la página de tesorería de créditos.', 'bankitos'),
+                    ],
+                    [
+                        'tag'     => 'bankitos_tesorero_desembolsos',
+                        'name'    => __('Desembolsos de créditos', 'bankitos'),
+                        'role'    => __('Tesorero', 'bankitos'),
+                        'summary' => __('Gestiona desembolsos de créditos aprobados y sube los comprobantes.', 'bankitos'),
+                        'actions' => [
+                            __('Muestra créditos aprobados pendientes de desembolso.', 'bankitos'),
+                            __('Permite registrar fecha y comprobante del desembolso.', 'bankitos'),
+                        ],
+                        'usage'   => __('Ubícalo en la página de desembolsos del tesorero.', 'bankitos'),
                     ],
                     [
                         'tag'     => 'bankitos_veedor_creditos',
