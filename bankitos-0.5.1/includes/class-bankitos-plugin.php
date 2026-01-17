@@ -10,6 +10,9 @@ class Bankitos_Plugin {
             flush_rewrite_rules();
         });
         add_action('wp_enqueue_scripts', [$this, 'register_public_assets'], 50);
+        
+        // CORRECCIÓN: Inyectar menú móvil automáticamente en el footer
+        add_action('wp_footer', ['Bankitos_Shortcode_Mobile_Menu', 'output_global'], 100);
     }   
 
     public function activate(): void {
@@ -35,14 +38,17 @@ class Bankitos_Plugin {
         // 1. Registramos el script del panel
         wp_register_script('bankitos-panel', BANKITOS_URL . 'assets/js/panel.js', [], BANKITOS_VERSION, true);
 
-        // 2. Verificamos si estamos en una página que contiene el shortcode
+        // 2. Verificamos si estamos en una página que contiene el shortcode O si el usuario está logueado (para el menú móvil)
         global $post;
-        if (is_a($post, 'WP_Post') && (has_shortcode($post->post_content, 'bankitos_panel_members') || has_shortcode($post->post_content, 'bankitos_panel_members_invite'))) {
+        $has_shortcode = is_a($post, 'WP_Post') && (has_shortcode($post->post_content, 'bankitos_panel_members') || has_shortcode($post->post_content, 'bankitos_panel_members_invite'));
+        
+        // Siempre encolamos panel.js si el usuario está logueado para que funcione el menú móvil
+        if (is_user_logged_in() || $has_shortcode) {
             
-            // 3. Si está, encolamos el script
+            // 3. Encolamos el script
             wp_enqueue_script('bankitos-panel');
             
-            // 4. Y localizamos los datos (traducciones)
+            // 4. Localizamos los datos (traducciones)
             $data = [
                 'minRequiredError' => __('Debes completar al menos el mínimo de invitaciones requerido.', 'bankitos'),
                 'invalidEmailError' => __('Ingresa correos electrónicos válidos.', 'bankitos'),

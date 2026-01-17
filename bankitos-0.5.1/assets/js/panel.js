@@ -1,9 +1,6 @@
 (function(){
   const doc = document;
   
-  // ... (Toda la lógica anterior de invites, etc. se mantiene igual, no la borres) ...
-  // Solo agregaré la lógica del menú móvil al final o dentro del init
-
   // --- NUEVA LÓGICA DEL MENÚ MÓVIL ---
   function initMobileMenu() {
     const menuItems = doc.querySelectorAll('.bankitos-mobile-menu__item');
@@ -65,10 +62,6 @@
 
   const messages = window.bankitosPanelInvites || {};
 
-  // ... (Funciones createRow, togglePanel, showError, validateForm, initInvitePanels, initEditForms MANTENER IGUAL) ...
-  // [Aquí va todo el código existente del panel.js que me enviaste]
-  // Solo re-pego las funciones auxiliares para contexto, pero el bloque de lógica de invites NO cambia.
-  
   function createRow(){
     const wrapper = doc.createElement('div');
     wrapper.className = 'bankitos-invite-row';
