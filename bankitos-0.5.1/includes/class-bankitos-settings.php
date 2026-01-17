@@ -125,35 +125,82 @@ class Bankitos_Settings {
     }
 
     public static function sanitize_options($input) : array {
-        $out = is_array($input) ? $input : [];
-        $out['recaptcha_site']     = isset($input['recaptcha_site']) ? sanitize_text_field($input['recaptcha_site']) : '';
-        $out['recaptcha_secret']   = isset($input['recaptcha_secret']) ? sanitize_text_field($input['recaptcha_secret']) : '';
-        $out['invite_expiry_days'] = isset($input['invite_expiry_days']) ? max(1, intval($input['invite_expiry_days'])) : 7;
+        $input = is_array($input) ? $input : [];
+        $out = self::get_all();
+        $out = is_array($out) ? $out : [];
+
+        if (array_key_exists('recaptcha_site', $input)) {
+            $out['recaptcha_site'] = sanitize_text_field($input['recaptcha_site']);
+        } elseif (!isset($out['recaptcha_site'])) {
+            $out['recaptcha_site'] = '';
+        }
+
+        if (array_key_exists('recaptcha_secret', $input)) {
+            $out['recaptcha_secret'] = sanitize_text_field($input['recaptcha_secret']);
+        } elseif (!isset($out['recaptcha_secret'])) {
+            $out['recaptcha_secret'] = '';
+        }
+
+        if (array_key_exists('invite_expiry_days', $input)) {
+            $out['invite_expiry_days'] = max(1, intval($input['invite_expiry_days']));
+        } elseif (!isset($out['invite_expiry_days'])) {
+            $out['invite_expiry_days'] = 7;
+        }
         $default_name  = get_bloginfo('name');
         $default_email = get_bloginfo('admin_email');
 
-        $from_name = isset($input['from_name']) ? sanitize_text_field($input['from_name']) : '';
-        $from_email = isset($input['from_email']) ? sanitize_email($input['from_email']) : '';
-
-        $out['from_name']  = $from_name !== '' ? $from_name : $default_name;
-        $out['from_email'] = is_email($from_email) ? $from_email : $default_email;
-        $out['mailjet_api_key']       = isset($input['mailjet_api_key']) ? sanitize_text_field($input['mailjet_api_key']) : '';
-        $out['mailjet_secret_key']    = isset($input['mailjet_secret_key']) ? sanitize_text_field($input['mailjet_secret_key']) : '';
-        $out['email_template_invite'] = isset($input['email_template_invite']) ? wp_kses_post($input['email_template_invite']) : '';
-        
-        $mobile_menu = [];
-        $menu_input = isset($input['mobile_menu']) && is_array($input['mobile_menu']) ? $input['mobile_menu'] : [];
-        foreach (self::get_mobile_menu_roles() as $role_key => $role_label) {
-            if (array_key_exists($role_key, $menu_input)) {
-                $raw = is_string($menu_input[$role_key]) ? $menu_input[$role_key] : '';
-                $mobile_menu[$role_key] = self::parse_mobile_menu_lines($raw);
-            } else {
-                $defaults = self::get_mobile_menu_defaults();
-                $mobile_menu[$role_key] = $defaults[$role_key] ?? [];
-            }
+       if (array_key_exists('from_name', $input)) {
+            $from_name = sanitize_text_field($input['from_name']);
+            $out['from_name'] = $from_name !== '' ? $from_name : $default_name;
+        } elseif (!isset($out['from_name'])) {
+            $out['from_name'] = $default_name;
         }
-        $out['mobile_menu'] = $mobile_menu;
 
+        if (array_key_exists('from_email', $input)) {
+            $from_email = sanitize_email($input['from_email']);
+            $out['from_email'] = is_email($from_email) ? $from_email : $default_email;
+        } elseif (!isset($out['from_email'])) {
+            $out['from_email'] = $default_email;
+        }
+
+        if (array_key_exists('mailjet_api_key', $input)) {
+            $out['mailjet_api_key'] = sanitize_text_field($input['mailjet_api_key']);
+        } elseif (!isset($out['mailjet_api_key'])) {
+            $out['mailjet_api_key'] = '';
+        }
+
+        if (array_key_exists('mailjet_secret_key', $input)) {
+            $out['mailjet_secret_key'] = sanitize_text_field($input['mailjet_secret_key']);
+        } elseif (!isset($out['mailjet_secret_key'])) {
+            $out['mailjet_secret_key'] = '';
+        }
+
+        if (array_key_exists('email_template_invite', $input)) {
+            $out['email_template_invite'] = wp_kses_post($input['email_template_invite']);
+        } elseif (!isset($out['email_template_invite'])) {
+            $out['email_template_invite'] = '';
+        }
+        
+        if (array_key_exists('mobile_menu', $input) && is_array($input['mobile_menu'])) {
+            $mobile_menu = [];
+            $menu_input = $input['mobile_menu'];
+            $defaults = self::get_mobile_menu_defaults();
+            $existing_menus = isset($out['mobile_menu']) && is_array($out['mobile_menu']) ? $out['mobile_menu'] : [];
+            foreach (self::get_mobile_menu_roles() as $role_key => $role_label) {
+                if (array_key_exists($role_key, $menu_input)) {
+                    $raw = is_string($menu_input[$role_key]) ? $menu_input[$role_key] : '';
+                    $mobile_menu[$role_key] = self::parse_mobile_menu_lines($raw);
+                } elseif (isset($existing_menus[$role_key])) {
+                    $mobile_menu[$role_key] = $existing_menus[$role_key];
+                } else {
+                    $mobile_menu[$role_key] = $defaults[$role_key] ?? [];
+                }
+            }
+            $out['mobile_menu'] = $mobile_menu;
+        } elseif (!isset($out['mobile_menu'])) {
+            $out['mobile_menu'] = self::get_mobile_menu_defaults();
+        }
+        
         return $out;
     }
 
