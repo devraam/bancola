@@ -11,7 +11,7 @@ class Bankitos_Plugin {
         });
         add_action('wp_enqueue_scripts', [$this, 'register_public_assets'], 50);
         
-        // CORRECCIÓN: Inyectar menú móvil automáticamente en el footer
+        // Inyectar menú móvil automáticamente en el footer
         add_action('wp_footer', ['Bankitos_Shortcode_Mobile_Menu', 'output_global'], 100);
     }   
 
@@ -31,6 +31,9 @@ class Bankitos_Plugin {
             return;
         }
 
+        // --- IMPORTANTE: CARGAR ICONOS DASHICONS SIEMPRE PARA EL MENÚ MÓVIL ---
+        wp_enqueue_style('dashicons');
+
         wp_enqueue_style('bankitos-style', BANKITOS_URL . 'assets/css/bankitos.css', [], BANKITOS_VERSION);
         wp_register_script('bankitos-create-banco', BANKITOS_URL . 'assets/js/create-banco.js', [], BANKITOS_VERSION, true);
         wp_register_script('bankitos-recaptcha', BANKITOS_URL . 'assets/js/recaptcha.js', [], BANKITOS_VERSION, true);
@@ -38,7 +41,7 @@ class Bankitos_Plugin {
         // 1. Registramos el script del panel
         wp_register_script('bankitos-panel', BANKITOS_URL . 'assets/js/panel.js', [], BANKITOS_VERSION, true);
 
-        // 2. Verificamos si estamos en una página que contiene el shortcode O si el usuario está logueado (para el menú móvil)
+        // 2. Verificamos si estamos en una página que contiene el shortcode O si el usuario está logueado
         global $post;
         $has_shortcode = is_a($post, 'WP_Post') && (has_shortcode($post->post_content, 'bankitos_panel_members') || has_shortcode($post->post_content, 'bankitos_panel_members_invite'));
         

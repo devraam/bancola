@@ -1060,7 +1060,7 @@ p {padding-bottom: 0;}
   display: none;
 }
 
-/* Visible solo en móviles/tablets */
+/* Visible solo en móviles/tablets (ajusta 980px según tu tema) */
 @media (max-width: 980px) {
   .bankitos-mobile-menu {
     display: flex;
@@ -1070,23 +1070,25 @@ p {padding-bottom: 0;}
     right: 0;
     top: 50%;
     transform: translateY(-50%);
-    z-index: 99999;
+    z-index: 999999; /* Z-index muy alto para estar sobre todo */
     padding-right: 0; 
     align-items: flex-end;
+    pointer-events: none; /* Permite clicks debajo del área vacía */
   }
 
   .bankitos-mobile-menu__item {
+    pointer-events: auto; /* Reactivar clicks en los botones */
     display: inline-flex;
     align-items: center;
     justify-content: flex-end; /* Alinea contenido a la derecha */
     background-color: #1e3a58; /* Color INACTIVO (Azul Oscuro) */
-    color: #fff;
+    color: #fff !important;
     text-decoration: none;
     border-radius: 8px 0 0 8px;
     padding: 0;
     height: 48px;
     width: auto;
-    box-shadow: -2px 2px 8px rgba(0,0,0,0.25);
+    box-shadow: -2px 2px 8px rgba(0,0,0,0.3);
     transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     border: 1px solid rgba(255,255,255,0.15);
     border-right: none;
@@ -1095,33 +1097,42 @@ p {padding-bottom: 0;}
     cursor: pointer;
   }
 
-  /* ESTADO ACTIVO (Página actual): Color diferente, pero COLAPSADO */
+  /* ESTADO ACTIVO (Página actual): */
+  /* Inicia COLAPSADO, fondo Azul Corporativo, Icono Blanco */
   .bankitos-mobile-menu__item--active {
-    background-color:var(--bankitos-primary)!important;
-    border-color: rgba(255,255,255,0.3);
-    /* No expandimos el width aquí, se mantiene solo el icono */
+    background-color:var(--bankitos-primary)!important; /* Azul Bancola */
+    border-color: rgba(255,255,255,0.4);
   }
 
-  /* ESTADO EXPANDIDO (Al hacer Tap): Color de interacción */
+  /* ESTADO EXPANDIDO (Al hacer Tap): */
+  /* Fondo oscuro para contraste al leer */
   .bankitos-mobile-menu__item.is-expanded {
-    background-color: #0f172a; /* Muy oscuro para contraste al leer */
+    background-color:var(--bankitos-primary) !important; 
     padding-left: 15px; /* Espacio para el texto */
   }
 
-  /* El icono: SIEMPRE BLANCO y tamaño fijo */
+  /* EL ICONO: Configuración crítica */
   .bankitos-mobile-menu__icon {
     width: 48px;
     height: 48px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
+    font-size: 22px;
+    line-height: 1;
     color: #ffffff !important; /* Forzar blanco siempre */
     flex-shrink: 0;
     text-decoration: none;
+    font-family: "dashicons", sans-serif !important; /* FORZAR FUENTE DASHICONS */
+  }
+  
+  /* Asegurar que el icono dentro (before) tenga las propiedades correctas */
+  .bankitos-mobile-menu__icon:before {
+    font-family: "dashicons" !important;
+    color: #ffffff !important;
   }
 
-  /* El texto: Oculto por defecto (width 0) */
+  /* EL TEXTO: Oculto por defecto (width 0) */
   .bankitos-mobile-menu__label {
     max-width: 0;
     opacity: 0;
@@ -1129,23 +1140,26 @@ p {padding-bottom: 0;}
     overflow: hidden;
     font-size: 14px;
     font-weight: 600;
-    color: #ffffff; /* Texto blanco */
+    color: #ffffff !important; /* Texto blanco */
     transition: all 0.35s ease;
     padding: 0;
     margin-right: 0;
   }
 
-  /* SOLO mostramos el texto si tiene la clase .is-expanded (vía JS) */
+  /* LÓGICA DE EXPANSIÓN: */
+  /* El texto SOLO se muestra si tiene la clase .is-expanded añadida por JS. */
+  /* Incluso si es active, no se muestra a menos que se toque. */
   .bankitos-mobile-menu__item.is-expanded .bankitos-mobile-menu__label {
     max-width: 200px;
     opacity: 1;
-    margin-right: 5px;
+    margin-right: 4px;
   }
   
-  /* Eliminar efectos hover en táctil para evitar parpadeos */
+  /* Eliminar efectos hover/focus nativos del tema que puedan cambiar colores */
   .bankitos-mobile-menu__item:hover, 
-  .bankitos-mobile-menu__item:focus {
-    color: #fff;
+  .bankitos-mobile-menu__item:focus,
+  .bankitos-mobile-menu__item:visited {
+    color: #fff !important;
     outline: none;
   }
 }

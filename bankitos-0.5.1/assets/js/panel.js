@@ -7,35 +7,35 @@
     if (!menuItems.length) return;
 
     menuItems.forEach(item => {
-      // Prevenir el comportamiento por defecto al hacer click/tap
+      // Usamos 'click' que en móviles se traduce tras el tap
       item.addEventListener('click', function(e) {
         
-        // Verificar si el elemento YA está expandido visualmente
+        // Verificar si el elemento YA está visualmente expandido
         const isExpanded = item.classList.contains('is-expanded');
 
-        // Si NO está expandido:
-        // 1. Prevenir navegación.
-        // 2. Cerrar cualquier otro abierto.
-        // 3. Expandir este.
+        // LÓGICA:
+        // 1. Si NO está expandido -> Prevenir link, Cerrar otros, Expandir este.
+        // 2. Si YA está expandido -> No hacer nada (dejar que el href navegue).
+        
         if (!isExpanded) {
-          e.preventDefault();
+          e.preventDefault(); // Evita ir a la página
+          e.stopPropagation(); // Evita que el evento suba y cierre el menú inmediatamente
           
-          // Cerrar hermanos
+          // Cerrar todos los demás botones
           menuItems.forEach(other => {
             if (other !== item) {
               other.classList.remove('is-expanded');
             }
           });
 
-          // Abrir actual
+          // Expandir el botón actual (muestra el texto)
           item.classList.add('is-expanded');
         } 
-        // Si YA está expandido (isExpanded == true):
-        // Dejar que el evento click continúe y el navegador siga el enlace (href).
+        // Si ya estaba expandido, el evento sigue su curso y el navegador carga el href
       });
     });
 
-    // Cerrar menú si se hace click fuera del área del menú
+    // Cerrar menú si se hace click en cualquier parte fuera del menú
     doc.addEventListener('click', function(e) {
       if (!e.target.closest('.bankitos-mobile-menu')) {
         menuItems.forEach(item => item.classList.remove('is-expanded'));
@@ -44,7 +44,9 @@
   }
   // --- FIN LÓGICA MENÚ ---
 
-  // ... (RESTO DEL CÓDIGO DE INVITACIONES - MANTENER IGUAL) ...
+  // ... (RESTO DEL CÓDIGO DE PANEL.JS: createRow, togglePanel, etc... NO CAMBIA) ...
+  // Solo asegúrate de incluir la llamada a initMobileMenu() al final:
+
   const selectors = {
     section: '[data-bankitos-invite]',
     open: '[data-bankitos-invite-open]',
