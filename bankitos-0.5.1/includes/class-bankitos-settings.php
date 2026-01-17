@@ -200,7 +200,7 @@ class Bankitos_Settings {
         } elseif (!isset($out['mobile_menu'])) {
             $out['mobile_menu'] = self::get_mobile_menu_defaults();
         }
-        
+
         return $out;
     }
 
@@ -282,7 +282,7 @@ class Bankitos_Settings {
             self::MENU_SLUG . '_page_' . self::PAGE_SLUG_SHORTCODES,
         ];
         if (in_array($hook, $allowed_hooks, true)) {
-            wp_enqueue_style('bankitos-admin', plugins_url('assets/css/bankitos.css', dirname(__FILE__)), [], '1.0');
+            wp_enqueue_style('bankitos-admin', BANKITOS_URL . 'assets/css/bankitos.css', [], '1.0');
         }
     }
 
