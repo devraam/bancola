@@ -1058,3 +1058,92 @@ p {padding-bottom: 0;}
     flex-direction: column;
   }
 }
+
+/* === MENÚ MÓVIL VERTICAL === */
+
+/* Oculto en escritorio */
+.bankitos-mobile-menu {
+  display: none;
+}
+
+/* Visible solo en móviles/tablets */
+@media (max-width: 980px) {
+  .bankitos-mobile-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    position: fixed;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 99999;
+    padding-right: 10px; /* Pequeño margen derecho */
+    align-items: flex-end; /* Alinear todo a la derecha */
+  }
+
+  .bankitos-mobile-menu__item {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    background-color: #1e3a58; /* Color azul oscuro del botón cerrado */
+    color: #fff;
+    text-decoration: none;
+    border-radius: 8px 0 0 8px; /* Bordes redondeados solo a la izquierda */
+    padding: 0;
+    height: 48px;
+    width: auto;
+    box-shadow: -2px 2px 8px rgba(0,0,0,0.2);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-right: none;
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+  }
+
+  /* El icono siempre visible y cuadrado */
+  .bankitos-mobile-menu__icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0; /* Evita que el icono se aplaste */
+    background: transparent;
+  }
+
+  /* El texto oculto por defecto (width 0) */
+  .bankitos-mobile-menu__label {
+    max-width: 0;
+    opacity: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    padding: 0;
+  }
+
+  /* ESTADO EXPANDIDO (Por JS) o ACTIVO (Por PHP) */
+  .bankitos-mobile-menu__item.is-expanded,
+  .bankitos-mobile-menu__item--active {
+    background-color: #c7f000; /* Color Lima/Verde activo */
+    color: #0f172a; /* Texto oscuro */
+    padding-left: 15px; /* Espacio a la izquierda del texto */
+  }
+
+  /* Cuando está expandido, el texto aparece */
+  .bankitos-mobile-menu__item.is-expanded .bankitos-mobile-menu__label,
+  .bankitos-mobile-menu__item--active .bankitos-mobile-menu__label {
+    max-width: 200px; /* Ancho suficiente para el texto */
+    opacity: 1;
+    margin-right: 0;
+  }
+  
+  /* Ajuste visual del icono cuando está activo */
+  .bankitos-mobile-menu__item.is-expanded .bankitos-mobile-menu__icon,
+  .bankitos-mobile-menu__item--active .bankitos-mobile-menu__icon {
+    color: #0f172a;
+  }
+}
