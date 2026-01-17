@@ -1060,7 +1060,7 @@ p {padding-bottom: 0;}
   display: none;
 }
 
-/* Visible solo en móviles/tablets (ajustar breakpoint si es necesario, 980px cubre la mayoría de tablets) */
+/* Visible solo en móviles/tablets */
 @media (max-width: 980px) {
   .bankitos-mobile-menu {
     display: flex;
@@ -1071,31 +1071,44 @@ p {padding-bottom: 0;}
     top: 50%;
     transform: translateY(-50%);
     z-index: 99999;
-    padding-right: 10px; /* Pequeño margen derecho para separar del borde */
-    align-items: flex-end; /* Alinear elementos a la derecha */
+    padding-right: 0; 
+    align-items: flex-end;
   }
 
   .bankitos-mobile-menu__item {
     display: inline-flex;
     align-items: center;
-    justify-content: flex-end; /* Contenido pegado a la derecha */
-    background-color: #1e3a58; /* Azul oscuro (cerrado) */
+    justify-content: flex-end; /* Alinea contenido a la derecha */
+    background-color: #1e3a58; /* Color INACTIVO (Azul Oscuro) */
     color: #fff;
     text-decoration: none;
-    border-radius: 8px 0 0 8px; /* Redondear solo izquierda */
+    border-radius: 8px 0 0 8px;
     padding: 0;
     height: 48px;
     width: auto;
-    box-shadow: -2px 2px 8px rgba(0,0,0,0.2);
+    box-shadow: -2px 2px 8px rgba(0,0,0,0.25);
     transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-    border: 1px solid rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.15);
     border-right: none;
     overflow: hidden;
     position: relative;
     cursor: pointer;
   }
 
-  /* El icono siempre visible y cuadrado */
+  /* ESTADO ACTIVO (Página actual): Color diferente, pero COLAPSADO */
+  .bankitos-mobile-menu__item--active {
+    background-color:var(--bankitos-primary)!important;
+    border-color: rgba(255,255,255,0.3);
+    /* No expandimos el width aquí, se mantiene solo el icono */
+  }
+
+  /* ESTADO EXPANDIDO (Al hacer Tap): Color de interacción */
+  .bankitos-mobile-menu__item.is-expanded {
+    background-color: #0f172a; /* Muy oscuro para contraste al leer */
+    padding-left: 15px; /* Espacio para el texto */
+  }
+
+  /* El icono: SIEMPRE BLANCO y tamaño fijo */
   .bankitos-mobile-menu__icon {
     width: 48px;
     height: 48px;
@@ -1103,11 +1116,12 @@ p {padding-bottom: 0;}
     align-items: center;
     justify-content: center;
     font-size: 24px;
+    color: #ffffff !important; /* Forzar blanco siempre */
     flex-shrink: 0;
-    background: transparent;
+    text-decoration: none;
   }
 
-  /* El texto oculto por defecto (max-width 0 para animar) */
+  /* El texto: Oculto por defecto (width 0) */
   .bankitos-mobile-menu__label {
     max-width: 0;
     opacity: 0;
@@ -1115,29 +1129,23 @@ p {padding-bottom: 0;}
     overflow: hidden;
     font-size: 14px;
     font-weight: 600;
-    transition: all 0.3s ease;
+    color: #ffffff; /* Texto blanco */
+    transition: all 0.35s ease;
     padding: 0;
     margin-right: 0;
   }
 
-  /* ESTADO EXPANDIDO (Por JS) o ACTIVO (Por PHP) */
-  .bankitos-mobile-menu__item.is-expanded,
-  .bankitos-mobile-menu__item--active {
-    background-color: #c7f000; /* Verde Lima (activo) */
-    color: #0f172a; /* Texto oscuro */
-    padding-left: 15px; /* Espacio extra a la izquierda del texto */
-  }
-
-  /* Animación del texto al expandirse */
-  .bankitos-mobile-menu__item.is-expanded .bankitos-mobile-menu__label,
-  .bankitos-mobile-menu__item--active .bankitos-mobile-menu__label {
-    max-width: 200px; /* Ancho suficiente para mostrar el texto */
+  /* SOLO mostramos el texto si tiene la clase .is-expanded (vía JS) */
+  .bankitos-mobile-menu__item.is-expanded .bankitos-mobile-menu__label {
+    max-width: 200px;
     opacity: 1;
+    margin-right: 5px;
   }
   
-  /* Color del ícono en estado activo */
-  .bankitos-mobile-menu__item.is-expanded .bankitos-mobile-menu__icon,
-  .bankitos-mobile-menu__item--active .bankitos-mobile-menu__icon {
-    color: #0f172a;
+  /* Eliminar efectos hover en táctil para evitar parpadeos */
+  .bankitos-mobile-menu__item:hover, 
+  .bankitos-mobile-menu__item:focus {
+    color: #fff;
+    outline: none;
   }
 }

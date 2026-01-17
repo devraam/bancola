@@ -46,7 +46,7 @@ class Bankitos_Settings {
         add_settings_field('email_template_invite','Plantilla de correo (Invitación)',[__CLASS__,'field_textarea'], self::PAGE_SLUG,'bankitos_section_main',['key'=>'email_template_invite']);
 
         add_settings_section('bankitos_section_mobile_menu', __('Menú móvil por roles', 'bankitos'), function () {
-            echo '<p>' . esc_html__('Configura los botones del menú móvil (solo visible en celulares y para usuarios autenticados). Usa el formato: Etiqueta | dashicons-algún-icono | /ruta', 'bankitos') . '</p>';
+            echo '<p>' . esc_html__('Configura los botones del menú móvil (solo visible en celulares y para usuarios autenticados).', 'bankitos') . '</p>';
         }, self::PAGE_SLUG);
 
         foreach (self::get_mobile_menu_roles() as $role_key => $role_label) {
@@ -133,7 +133,8 @@ class Bankitos_Settings {
             esc_attr($role),
             esc_textarea($value)
         );
-        echo '<p class="description">' . esc_html__('Una línea por botón. Ejemplo: Panel | dashicons-dashboard | /panel', 'bankitos') . '</p>';
+        echo '<p class="description">' . esc_html__('Formato: <b>Etiqueta | clase-del-icono | /ruta</b> (una por línea).', 'bankitos') . '<br>' . 
+             sprintf(esc_html__('Busca iconos aquí: %s (copia el nombre de la clase, ej: dashicons-chart-pie)', 'bankitos'), '<a href="https://developer.wordpress.org/resource/dashicons/" target="_blank">Dashicons</a>') . '</p>';
     }
     public static function enqueue_admin_assets($hook) : void {
         if ($hook === 'settings_page_' . self::PAGE_SLUG) {
@@ -242,7 +243,7 @@ class Bankitos_Settings {
                             __('Solo se ve en mobile y para usuarios con sesión.', 'bankitos'),
                             __('La administración define íconos y rutas por rol.', 'bankitos'),
                         ],
-                        'usage'   => __('Ubícalo en la plantilla principal del panel.', 'bankitos'),
+                        'usage'   => __('El plugin lo inserta automáticamente en el pie de página.', 'bankitos'),
                     ],
                 ],
             ],
