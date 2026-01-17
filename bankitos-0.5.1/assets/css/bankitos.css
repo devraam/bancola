@@ -215,12 +215,6 @@ p {padding-bottom: 0;}
 .bankitos-shortcodes-doc__list{margin:.25rem 0 0 1.1rem;padding:0;display:grid;gap:.25rem;color:rgba(15,23,42,.78);}
 .bankitos-shortcodes-doc__usage{margin:.4rem 0 0;color:rgba(15,23,42,.7);font-weight:700;}
 
-.bankitos-mobile-menu{position:fixed;right:12px;top:35%;transform:translateY(-35%);display:none;flex-direction:column;gap:.5rem;z-index:9999;}
-.bankitos-mobile-menu__item{width:46px;height:46px;border-radius:12px;background:#1f3b5b;color:#fff;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 10px 18px rgba(15,23,42,.18);text-decoration:none;border:1px solid rgba(255,255,255,.12);}
-.bankitos-mobile-menu__item:focus-visible{outline:3px solid rgba(15,23,42,.35);outline-offset:2px;}
-.bankitos-mobile-menu__item--active{background:var(--bankitos-primary);color:var(--bankitos-primary-text);border-color:rgba(15,23,42,.05);}
-.bankitos-mobile-menu__icon{font-size:22px;line-height:1;}
-
 @media (max-width:720px){
   .bankitos-panel,
   .bankitos-login-wrap,
@@ -1066,7 +1060,7 @@ p {padding-bottom: 0;}
   display: none;
 }
 
-/* Visible solo en móviles/tablets */
+/* Visible solo en móviles/tablets (ajustar breakpoint si es necesario, 980px cubre la mayoría de tablets) */
 @media (max-width: 980px) {
   .bankitos-mobile-menu {
     display: flex;
@@ -1077,18 +1071,18 @@ p {padding-bottom: 0;}
     top: 50%;
     transform: translateY(-50%);
     z-index: 99999;
-    padding-right: 10px; /* Pequeño margen derecho */
-    align-items: flex-end; /* Alinear todo a la derecha */
+    padding-right: 10px; /* Pequeño margen derecho para separar del borde */
+    align-items: flex-end; /* Alinear elementos a la derecha */
   }
 
   .bankitos-mobile-menu__item {
     display: inline-flex;
     align-items: center;
-    justify-content: flex-end;
-    background-color: #1e3a58; /* Color azul oscuro del botón cerrado */
+    justify-content: flex-end; /* Contenido pegado a la derecha */
+    background-color: #1e3a58; /* Azul oscuro (cerrado) */
     color: #fff;
     text-decoration: none;
-    border-radius: 8px 0 0 8px; /* Bordes redondeados solo a la izquierda */
+    border-radius: 8px 0 0 8px; /* Redondear solo izquierda */
     padding: 0;
     height: 48px;
     width: auto;
@@ -1109,11 +1103,11 @@ p {padding-bottom: 0;}
     align-items: center;
     justify-content: center;
     font-size: 24px;
-    flex-shrink: 0; /* Evita que el icono se aplaste */
+    flex-shrink: 0;
     background: transparent;
   }
 
-  /* El texto oculto por defecto (width 0) */
+  /* El texto oculto por defecto (max-width 0 para animar) */
   .bankitos-mobile-menu__label {
     max-width: 0;
     opacity: 0;
@@ -1123,25 +1117,25 @@ p {padding-bottom: 0;}
     font-weight: 600;
     transition: all 0.3s ease;
     padding: 0;
+    margin-right: 0;
   }
 
   /* ESTADO EXPANDIDO (Por JS) o ACTIVO (Por PHP) */
   .bankitos-mobile-menu__item.is-expanded,
   .bankitos-mobile-menu__item--active {
-    background-color: #c7f000; /* Color Lima/Verde activo */
+    background-color: #c7f000; /* Verde Lima (activo) */
     color: #0f172a; /* Texto oscuro */
-    padding-left: 15px; /* Espacio a la izquierda del texto */
+    padding-left: 15px; /* Espacio extra a la izquierda del texto */
   }
 
-  /* Cuando está expandido, el texto aparece */
+  /* Animación del texto al expandirse */
   .bankitos-mobile-menu__item.is-expanded .bankitos-mobile-menu__label,
   .bankitos-mobile-menu__item--active .bankitos-mobile-menu__label {
-    max-width: 200px; /* Ancho suficiente para el texto */
+    max-width: 200px; /* Ancho suficiente para mostrar el texto */
     opacity: 1;
-    margin-right: 0;
   }
   
-  /* Ajuste visual del icono cuando está activo */
+  /* Color del ícono en estado activo */
   .bankitos-mobile-menu__item.is-expanded .bankitos-mobile-menu__icon,
   .bankitos-mobile-menu__item--active .bankitos-mobile-menu__icon {
     color: #0f172a;

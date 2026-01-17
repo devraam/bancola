@@ -8,6 +8,13 @@ class Bankitos_Shortcode_Mobile_Menu extends Bankitos_Shortcode_Base {
     }
 
     /**
+     * Función para imprimir directamente en el footer
+     */
+    public static function output_global(): void {
+        echo self::render();
+    }
+
+    /**
      * @param array|string $atts
      * @param string|null $content
      */
@@ -102,6 +109,7 @@ class Bankitos_Shortcode_Mobile_Menu extends Bankitos_Shortcode_Base {
     private static function path_is_active(string $current, string $target): bool {
         // Normalización simple para coincidencia
         if ($target === '/' && $current !== '/') return false;
-        return strpos($current, $target) !== false;
+        // Coincidencia exacta o subcarpeta
+        return ($current === $target) || (strpos($current, $target . '/') === 0);
     }
 }
