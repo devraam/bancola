@@ -1,45 +1,50 @@
 (function(){
   const doc = document;
   
-  // --- NUEVA LÓGICA DEL MENÚ MÓVIL ---
+  // --- LÓGICA DEL MENÚ MÓVIL ---
   function initMobileMenu() {
     const menuItems = doc.querySelectorAll('.bankitos-mobile-menu__item');
     if (!menuItems.length) return;
 
     menuItems.forEach(item => {
+      // Prevenir el comportamiento por defecto al hacer click/tap
       item.addEventListener('click', function(e) {
-        // Verificar si ya está activo (página actual) o expandido (tap previo)
+        
+        // Verificar si el elemento YA está expandido visualmente
         const isExpanded = item.classList.contains('is-expanded');
-        const isActive = item.classList.contains('bankitos-mobile-menu__item--active');
 
-        // Si NO está expandido y NO es el ítem activo actual:
-        // Prevenir navegación, expandir este y cerrar los demás.
-        if (!isExpanded && !isActive) {
+        // Si NO está expandido:
+        // 1. Prevenir navegación.
+        // 2. Cerrar cualquier otro abierto.
+        // 3. Expandir este.
+        if (!isExpanded) {
           e.preventDefault();
           
-          // Cerrar otros
+          // Cerrar hermanos
           menuItems.forEach(other => {
             if (other !== item) {
               other.classList.remove('is-expanded');
             }
           });
 
-          // Expandir este
+          // Abrir actual
           item.classList.add('is-expanded');
         } 
-        // Si YA está expandido o es el activo, dejamos que el link funcione normalmente (navega).
+        // Si YA está expandido (isExpanded == true):
+        // Dejar que el evento click continúe y el navegador siga el enlace (href).
       });
     });
 
-    // Cerrar menú si se hace click fuera
+    // Cerrar menú si se hace click fuera del área del menú
     doc.addEventListener('click', function(e) {
       if (!e.target.closest('.bankitos-mobile-menu')) {
         menuItems.forEach(item => item.classList.remove('is-expanded'));
       }
     });
   }
-  // --- FIN NUEVA LÓGICA ---
+  // --- FIN LÓGICA MENÚ ---
 
+  // ... (RESTO DEL CÓDIGO DE INVITACIONES - MANTENER IGUAL) ...
   const selectors = {
     section: '[data-bankitos-invite]',
     open: '[data-bankitos-invite-open]',
@@ -371,7 +376,7 @@
   function init(){
     initInvitePanels();
     initEditForms();
-    initMobileMenu(); // <--- LLAMADA A LA NUEVA FUNCIÓN
+    initMobileMenu(); // Inicializar menú móvil
   }
 
   if (document.readyState === 'loading') {
