@@ -1,5 +1,48 @@
 (function(){
   const doc = document;
+  
+  // ... (Toda la lógica anterior de invites, etc. se mantiene igual, no la borres) ...
+  // Solo agregaré la lógica del menú móvil al final o dentro del init
+
+  // --- NUEVA LÓGICA DEL MENÚ MÓVIL ---
+  function initMobileMenu() {
+    const menuItems = doc.querySelectorAll('.bankitos-mobile-menu__item');
+    if (!menuItems.length) return;
+
+    menuItems.forEach(item => {
+      item.addEventListener('click', function(e) {
+        // Verificar si ya está activo (página actual) o expandido (tap previo)
+        const isExpanded = item.classList.contains('is-expanded');
+        const isActive = item.classList.contains('bankitos-mobile-menu__item--active');
+
+        // Si NO está expandido y NO es el ítem activo actual:
+        // Prevenir navegación, expandir este y cerrar los demás.
+        if (!isExpanded && !isActive) {
+          e.preventDefault();
+          
+          // Cerrar otros
+          menuItems.forEach(other => {
+            if (other !== item) {
+              other.classList.remove('is-expanded');
+            }
+          });
+
+          // Expandir este
+          item.classList.add('is-expanded');
+        } 
+        // Si YA está expandido o es el activo, dejamos que el link funcione normalmente (navega).
+      });
+    });
+
+    // Cerrar menú si se hace click fuera
+    doc.addEventListener('click', function(e) {
+      if (!e.target.closest('.bankitos-mobile-menu')) {
+        menuItems.forEach(item => item.classList.remove('is-expanded'));
+      }
+    });
+  }
+  // --- FIN NUEVA LÓGICA ---
+
   const selectors = {
     section: '[data-bankitos-invite]',
     open: '[data-bankitos-invite-open]',
@@ -22,6 +65,10 @@
 
   const messages = window.bankitosPanelInvites || {};
 
+  // ... (Funciones createRow, togglePanel, showError, validateForm, initInvitePanels, initEditForms MANTENER IGUAL) ...
+  // [Aquí va todo el código existente del panel.js que me enviaste]
+  // Solo re-pego las funciones auxiliares para contexto, pero el bloque de lógica de invites NO cambia.
+  
   function createRow(){
     const wrapper = doc.createElement('div');
     wrapper.className = 'bankitos-invite-row';
@@ -236,8 +283,7 @@
       const form = targetId ? doc.getElementById(targetId) : null;
       if (!form) return;
 
-      // Encontrar los elementos relativos
-      const actionsWrapper = toggle.closest(selectors.actionsCell); // Contenedor <td> o bloque de acciones
+      const actionsWrapper = toggle.closest(selectors.actionsCell); 
       if (!actionsWrapper) return;
       
       const defaultActions = actionsWrapper.querySelector(selectors.defaultActions);
@@ -303,9 +349,9 @@
 
           form.removeAttribute('hidden');
           if (editButtons) editButtons.removeAttribute('hidden');
-          if (defaultActions) defaultActions.setAttribute('hidden', ''); // Ocultar acciones (Reenviar/Cancelar)
-          toggle.setAttribute('hidden', ''); // Ocultar el botón "Editar"
-          toggleInlineFields(true); // Mostrar campos de edición
+          if (defaultActions) defaultActions.setAttribute('hidden', ''); 
+          toggle.setAttribute('hidden', '');
+          toggleInlineFields(true);
 
           const firstInput = inlineInputs.length
             ? inlineInputs[0]
@@ -332,9 +378,9 @@
   function init(){
     initInvitePanels();
     initEditForms();
+    initMobileMenu(); // <--- LLAMADA A LA NUEVA FUNCIÓN
   }
-// Si el DOM ya está listo ejecutamos inmediatamente,
-  // de lo contrario esperamos a DOMContentLoaded.
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
