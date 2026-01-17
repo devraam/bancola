@@ -7,6 +7,10 @@ class BK_Auth_Handler {
         add_action('admin_post_bankitos_do_login',         [__CLASS__,'do_login']);
         add_action('admin_post_nopriv_bankitos_do_register',[__CLASS__,'do_register']);
         add_action('admin_post_bankitos_do_register',      [__CLASS__,'do_register']);
+        add_action('admin_post_nopriv_bankitos_do_recover', [__CLASS__,'do_recover']);
+        add_action('admin_post_bankitos_do_recover',        [__CLASS__,'do_recover']);
+        add_action('admin_post_nopriv_bankitos_do_reset_password', [__CLASS__,'do_reset_password']);
+        add_action('admin_post_bankitos_do_reset_password',        [__CLASS__,'do_reset_password']);
     }
     public static function do_login() {
         check_admin_referer('bankitos_do_login');
@@ -86,5 +90,93 @@ class BK_Auth_Handler {
 
         wp_safe_redirect(site_url('/panel'));
         exit;
+    }
+
+    public static function do_recover() {
+        check_admin_referer('bankitos_do_recover');
+        $email = sanitize_email($_POST['email'] ?? '');
+        $redirect_base = site_url('/acceder');
+        if (!$email) {
+            wp_safe_redirect(add_query_arg(['mode' => 'recover', 'err' => 'recovery'], $redirect_base));
+            exit;
+        }
+
+        $user = get_user_by('email', $email);
+        if ($user) {
+            $key = get_password_reset_key($user);
+            if (!is_wp_error($key)) {
+                $reset_link = add_query_arg(
+                    [
+                        'mode'  => 'reset',
+                        'login' => $user->user_login,
+                        'key'   => $key,
+                    ],
+                    $redirect_base
+                );
+                $subject = sprintf(__('Restablecer contraseña en %s', 'bankitos'), get_bloginfo('name'));
+                $message = sprintf(
+                    __("Hola,\n\nHemos recibido una solicitud para restablecer tu contraseña. Usa el siguiente enlace para crear una nueva:\n\n%s\n\nSi no solicitaste este cambio, puedes ignorar este correo.", 'bankitos'),
+                    esc_url_raw($reset_link)
+                );
+                $headers = self::mail_headers();
+                wp_mail($user->user_email, $subject, $message, $headers);
+            }
+        }
+
+        wp_safe_redirect(add_query_arg(['mode' => 'recover', 'ok' => 'recovery_sent'], $redirect_base));
+        exit;
+    }
+
+    public static function do_reset_password() {
+        check_admin_referer('bankitos_do_reset_password');
+        $login = sanitize_text_field($_POST['login'] ?? '');
+        $key = sanitize_text_field($_POST['key'] ?? '');
+        $pass = (string)($_POST['password'] ?? '');
+        $pass_confirm = (string)($_POST['password_confirm'] ?? '');
+
+        $redirect_base = site_url('/acceder');
+        $redirect_args = [
+            'mode'  => 'reset',
+            'login' => $login,
+            'key'   => $key,
+        ];
+
+        if (!$login || !$key) {
+            wp_safe_redirect(add_query_arg(['mode' => 'recover', 'err' => 'invalid_reset'], $redirect_base));
+            exit;
+        }
+
+        if (!$pass || $pass !== $pass_confirm) {
+            wp_safe_redirect(add_query_arg(array_merge($redirect_args, ['err' => 'reset_password']), $redirect_base));
+            exit;
+        }
+
+        $user = check_password_reset_key($key, $login);
+        if (is_wp_error($user)) {
+            wp_safe_redirect(add_query_arg(['mode' => 'recover', 'err' => 'invalid_reset'], $redirect_base));
+            exit;
+        }
+
+        reset_password($user, $pass);
+        wp_safe_redirect(add_query_arg(['ok' => 'password_reset'], $redirect_base));
+        exit;
+    }
+
+    private static function mail_headers(): array {
+        $from_name = get_bloginfo('name');
+        $from_email = get_bloginfo('admin_email');
+
+        if (class_exists('Bankitos_Settings')) {
+            $custom_from = Bankitos_Settings::get('from_email', $from_email);
+            if (is_email($custom_from)) {
+                $from_email = $custom_from;
+            }
+        }
+
+        $headers = [];
+        if ($from_email) {
+            $headers[] = 'From: ' . sprintf('%s <%s>', $from_name, $from_email);
+        }
+        return $headers;
     }
 }
