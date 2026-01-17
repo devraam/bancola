@@ -44,6 +44,21 @@ class Bankitos_Settings {
         add_settings_field('mailjet_api_key','Mailjet API Key',[__CLASS__,'field_text'], self::PAGE_SLUG,'bankitos_section_main',['key'=>'mailjet_api_key','placeholder'=>'public key']);
         add_settings_field('mailjet_secret_key','Mailjet Secret Key',[__CLASS__,'field_text'], self::PAGE_SLUG,'bankitos_section_main',['key'=>'mailjet_secret_key','placeholder'=>'private key','type'=>'password']);
         add_settings_field('email_template_invite','Plantilla de correo (Invitación)',[__CLASS__,'field_textarea'], self::PAGE_SLUG,'bankitos_section_main',['key'=>'email_template_invite']);
+
+        add_settings_section('bankitos_section_mobile_menu', __('Menú móvil por roles', 'bankitos'), function () {
+            echo '<p>' . esc_html__('Configura los botones del menú móvil (solo visible en celulares y para usuarios autenticados). Usa el formato: Etiqueta | dashicons-algún-icono | /ruta', 'bankitos') . '</p>';
+        }, self::PAGE_SLUG);
+
+        foreach (self::get_mobile_menu_roles() as $role_key => $role_label) {
+            add_settings_field(
+                'mobile_menu_' . $role_key,
+                sprintf(__('Menú para %s', 'bankitos'), $role_label),
+                [__CLASS__, 'field_mobile_menu'],
+                self::PAGE_SLUG,
+                'bankitos_section_mobile_menu',
+                ['role' => $role_key]
+            );
+        }
     }
 
     public static function sanitize_options($input) : array {
@@ -63,6 +78,19 @@ class Bankitos_Settings {
         $out['mailjet_secret_key']    = isset($input['mailjet_secret_key']) ? sanitize_text_field($input['mailjet_secret_key']) : '';
         $out['email_template_invite'] = isset($input['email_template_invite']) ? wp_kses_post($input['email_template_invite']) : '';
         
+        $mobile_menu = [];
+        $menu_input = isset($input['mobile_menu']) && is_array($input['mobile_menu']) ? $input['mobile_menu'] : [];
+        foreach (self::get_mobile_menu_roles() as $role_key => $role_label) {
+            if (array_key_exists($role_key, $menu_input)) {
+                $raw = is_string($menu_input[$role_key]) ? $menu_input[$role_key] : '';
+                $mobile_menu[$role_key] = self::parse_mobile_menu_lines($raw);
+            } else {
+                $defaults = self::get_mobile_menu_defaults();
+                $mobile_menu[$role_key] = $defaults[$role_key] ?? [];
+            }
+        }
+        $out['mobile_menu'] = $mobile_menu;
+
         return $out;
     }
 
@@ -93,6 +121,19 @@ class Bankitos_Settings {
     public static function field_textarea($args) : void {
         $key=$args['key']; $val=self::get($key,'');
         printf('<textarea class="large-text code" rows="10" name="%1$s[%2$s]">%3$s</textarea>',esc_attr(self::OPTION_KEY),esc_attr($key),esc_textarea($val));
+    }
+
+    public static function field_mobile_menu($args): void {
+        $role = $args['role'] ?? '';
+        $items = self::get_mobile_menu_items($role);
+        $value = self::format_mobile_menu_lines($items);
+        printf(
+            '<textarea class="large-text code" rows="6" name="%1$s[mobile_menu][%2$s]">%3$s</textarea>',
+            esc_attr(self::OPTION_KEY),
+            esc_attr($role),
+            esc_textarea($value)
+        );
+        echo '<p class="description">' . esc_html__('Una línea por botón. Ejemplo: Panel | dashicons-dashboard | /panel', 'bankitos') . '</p>';
     }
     public static function enqueue_admin_assets($hook) : void {
         if ($hook === 'settings_page_' . self::PAGE_SLUG) {
@@ -185,6 +226,23 @@ class Bankitos_Settings {
                             __('Guarda la decisión y limpia el token de la URL para evitar reutilización.', 'bankitos'),
                         ],
                         'usage'   => __('Añádelo a la URL que usas en los correos de invitación.', 'bankitos'),
+                    ],
+                ],
+            ],
+            [
+                'title'       => __('Navegación móvil', 'bankitos'),
+                'description' => __('Menú flotante pensado para celulares.', 'bankitos'),
+                'items'       => [
+                    [
+                        'tag'     => 'bankitos_mobile_menu',
+                        'name'    => __('Menú móvil por roles', 'bankitos'),
+                        'role'    => __('Socios autenticados', 'bankitos'),
+                        'summary' => __('Muestra botones verticales según el rol y resalta la pantalla activa.', 'bankitos'),
+                        'actions' => [
+                            __('Solo se ve en mobile y para usuarios con sesión.', 'bankitos'),
+                            __('La administración define íconos y rutas por rol.', 'bankitos'),
+                        ],
+                        'usage'   => __('Ubícalo en la plantilla principal del panel.', 'bankitos'),
                     ],
                 ],
             ],
@@ -390,5 +448,102 @@ class Bankitos_Settings {
                 ],
             ],
         ];
+    }
+
+    public static function get_mobile_menu_items(string $role_key): array {
+        $options = self::get_all();
+        $menus = isset($options['mobile_menu']) && is_array($options['mobile_menu']) ? $options['mobile_menu'] : [];
+        if ($role_key && isset($menus[$role_key]) && is_array($menus[$role_key])) {
+            return $menus[$role_key];
+        }
+        $defaults = self::get_mobile_menu_defaults();
+        if ($role_key && isset($defaults[$role_key])) {
+            return $defaults[$role_key];
+        }
+        return $defaults['socio_general'] ?? [];
+    }
+
+    protected static function get_mobile_menu_roles(): array {
+        return [
+            'presidente'    => __('Presidente', 'bankitos'),
+            'secretario'    => __('Secretario', 'bankitos'),
+            'tesorero'      => __('Tesorero', 'bankitos'),
+            'veedor'        => __('Veedor', 'bankitos'),
+            'socio_general' => __('Socio general', 'bankitos'),
+        ];
+    }
+
+    protected static function get_mobile_menu_defaults(): array {
+        return [
+            'presidente' => [
+                ['label' => __('Panel', 'bankitos'), 'icon' => 'dashicons-dashboard', 'url' => '/panel'],
+                ['label' => __('Mi B@nko', 'bankitos'), 'icon' => 'dashicons-groups', 'url' => '/mi-banco'],
+                ['label' => __('Miembros', 'bankitos'), 'icon' => 'dashicons-admin-users', 'url' => '/miembros'],
+                ['label' => __('Créditos', 'bankitos'), 'icon' => 'dashicons-money-alt', 'url' => '/creditos'],
+            ],
+            'secretario' => [
+                ['label' => __('Panel', 'bankitos'), 'icon' => 'dashicons-dashboard', 'url' => '/panel'],
+                ['label' => __('Miembros', 'bankitos'), 'icon' => 'dashicons-id', 'url' => '/miembros'],
+                ['label' => __('Invitaciones', 'bankitos'), 'icon' => 'dashicons-email-alt', 'url' => '/invitaciones'],
+            ],
+            'tesorero' => [
+                ['label' => __('Panel', 'bankitos'), 'icon' => 'dashicons-dashboard', 'url' => '/panel'],
+                ['label' => __('Aportes', 'bankitos'), 'icon' => 'dashicons-chart-line', 'url' => '/aportes'],
+                ['label' => __('Créditos', 'bankitos'), 'icon' => 'dashicons-money-alt', 'url' => '/creditos'],
+                ['label' => __('Desembolsos', 'bankitos'), 'icon' => 'dashicons-bank', 'url' => '/desembolsos'],
+            ],
+            'veedor' => [
+                ['label' => __('Panel', 'bankitos'), 'icon' => 'dashicons-dashboard', 'url' => '/panel'],
+                ['label' => __('Aportes', 'bankitos'), 'icon' => 'dashicons-chart-area', 'url' => '/aportes'],
+                ['label' => __('Créditos', 'bankitos'), 'icon' => 'dashicons-visibility', 'url' => '/creditos'],
+            ],
+            'socio_general' => [
+                ['label' => __('Panel', 'bankitos'), 'icon' => 'dashicons-dashboard', 'url' => '/panel'],
+                ['label' => __('Aportes', 'bankitos'), 'icon' => 'dashicons-money', 'url' => '/aportes'],
+                ['label' => __('Créditos', 'bankitos'), 'icon' => 'dashicons-clipboard', 'url' => '/creditos'],
+                ['label' => __('Perfil', 'bankitos'), 'icon' => 'dashicons-admin-users', 'url' => '/perfil'],
+            ],
+        ];
+    }
+
+    protected static function parse_mobile_menu_lines(string $raw): array {
+        $lines = preg_split('/\r\n|\r|\n/', $raw) ?: [];
+        $items = [];
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if ($line === '') {
+                continue;
+            }
+            $parts = array_map('trim', explode('|', $line));
+            $label = $parts[0] ?? '';
+            $icon  = $parts[1] ?? '';
+            $url   = $parts[2] ?? '';
+            if ($label === '' || $url === '') {
+                continue;
+            }
+            $items[] = [
+                'label' => sanitize_text_field($label),
+                'icon'  => sanitize_text_field($icon),
+                'url'   => esc_url_raw($url),
+            ];
+        }
+        return $items;
+    }
+
+    protected static function format_mobile_menu_lines(array $items): string {
+        $lines = [];
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $label = isset($item['label']) ? (string) $item['label'] : '';
+            $icon = isset($item['icon']) ? (string) $item['icon'] : '';
+            $url = isset($item['url']) ? (string) $item['url'] : '';
+            if ($label === '' && $url === '') {
+                continue;
+            }
+            $lines[] = trim($label . ' | ' . $icon . ' | ' . $url);
+        }
+        return implode("\n", $lines);
     }
 }
