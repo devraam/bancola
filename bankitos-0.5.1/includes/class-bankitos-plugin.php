@@ -37,6 +37,7 @@ class Bankitos_Plugin {
         wp_enqueue_style('bankitos-style', BANKITOS_URL . 'assets/css/bankitos.css', [], BANKITOS_VERSION);
         wp_register_script('bankitos-create-banco', BANKITOS_URL . 'assets/js/create-banco.js', [], BANKITOS_VERSION, true);
         wp_register_script('bankitos-recaptcha', BANKITOS_URL . 'assets/js/recaptcha.js', [], BANKITOS_VERSION, true);
+        wp_register_script('bankitos-form-submit', BANKITOS_URL . 'assets/js/form-submit.js', [], BANKITOS_VERSION, true);
         
         // 1. Registramos el script del panel
         wp_register_script('bankitos-panel', BANKITOS_URL . 'assets/js/panel.js', [], BANKITOS_VERSION, true);
@@ -62,5 +63,10 @@ class Bankitos_Plugin {
             ];
             wp_localize_script('bankitos-panel', 'bankitosPanelInvites', $data);
         }
+
+        wp_enqueue_script('bankitos-form-submit');
+        wp_localize_script('bankitos-form-submit', 'bankitosFormSubmit', [
+            'loadingLabel' => __('Enviando...', 'bankitos'),
+        ]);
     }
 }

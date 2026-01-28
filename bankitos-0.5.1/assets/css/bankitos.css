@@ -72,6 +72,9 @@ p {padding-bottom: 0;}
 .bankitos-btn:focus-visible,.bankitos-panel .button:focus-visible{outline:3px solid rgba(15,23,42,.3);outline-offset:2px;}
 .bankitos-btn:active,.bankitos-panel .button:active{background:var(--bankitos-primary-active,#9fbe00);box-shadow:0 3px 10px rgba(15,23,42,.2);}
 .bankitos-btn.is-disabled,.bankitos-form button[disabled]{opacity:.55;cursor:not-allowed;filter:grayscale(15%);}
+.bankitos-btn.is-loading,.bankitos-form button.is-loading{position:relative;padding-right:2.2rem;pointer-events:none;}
+.bankitos-btn.is-loading::after,.bankitos-form button.is-loading::after{content:"";position:absolute;right:.85rem;top:50%;width:.9rem;height:.9rem;border:2px solid currentColor;border-right-color:transparent;border-radius:999px;transform:translateY(-50%);animation:bankitos-spin .8s linear infinite;}
+@keyframes bankitos-spin{to{transform:translateY(-50%) rotate(360deg);}}
 
 .bankitos-panel-info{margin:1.5rem 0;padding:1.5rem;border-radius:20px;background:var(--bco-blanco);display:grid;gap:1.2rem;color:var(--bco-texto);}
 .bankitos-panel-info__header{display:flex;align-items:center;gap:1rem;}
