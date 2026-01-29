@@ -18,6 +18,11 @@
   --card-w: 760px;
 }
 
+.difl_advancedmenu, .et_pb_row:has(.difl_advancedmenu), .et_pb_section:has(.difl_advancedmenu) {
+    overflow: visible !important;
+    background-color: #014770!important;
+}
+
 p {padding-bottom: 0;}
 
 .df-normal-menu-wrap .df-menu-wrap .df-menu-nav>li.menu-item>a {color: #fff;}
@@ -482,6 +487,33 @@ p {padding-bottom: 0;}
 }
 .bankitos-credit-request__signature input {
   margin-top: .2rem;
+}
+.bankitos-credit-request__signature input[type="checkbox"] {
+    /* 1. Reseteamos el ancho para que no sea 100% */
+    width: auto; 
+    
+    /* 2. Evitamos que el checkbox se aplaste si falta espacio */
+    flex-shrink: 0; 
+    
+    /* 3. Ajustamos márgenes (quitamos el margen grande del input general) */
+    margin: 0; 
+    margin-top: 0.2rem; /* Mantenemos tu ajuste de alineación vertical */
+    
+    /* Opcional: Tamaño fijo para que sea fácil de tocar con el dedo */
+    height: 20px;
+    width: 20px;
+}
+.bankitos-credit-request__signature span {
+    /* 4. Permitimos que el texto ocupe el espacio restante y baje de línea */
+    flex: 1;
+    
+    /* 5. Asegura que el texto no desborde y haga salto de línea */
+    white-space: normal;
+    word-break: break-word; 
+    
+    /* Ajuste visual opcional */
+    font-size: 0.9rem;
+    line-height: 1.4;
 }
 .bankitos-credit-request__actions {
   margin-top: .5rem;

@@ -288,7 +288,7 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
 
                       <div class="bankitos-accordion__content bankitos-credit-summary__payment-content">
                         <?php if ($installment['can_upload']): ?>
-                            <form class="bankitos-credit-summary__form" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" enctype="multipart/form-data">
+                            <form class="bankitos-credit-summary__form" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" enctype="multipart/form-data" data-bankitos-min-form>
                         <?php endif; ?>
 
                         <dl class="bankitos-accordion__grid bankitos-credit-summary__payment-grid">
@@ -345,12 +345,13 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
                             <?php echo wp_nonce_field('bankitos_credit_payment_submit', '_wpnonce', true, false); ?>
                             <input type="hidden" name="action" value="bankitos_credit_payment_submit">
                             <input type="hidden" name="request_id" value="<?php echo esc_attr($request['id']); ?>">
-                            <input type="hidden" name="amount" value="<?php echo esc_attr(number_format((float)$row['amount'], 2, '.', '')); ?>">
+                            <input type="hidden" name="amount" value="<?php echo esc_attr(number_format((float)$row['amount'], 2, '.', '')); ?>" data-bankitos-min-amount="10000">
                             <input type="hidden" name="installment_date" value="<?php echo esc_attr($row['date']); ?>">
                             <input type="hidden" name="redirect_to" value="<?php echo esc_url($redirect_url); ?>">
                             <button type="submit" class="bankitos-btn bankitos-btn--primary" data-bankitos-submit disabled aria-disabled="true">
                                 <?php echo $installment['state'] === 'rejected' ? esc_html__('Reintentar pago', 'bankitos') : esc_html__('Registrar pago', 'bankitos'); ?>
                             </button>
+                            <span class="bankitos-credit-summary__help bankitos-credit-summary__help--error" data-bankitos-min-error hidden></span>
                             <?php elseif ($upload_blocked): ?>
                             <span class="bankitos-credit-summary__help bankitos-credit-summary__help--error"><?php esc_html_e('No tienes permiso para registrar pagos.', 'bankitos'); ?></span>
                           <?php else: ?>
@@ -550,6 +551,11 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
             var submit = form.querySelector('[data-bankitos-submit]');
             var errorMsg = form.querySelector('[data-upload-error]');
             var sizeMsg = form.querySelector('[data-upload-size-error]');
+            var minError = form.querySelector('[data-bankitos-min-error]');
+            var amountInput = form.querySelector('input[name="amount"][data-bankitos-min-amount]');
+            var minAmount = amountInput ? parseFloat(amountInput.getAttribute('data-bankitos-min-amount')) : 0;
+            var amountValue = amountInput ? parseFloat(amountInput.value) : 0;
+            var isAmountValid = !minAmount || (!isNaN(amountValue) && amountValue >= minAmount);
             var file = input.files && input.files.length ? input.files[0] : null;
             var hasFile = !!file;
             var isValid = false;
@@ -560,11 +566,17 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
               if(file.size && file.size > maxSize){ isSizeValid = false; }
             }
             if(submit){
-              submit.disabled = !isValid || !isSizeValid;
+              submit.disabled = !isValid || !isSizeValid || !isAmountValid;
               submit.setAttribute('aria-disabled', submit.disabled ? 'true' : 'false');
             }
             if(errorMsg){ errorMsg.hidden = !hasFile || isValid; }
             if(sizeMsg){ sizeMsg.hidden = !hasFile || isSizeValid; }
+            if(minError){
+              if(!isAmountValid && minAmount){
+                minError.textContent = 'Monto mínimo permitido: ' + minAmount;
+              }
+              minError.hidden = isAmountValid || !minAmount;
+            }
           }
 
           document.querySelectorAll('.bankitos-credit-summary__upload input[type="file"]').forEach(function(input){

@@ -29,12 +29,13 @@ class Bankitos_Shortcode_Aporte_Form extends Bankitos_Shortcode_Base {
         <div class="bankitos-form bankitos-panel">
           <h3><?php esc_html_e('Subir aporte', 'bankitos'); ?></h3>
           <?php echo self::top_notice_from_query(); ?>
-          <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" enctype="multipart/form-data">
+          <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" enctype="multipart/form-data" data-bankitos-min-form>
             <?php echo wp_nonce_field('bankitos_aporte_submit', '_wpnonce', true, false); ?>
             <input type="hidden" name="action" value="bankitos_aporte_submit">
             <div class="bankitos-field">
               <label for="bk_monto"><?php esc_html_e('Monto del aporte', 'bankitos'); ?></label>
-              <input id="bk_monto" type="number" name="monto" step="0.01" min="1" required>
+              <input id="bk_monto" type="number" name="monto" step="0.01" min="1000" required data-bankitos-min-amount="1000">
+              <span class="bankitos-field-error" data-bankitos-min-error></span>
             </div>
             <div class="bankitos-field">
               <label for="bk_comp"><?php esc_html_e('Comprobante (imagen o PDF, máximo 10MB)', 'bankitos'); ?></label>
