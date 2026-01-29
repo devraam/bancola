@@ -33,7 +33,7 @@ class Bankitos_Shortcode_Credit_Request extends Bankitos_Shortcode_Panel_Base {
             <p class="bankitos-credit-request__intro"><?php esc_html_e('El comité revisará tu solicitud y te notificará la decisión por los medios habituales.', 'bankitos'); ?></p>
           </div>
           <?php echo self::top_notice_from_query(); ?>
-          <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="bankitos-form bankitos-credit-request__form">
+          <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="bankitos-form bankitos-credit-request__form" data-bankitos-min-form>
             <?php echo wp_nonce_field('bankitos_credito_solicitar', '_wpnonce', true, false); ?>
             <input type="hidden" name="action" value="bankitos_credito_solicitar">
             <input type="hidden" name="redirect_to" value="<?php echo esc_url($current_url); ?>">
@@ -63,7 +63,8 @@ class Bankitos_Shortcode_Credit_Request extends Bankitos_Shortcode_Panel_Base {
               </div>
               <div class="bankitos-field">
                 <label for="bk_monto_credito"><?php esc_html_e('Monto solicitado', 'bankitos'); ?></label>
-                <input id="bk_monto_credito" type="number" name="monto" min="1" step="0.01" required placeholder="0,00">
+                <input id="bk_monto_credito" type="number" name="monto" min="50000" step="0.01" required placeholder="0,00" data-bankitos-min-amount="50000">
+                <span class="bankitos-field-error" data-bankitos-min-error></span>
               </div>
               <div class="bankitos-field">
                 <label for="bk_plazo"><?php esc_html_e('Tiempo de pago (meses)', 'bankitos'); ?></label>

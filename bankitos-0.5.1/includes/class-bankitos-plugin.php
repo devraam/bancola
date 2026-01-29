@@ -38,6 +38,7 @@ class Bankitos_Plugin {
         wp_register_script('bankitos-create-banco', BANKITOS_URL . 'assets/js/create-banco.js', [], BANKITOS_VERSION, true);
         wp_register_script('bankitos-recaptcha', BANKITOS_URL . 'assets/js/recaptcha.js', [], BANKITOS_VERSION, true);
         wp_register_script('bankitos-form-submit', BANKITOS_URL . 'assets/js/form-submit.js', [], BANKITOS_VERSION, true);
+        wp_register_script('bankitos-min-amount-validation', BANKITOS_URL . 'assets/js/min-amount-validation.js', [], BANKITOS_VERSION, true);
         
         // 1. Registramos el script del panel
         wp_register_script('bankitos-panel', BANKITOS_URL . 'assets/js/panel.js', [], BANKITOS_VERSION, true);
@@ -67,6 +68,11 @@ class Bankitos_Plugin {
         wp_enqueue_script('bankitos-form-submit');
         wp_localize_script('bankitos-form-submit', 'bankitosFormSubmit', [
             'loadingLabel' => __('Enviando...', 'bankitos'),
+        ]);
+
+        wp_enqueue_script('bankitos-min-amount-validation');
+        wp_localize_script('bankitos-min-amount-validation', 'bankitosMinAmountValidation', [
+            'message' => __('Monto mínimo permitido: {min}', 'bankitos'),
         ]);
     }
 }
