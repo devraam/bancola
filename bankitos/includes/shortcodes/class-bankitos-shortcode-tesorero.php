@@ -59,13 +59,11 @@ class Bankitos_Shortcode_Tesorero_List extends Bankitos_Shortcode_Base {
             <button type="submit" class="bankitos-btn"><?php esc_html_e('Aplicar estado', 'bankitos'); ?></button>
           </form>
 
-          <?php echo self::render_aporte_filter_form('tesorero', $filters); ?>
-
-          <form method="get" class="bankitos-filter-form bankitos-export-form">
+          <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="bankitos-filter-form bankitos-export-form">
             <fieldset>
               <legend><?php esc_html_e('Exportar aportes a Excel', 'bankitos'); ?></legend>
               <input type="hidden" name="action" value="bankitos_aporte_export_excel" />
-              <input type="hidden" name="_wpnonce" value="<?php echo esc_attr(wp_create_nonce('bankitos_aporte_export_excel')); ?>" />
+              <?php wp_nonce_field('bankitos_aporte_export_excel'); ?>
               <label><?php esc_html_e('Fecha inicial', 'bankitos'); ?> <input type="date" name="from" required value="<?php echo esc_attr($filters['from']); ?>"></label>
               <label><?php esc_html_e('Fecha final', 'bankitos'); ?> <input type="date" name="to" required value="<?php echo esc_attr($filters['to']); ?>"></label>
               <button type="submit" class="bankitos-btn bankitos-btn--secondary"><?php esc_html_e('Descargar Excel', 'bankitos'); ?></button>
@@ -128,7 +126,7 @@ class Bankitos_Shortcode_Tesorero_List extends Bankitos_Shortcode_Base {
                       </div>
                     </dl>
                     <?php if ($status === 'pending'): ?>
-                      <div class="bankitos-accordion__actions" aria-label="<?php esc_attr_e('Acciones del aporte', 'bankitos'); ?>">
+                      <div class="bankitos-accordion__actions">
                         <a class="bankitos-btn bankitos-btn--small" href="<?php echo esc_url(wp_nonce_url(add_query_arg(['action' => 'bankitos_aporte_approve', 'aporte' => $aporte_id, 'redirect_to' => $redirect], admin_url('admin-post.php')), 'bankitos_aporte_mod')); ?>"><?php esc_html_e('Aprobar', 'bankitos'); ?></a>
                         <a class="bankitos-btn bankitos-btn--small bankitos-btn--danger" href="<?php echo esc_url(wp_nonce_url(add_query_arg(['action' => 'bankitos_aporte_reject', 'aporte' => $aporte_id, 'redirect_to' => $redirect], admin_url('admin-post.php')), 'bankitos_aporte_mod')); ?>"><?php esc_html_e('Rechazar', 'bankitos'); ?></a>
                       </div>
@@ -153,7 +151,6 @@ class Bankitos_Shortcode_Tesorero_List extends Bankitos_Shortcode_Base {
     protected static function get_status_filter(): string {
         $status = isset($_GET['bk_tes_status']) ? sanitize_key($_GET['bk_tes_status']) : 'pending';
         $allowed = ['all', 'pending', 'publish', 'private'];
-
         return in_array($status, $allowed, true) ? $status : 'pending';
     }
 
@@ -161,7 +158,6 @@ class Bankitos_Shortcode_Tesorero_List extends Bankitos_Shortcode_Base {
         if ($status_filter === 'all') {
             return ['pending', 'publish', 'private'];
         }
-
         return [$status_filter];
     }
 
@@ -173,7 +169,6 @@ class Bankitos_Shortcode_Tesorero_List extends Bankitos_Shortcode_Base {
                 'summary_class' => 'bankitos-accordion__summary--accepted',
             ];
         }
-
         if ($status === 'private') {
             return [
                 'label' => __('Rechazado', 'bankitos'),
@@ -181,7 +176,6 @@ class Bankitos_Shortcode_Tesorero_List extends Bankitos_Shortcode_Base {
                 'summary_class' => 'bankitos-accordion__summary--rejected',
             ];
         }
-
         return [
             'label' => __('Pendiente', 'bankitos'),
             'pill_class' => 'bankitos-pill--pending',
@@ -207,102 +201,34 @@ class Bankitos_Shortcode_Tesorero_List extends Bankitos_Shortcode_Base {
 
           function close(){
             modal.setAttribute('hidden','hidden');
-            if(frame){
-              frame.removeAttribute('src');
-              frame.setAttribute('hidden', '');
-              frame.setAttribute('aria-hidden', 'true');
-              frame.removeAttribute('title');
-            } 
-            if(img){
-              img.removeAttribute('src');
-              img.setAttribute('hidden', '');
-            }
-            if(errorBox){
-              errorBox.textContent = '';
-              errorBox.setAttribute('hidden', '');
-            }
+            if(frame){ frame.removeAttribute('src'); frame.setAttribute('hidden', ''); frame.setAttribute('aria-hidden', 'true'); } 
+            if(img){ img.removeAttribute('src'); img.setAttribute('hidden', ''); }
+            if(errorBox){ errorBox.textContent = ''; errorBox.setAttribute('hidden', ''); }
           }
           
           [backdrop, closeBtn].forEach(function(el){ if(el){ el.addEventListener('click', close); }});
 
-          function showError(message){
-            if(!errorBox){ return; }
-            errorBox.textContent = message || '';
-            errorBox.removeAttribute('hidden');
-          }
-
-          function resetContent(){
-            if(img){
-              img.removeAttribute('src');
-              img.setAttribute('hidden', '');
-            }
-            if(frame){
-              frame.removeAttribute('src');
-              frame.setAttribute('hidden', '');
-              frame.setAttribute('aria-hidden', 'true');
-            }
-            if(errorBox){
-              errorBox.textContent = '';
-              errorBox.setAttribute('hidden', '');
-            }
-          }
-
           function openReceipt(receiptUrl, isImage, title){
             if (!receiptUrl){ return; }
-
-            resetContent();
+            if(img){ img.removeAttribute('src'); img.setAttribute('hidden', ''); }
+            if(frame){ frame.removeAttribute('src'); frame.setAttribute('hidden', ''); }
 
             if (isImage && img) {
-              img.onload = function(){
-                img.onload = null;
-                img.onerror = null;
-                img.removeAttribute('hidden');
-                modal.removeAttribute('hidden');
-              };
-              img.onerror = function(){
-                img.onload = null;
-                img.onerror = null;
-                img.setAttribute('hidden', '');
-                showError('No se pudo cargar el comprobante.');
-                modal.removeAttribute('hidden');
-              };
-              img.alt = title || '';
+              img.onload = function(){ img.removeAttribute('hidden'); modal.removeAttribute('hidden'); };
               img.src = receiptUrl;
               modal.removeAttribute('hidden');
-              return;
-            }
-
-            if (frame) {
-              frame.onload = function(){
-                frame.onload = null;
-                frame.onerror = null;
-              };
-              frame.onerror = function(){
-                frame.onload = null;
-                frame.onerror = null;
-                frame.setAttribute('hidden', '');
-                showError('No se pudo cargar el comprobante.');
-              };
-              frame.removeAttribute('aria-hidden');
+            } else if (frame) {
               frame.removeAttribute('hidden');
-              frame.title = title || '';
               frame.src = receiptUrl;
               modal.removeAttribute('hidden');
-              return;
             }
-            
-            showError('No se pudo cargar el comprobante.');
-            modal.removeAttribute('hidden');
           }
 
           document.addEventListener('click', function(ev){
             var link = ev.target.closest('.bankitos-receipt-link');
             if (!link){ return; }
             ev.preventDefault();
-            var receiptUrl = link.getAttribute('data-receipt');
-            var isImage = link.getAttribute('data-is-image') === '1';
-            var title = link.getAttribute('data-title') || '';
-            openReceipt(receiptUrl, isImage, title);
+            openReceipt(link.getAttribute('data-receipt'), link.getAttribute('data-is-image') === '1', link.getAttribute('data-title'));
           });
         })();
         </script>
