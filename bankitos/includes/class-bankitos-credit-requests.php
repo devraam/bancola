@@ -169,60 +169,49 @@ class Bankitos_Credit_Requests {
     public static function record_approval(int $request_id, string $role_key, string $decision, string $notes = '') {
         $request = self::get_request($request_id);
         if (!$request) {
+            do_action('bankitos_log_event', 'CREDIT_ERROR', 'Solicitud no encontrada', 0, ['request_id' => $request_id]);
             return new WP_Error('bankitos_credit_request_missing', __('La solicitud no existe.', 'bankitos'));
         }
-        if (!in_array($request['status'], ['pending'], true)) {
-            return new WP_Error('bankitos_credit_request_locked', __('Esta solicitud ya fue resuelta.', 'bankitos'));
+
+        // CORRECCIÓN: Si el rol viene vacío, intentar recuperarlo forzosamente
+        if (empty($role_key)) {
+            $role_key = self::get_user_role_key(get_current_user_id());
         }
+
         $map = [
             'presidente' => 'approved_president',
             'tesorero'   => 'approved_treasurer',
             'veedor'     => 'approved_veedor',
         ];
+
         if (!isset($map[$role_key])) {
-            return new WP_Error('bankitos_credit_role', __('No puedes actualizar esta solicitud.', 'bankitos'));
+            do_action('bankitos_log_event', 'CREDIT_ERROR', 'Fallo de Rol: ' . $role_key, $request['banco_id'], ['user_id' => get_current_user_id()]);
+            return new WP_Error('bankitos_credit_role', __('No puedes actualizar esta solicitud (Rol no reconocido).', 'bankitos'));
         }
-        if (!in_array($decision, ['approved', 'rejected'], true)) {
-            return new WP_Error('bankitos_credit_decision', __('Debes seleccionar una decisión válida.', 'bankitos'));
-        }
+
         global $wpdb;
         $table = self::table_name();
-        $update = [
-            $map[$role_key] => $decision,
-        ];
-        if ($notes !== '') {
-            $update['committee_notes'] = $notes;
-        }
-        $formats = ['%s'];
-        if ($notes !== '') {
-            $formats[] = '%s';
-        }
-        $updated = $wpdb->update($table, $update, ['id' => $request_id], $formats, ['%d']);
+        
+        $update = [$map[$role_key] => $decision];
+        if ($notes !== '') { $update['committee_notes'] = $notes; }
+
+        $updated = $wpdb->update($table, $update, ['id' => $request_id]);
+
         if ($updated === false) {
+            do_action('bankitos_log_event', 'CREDIT_ERROR', 'Error en DB al actualizar', $request['banco_id'], $wpdb->last_error);
             return new WP_Error('bankitos_credit_update', __('No fue posible guardar la decisión.', 'bankitos'));
         }
-        $request[$map[$role_key]] = $decision;
-        if ($notes !== '') {
-            $request['committee_notes'] = $notes;
-        }
+
+        // Registro de éxito en logs
+        do_action('bankitos_log_event', 'CREDIT_APPROVAL', "Firma registrada: $role_key ($decision)", $request['banco_id'], ['request_id' => $request_id]);
+
+        // Recalcular estado final...
+        $request = self::get_request($request_id);
         $final_status = self::calculate_status($request);
-        if ($final_status === 'approved') {
-            $final_status = 'disbursement_pending';
-        }
         if ($final_status !== $request['status']) {
-            $fields = ['status' => $final_status];
-            $formats = ['%s'];
-            if ($final_status === 'disbursement_pending') {
-                $fields['approval_date'] = current_time('mysql');
-                $formats[] = '%s';
-            } elseif ($final_status === 'rejected') {
-                $fields['approval_date'] = null;
-                $formats[] = '%s';
-            }
-            $wpdb->update($table, $fields, ['id' => $request_id], $formats, ['%d']);
-            $request['status'] = $final_status;
-            $request['approval_date'] = $fields['approval_date'] ?? $request['approval_date'];
+             $wpdb->update($table, ['status' => $final_status], ['id' => $request_id]);
         }
+
         return true;
     }
 
