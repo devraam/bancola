@@ -31,7 +31,7 @@ class Bankitos_Shortcode_Panel_Finanzas extends Bankitos_Shortcode_Panel_Base {
         <div class="bankitos-form bankitos-panel">
           <div class="bankitos-panel-info__header">
             <?php echo self::top_notice_from_query(); ?>
-            <img decoding="async" width="80" class="df_ab_blurb_image_img" src="https://bancola.lepli.com.co/wp-content/uploads/2025/12/Icono-aportes.svg" alt="">
+            <img decoding="async" width="80" class="df_ab_blurb_image_img" src="https://bancolapp.lepli.com.co/wp-content/uploads/2025/12/Icono-aportes.svg" alt="">
             <div>
               <h3><?php esc_html_e('Mis Aportes', 'bankitos'); ?></h3>
               <div class="bankitos-finanzas__summary">
