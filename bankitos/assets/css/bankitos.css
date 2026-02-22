@@ -186,6 +186,24 @@ p {padding-bottom: 0;}
 .bankitos-credit-payment__grid dd{display:flex;align-items:center;gap:.35rem;}
 .bankitos-credit-payment__actions{align-items:center;}
 .bankitos-credit-payment__note{margin:0;font-weight:700;color:rgba(15,23,42,.65);}
+
+.bankitos-accordion__summary--pending{background:var(--bco-gris);}
+.bankitos-accordion__summary--accepted{background:rgba(220,252,231,.45);}
+.bankitos-accordion__summary--rejected{background:rgba(254,226,226,.5);}
+.bankitos-filter-form{margin:0 0 1rem;}
+.bankitos-filter-form fieldset{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.75rem;border:1px solid rgba(0,115,179,.12);border-radius:12px;padding:1rem;}
+.bankitos-filter-form label{display:flex;flex-direction:column;gap:.35rem;font-weight:700;color:var(--bco-texto);}
+.bankitos-filter-form input,
+.bankitos-filter-form select{width:100%;}
+.bankitos-filter-form--status{display:flex;flex-wrap:wrap;gap:.75rem;align-items:flex-end;margin-bottom:1rem;}
+.bankitos-filter-form--status label{min-width:180px;}
+.bankitos-filter-form--status .bankitos-btn{width:auto;min-width:170px;}
+.bankitos-export-form .bankitos-btn{width:auto;min-width:190px;align-self:end;}
+@media (max-width:720px){
+  .bankitos-filter-form--status{flex-direction:column;align-items:stretch;}
+  .bankitos-filter-form--status .bankitos-btn,
+  .bankitos-export-form .bankitos-btn{width:100%;min-width:0;}
+}
 .bankitos-credit-payment--pending .bankitos-accordion__summary{background:var(--bco-gris);}
 .bankitos-credit-payment--approved .bankitos-accordion__summary{background:rgba(220,252,231,.45);}
 .bankitos-credit-payment--rejected .bankitos-accordion__summary{background:rgba(254,226,226,.5);}

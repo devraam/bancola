@@ -8,6 +8,7 @@ class BK_Aportes_Handler {
         add_action('admin_post_bankitos_aporte_reject',      [__CLASS__,'aporte_reject']);
         add_action('admin_post_bankitos_aporte_download',    [__CLASS__,'aporte_download']);
         add_action('admin_post_bankitos_aporte_view',        [__CLASS__,'aporte_view']);
+        add_action('admin_post_bankitos_aporte_export_excel',[__CLASS__,'aporte_export_excel']);
     }
 
     private static function get_redirect_target(string $fallback): string {
@@ -262,5 +263,92 @@ class BK_Aportes_Handler {
     public static function aporte_download() {
         $aporte_id = intval($_GET['aporte'] ?? 0);
         self::stream_aporte_file($aporte_id, 'bankitos_aporte_download_', 'attachment');
+    }
+
+    public static function aporte_export_excel() {
+        if (!is_user_logged_in()) {
+            wp_safe_redirect(site_url('/acceder'));
+            exit;
+        }
+        check_admin_referer('bankitos_aporte_export_excel');
+        if (!current_user_can('approve_aportes')) {
+            self::redirect_with('err', 'permiso', site_url('/panel'));
+        }
+
+        $from = isset($_GET['from']) ? sanitize_text_field(wp_unslash($_GET['from'])) : '';
+        $to = isset($_GET['to']) ? sanitize_text_field(wp_unslash($_GET['to'])) : '';
+
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $from) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $to)) {
+            self::redirect_with('err', 'validacion', site_url('/panel'));
+        }
+        if (strtotime($from) > strtotime($to)) {
+            self::redirect_with('err', 'validacion', site_url('/panel'));
+        }
+
+        $user_id = get_current_user_id();
+        $banco_id = class_exists('Bankitos_Handlers') ? Bankitos_Handlers::get_user_banco_id($user_id) : 0;
+        if ($banco_id <= 0) {
+            self::redirect_with('err', 'no_banco', site_url('/panel'));
+        }
+
+        $query = new WP_Query([
+            'post_type'      => Bankitos_CPT::SLUG_APORTE,
+            'post_status'    => ['pending', 'publish', 'private'],
+            'posts_per_page' => -1,
+            'orderby'        => 'date',
+            'order'          => 'ASC',
+            'meta_query'     => [[
+                'key'     => '_bankitos_banco_id',
+                'value'   => $banco_id,
+                'compare' => '=',
+            ]],
+            'date_query'     => [[
+                'after'     => $from,
+                'before'    => $to,
+                'inclusive' => true,
+            ]],
+        ]);
+
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+
+        $filename = sprintf('aportes-bankitos-%s-a-%s.xls', $from, $to);
+        nocache_headers();
+        header('Content-Type: application/vnd.ms-excel; charset=utf-8');
+        header('Content-Disposition: attachment; filename=' . sanitize_file_name($filename));
+
+        echo "\xEF\xBB\xBF";
+        echo '<table border="1">';
+        echo '<tr><th>' . esc_html__('Fecha', 'bankitos') . '</th><th>' . esc_html__('Miembro', 'bankitos') . '</th><th>' . esc_html__('Monto', 'bankitos') . '</th><th>' . esc_html__('Estado', 'bankitos') . '</th></tr>';
+
+        if ($query->have_posts()) {
+            while ($query->have_posts()) {
+                $query->the_post();
+                $aporte_id = get_the_ID();
+                $monto = (float) get_post_meta($aporte_id, '_bankitos_monto', true);
+                $author = get_userdata((int) get_post_field('post_author', $aporte_id));
+                $member_name = $author ? ($author->display_name ?: $author->user_login) : '—';
+                $status = get_post_status($aporte_id);
+                $status_label = 'Pendiente';
+
+                if ($status === 'publish') {
+                    $status_label = 'Aprobado';
+                } elseif ($status === 'private') {
+                    $status_label = 'Rechazado';
+                }
+
+                echo '<tr>';
+                echo '<td>' . esc_html(get_the_date('Y-m-d', $aporte_id)) . '</td>';
+                echo '<td>' . esc_html($member_name) . '</td>';
+                echo '<td>' . esc_html(number_format($monto, 0, ',', '.')) . '</td>';
+                echo '<td>' . esc_html($status_label) . '</td>';
+                echo '</tr>';
+            }
+            wp_reset_postdata();
+        }
+
+        echo '</table>';
+        exit;
     }
 }
