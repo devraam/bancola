@@ -270,25 +270,26 @@ class BK_Aportes_Handler {
             wp_safe_redirect(site_url('/acceder'));
             exit;
         }
+        
+        // Se cambió a check_admin_referer normal para POST
         check_admin_referer('bankitos_aporte_export_excel');
+
         if (!current_user_can('approve_aportes')) {
-            self::redirect_with('err', 'permiso', site_url('/panel'));
+            wp_die(__('No tienes permisos para realizar esta acción.', 'bankitos'));
         }
 
-        $from = isset($_GET['from']) ? sanitize_text_field(wp_unslash($_GET['from'])) : '';
-        $to = isset($_GET['to']) ? sanitize_text_field(wp_unslash($_GET['to'])) : '';
+        $from = isset($_POST['from']) ? sanitize_text_field(wp_unslash($_POST['from'])) : '';
+        $to   = isset($_POST['to']) ? sanitize_text_field(wp_unslash($_POST['to'])) : '';
 
-        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $from) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $to)) {
-            self::redirect_with('err', 'validacion', site_url('/panel'));
-        }
-        if (strtotime($from) > strtotime($to)) {
-            self::redirect_with('err', 'validacion', site_url('/panel'));
+        if (!$from || !$to || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $from) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $to)) {
+            wp_die(__('Por favor selecciona un rango de fechas válido.', 'bankitos'));
         }
 
         $user_id = get_current_user_id();
         $banco_id = class_exists('Bankitos_Handlers') ? Bankitos_Handlers::get_user_banco_id($user_id) : 0;
+        
         if ($banco_id <= 0) {
-            self::redirect_with('err', 'no_banco', site_url('/panel'));
+            wp_die(__('No perteneces a un B@nko.', 'bankitos'));
         }
 
         $query = new WP_Query([
@@ -309,18 +310,25 @@ class BK_Aportes_Handler {
             ]],
         ]);
 
-        while (ob_get_level() > 0) {
-            ob_end_clean();
-        }
+        // Limpiar buffers para evitar basura en el archivo
+        while (ob_get_level() > 0) { ob_end_clean(); }
 
         $filename = sprintf('aportes-bankitos-%s-a-%s.xls', $from, $to);
-        nocache_headers();
+        
         header('Content-Type: application/vnd.ms-excel; charset=utf-8');
         header('Content-Disposition: attachment; filename=' . sanitize_file_name($filename));
+        header('Pragma: no-cache');
+        header('Expires: 0');
 
+        // BOM para asegurar que Excel reconozca UTF-8 (tildes y símbolos)
         echo "\xEF\xBB\xBF";
         echo '<table border="1">';
-        echo '<tr><th>' . esc_html__('Fecha', 'bankitos') . '</th><th>' . esc_html__('Miembro', 'bankitos') . '</th><th>' . esc_html__('Monto', 'bankitos') . '</th><th>' . esc_html__('Estado', 'bankitos') . '</th></tr>';
+        echo '<tr>
+                <th style="background-color:#eee;">' . esc_html__('Fecha', 'bankitos') . '</th>
+                <th style="background-color:#eee;">' . esc_html__('Miembro', 'bankitos') . '</th>
+                <th style="background-color:#eee;">' . esc_html__('Monto', 'bankitos') . '</th>
+                <th style="background-color:#eee;">' . esc_html__('Estado', 'bankitos') . '</th>
+              </tr>';
 
         if ($query->have_posts()) {
             while ($query->have_posts()) {
@@ -330,13 +338,10 @@ class BK_Aportes_Handler {
                 $author = get_userdata((int) get_post_field('post_author', $aporte_id));
                 $member_name = $author ? ($author->display_name ?: $author->user_login) : '—';
                 $status = get_post_status($aporte_id);
+                
                 $status_label = 'Pendiente';
-
-                if ($status === 'publish') {
-                    $status_label = 'Aprobado';
-                } elseif ($status === 'private') {
-                    $status_label = 'Rechazado';
-                }
+                if ($status === 'publish') $status_label = 'Aprobado';
+                elseif ($status === 'private') $status_label = 'Rechazado';
 
                 echo '<tr>';
                 echo '<td>' . esc_html(get_the_date('Y-m-d', $aporte_id)) . '</td>';
@@ -346,6 +351,8 @@ class BK_Aportes_Handler {
                 echo '</tr>';
             }
             wp_reset_postdata();
+        } else {
+            echo '<tr><td colspan="4">' . esc_html__('No hay aportes en este rango.', 'bankitos') . '</td></tr>';
         }
 
         echo '</table>';
