@@ -36,6 +36,15 @@ class Bankitos_Admin_Reports {
             'dashicons-chart-pie',
             25
         );
+
+        add_submenu_page(
+            self::PAGE_SLUG,
+            __('Logs de Transacciones', 'bankitos'),
+            __('Trazas/Logs', 'bankitos'),
+            self::CAPABILITY,
+            'bankitos-logs',
+            [__CLASS__, 'render_logs_page']
+        );
     }
 
     public static function enqueue_assets(string $hook): void {
@@ -595,15 +604,11 @@ class Bankitos_Admin_Reports {
         return $plan;
     }
 
-    // Añadir a register_menu()
-    public static function register_menu(): void {
-        add_menu_page('Dashboard Global', 'Dashboard Global', self::CAPABILITY, self::PAGE_SLUG, [__CLASS__, 'render_page'], 'dashicons-chart-pie', 25);
-        // Nueva Subpestaña de Logs
-        add_submenu_page(self::PAGE_SLUG, __('Logs de Transacciones', 'bankitos'), __('Trazas/Logs', 'bankitos'), self::CAPABILITY, 'bankitos-logs', [__CLASS__, 'render_logs_page']);
-    }
-
-    public static function render_logs_page() {
-        if (!current_user_can(self::CAPABILITY)) wp_die('No permitido');
+    public static function render_logs_page(): void {
+        if (!self::can_view_reports()) {
+            wp_die(__('No permitido', 'bankitos'));
+        }
+    
         $logs = Bankitos_Logs::get_recent_logs(30);
         ?>
         <div class="wrap">
@@ -622,9 +627,9 @@ class Bankitos_Admin_Reports {
                 <tbody>
                     <?php foreach ($logs as $log): ?>
                     <tr>
-                        <td><?php echo $log->created_at; ?></td>
-                        <td><strong><?php echo $log->action_type; ?></strong></td>
-                        <td><?php echo $log->banco_id; ?></td>
+                        <td><?php echo esc_html((string) $log->created_at); ?></td>
+                        <td><strong><?php echo esc_html((string) $log->action_type); ?></strong></td>
+                        <td><?php echo esc_html((string) $log->banco_id); ?></td>
                         <td><?php echo esc_html($log->message); ?></td>
                         <td><code><?php echo esc_html($log->data_json); ?></code></td>
                     </tr>
