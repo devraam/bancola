@@ -2,8 +2,9 @@
 /**
  * Plugin Name: BanKitos
  * Description: B@nko comunitario: aportes, préstamos y acceso solo para miembros.
- * Version: 0.5.1
- * Author: Bancola
+ * Version: 0.6.1
+ * Author: Asesor Digital
+ * Author URI: https://asesordigital.com.co
  * License: GPL2+
  */
 
@@ -29,6 +30,7 @@ require_once BANKITOS_PATH . 'includes/class-bankitos-shortcodes.php';
 require_once BANKITOS_PATH . 'includes/class-bankitos-handlers.php';
 require_once BANKITOS_PATH . 'includes/class-bankitos-domains.php';
 require_once BANKITOS_PATH . 'includes/class-bankitos-admin-reports.php';
+require_once BANKITOS_PATH . 'includes/class-bankitos-logs.php'; // Nueva clase de logs
 
 /* ========= Bootstrap ========= */
 function bankitos() {
@@ -40,11 +42,30 @@ function bankitos() {
 }
 bankitos();
 
+// Inicialización de configuraciones
 Bankitos_Settings::init();
+
+// Inicialización de logs (para que el hook 'bankitos_log_event' esté disponible)
+if (class_exists('Bankitos_Logs')) {
+    Bankitos_Logs::init();
+}
+
 if (class_exists('Bankitos_Domains')) {
     Bankitos_Domains::init();
 }
+
 if (class_exists('Bankitos_Secure_Files')) {
     Bankitos_Secure_Files::init();
 }
+
+// Hook de activación para crear tablas (incluyendo la nueva de logs)
+register_activation_hook(__FILE__, function() {
+    if (class_exists('Bankitos_DB')) {
+        Bankitos_DB::create_tables();
+    }
+    if (class_exists('Bankitos_Logs')) {
+        Bankitos_Logs::create_table();
+    }
+});
+
 add_action('init', ['Bankitos_CPT', 'init'], 5);
