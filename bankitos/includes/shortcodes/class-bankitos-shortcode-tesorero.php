@@ -59,17 +59,6 @@ class Bankitos_Shortcode_Tesorero_List extends Bankitos_Shortcode_Base {
             <button type="submit" class="bankitos-btn"><?php esc_html_e('Aplicar estado', 'bankitos'); ?></button>
           </form>
 
-          <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="bankitos-filter-form bankitos-export-form">
-            <fieldset>
-              <legend><?php esc_html_e('Exportar aportes a Excel', 'bankitos'); ?></legend>
-              <input type="hidden" name="action" value="bankitos_aporte_export_excel" />
-              <?php wp_nonce_field('bankitos_aporte_export_excel'); ?>
-              <label><?php esc_html_e('Fecha inicial', 'bankitos'); ?> <input type="date" name="from" required value="<?php echo esc_attr($filters['from']); ?>"></label>
-              <label><?php esc_html_e('Fecha final', 'bankitos'); ?> <input type="date" name="to" required value="<?php echo esc_attr($filters['to']); ?>"></label>
-              <button type="submit" class="bankitos-btn bankitos-btn--secondary"><?php esc_html_e('Descargar Excel', 'bankitos'); ?></button>
-            </fieldset>
-          </form>
-
           <?php if (!$q->have_posts()): ?>
             <p><?php esc_html_e('No hay aportes para los filtros seleccionados.', 'bankitos'); ?></p>
           <?php else: ?>
