@@ -89,6 +89,7 @@ class BK_Creditos_Handler {
         if ($request_id <= 0) {
             self::redirect_with('err', 'credito_guardar', site_url('/panel'));
         }
+        do_action('bankitos_log_event', 'CREDIT_REQUEST', 'Solicitud de crédito #' . $request_id . ' enviada por usuario #' . $user_id, $banco_id, ['request_id' => $request_id, 'monto' => $monto, 'plazo' => $plazo]);
         self::redirect_with('ok', 'credito_solicitado', site_url('/panel'));
     }
 
@@ -125,6 +126,7 @@ class BK_Creditos_Handler {
         if (is_wp_error($result)) {
             self::redirect_with('err', 'credito_decision', site_url('/panel'));
         }
+        do_action('bankitos_log_event', 'CREDIT_RESOLVE', 'Decisión "' . $decision . '" registrada en solicitud #' . $request_id . ' por usuario #' . $user_id, $banco_id, ['request_id' => $request_id, 'decision' => $decision]);
         self::redirect_with('ok', 'credito_actualizado', site_url('/panel'));
     }
 }

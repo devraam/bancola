@@ -74,11 +74,52 @@ class Bankitos_Shortcode_Crear_Banco extends Bankitos_Shortcode_Base {
               <small class="bankitos-field-error" id="err_dur" aria-live="polite"></small>
             </div>
 
+            <hr class="bankitos-separator" style="margin:1.5rem 0; border:none; border-top:1px solid #e5e7eb;">
+            <h4 style="margin-bottom:0.75rem;"><?php esc_html_e('Intereses moratorios (opcional)', 'bankitos'); ?></h4>
+            <p class="bankitos-field-hint" style="margin-bottom:1rem;"><?php esc_html_e('Activa esto si el banco desea cobrar un interés adicional cuando un socio paga una cuota después de la fecha límite.', 'bankitos'); ?></p>
+
+            <div class="bankitos-field bankitos-field--checkbox">
+              <label>
+                <input type="checkbox" id="bk_mora_enabled" name="mora_enabled" value="1">
+                <?php esc_html_e('Aplicar intereses de mora por pagos atrasados', 'bankitos'); ?>
+              </label>
+            </div>
+
+            <div id="bk_mora_fields" style="display:none; border-left:3px solid #3b82f6; padding-left:1rem; margin-top:0.5rem;">
+              <div class="bankitos-field">
+                <label for="bk_mora_rate"><?php esc_html_e('Tasa de mora mensual (%)', 'bankitos'); ?></label>
+                <input id="bk_mora_rate" type="number" name="mora_rate" min="0.1" max="5.0" step="0.1" placeholder="0.1 - 5.0" value="2.0">
+                <small class="bankitos-field-hint"><?php esc_html_e('Porcentaje mensual adicional que se cobra por cada día de atraso.', 'bankitos'); ?></small>
+              </div>
+              <div class="bankitos-field">
+                <label for="bk_mora_grace"><?php esc_html_e('Días de gracia', 'bankitos'); ?></label>
+                <input id="bk_mora_grace" type="number" name="mora_grace_days" min="0" max="30" step="1" placeholder="0" value="0">
+                <small class="bankitos-field-hint"><?php esc_html_e('Número de días después de la fecha límite antes de que se empiece a cobrar mora.', 'bankitos'); ?></small>
+              </div>
+            </div>
+
+            <hr class="bankitos-separator" style="margin:1.5rem 0; border:none; border-top:1px solid #e5e7eb;">
+            <h4 style="margin-bottom:0.75rem;"><?php esc_html_e('Penalización por renuncia voluntaria', 'bankitos'); ?></h4>
+            <p class="bankitos-field-hint" style="margin-bottom:1rem;"><?php esc_html_e('Porcentaje del ahorro acumulado que se retiene cuando un socio se retira voluntariamente. El monto retenido se distribuye entre los socios restantes.', 'bankitos'); ?></p>
+            <div class="bankitos-field">
+              <label for="bk_resignation"><?php esc_html_e('Penalización por renuncia (%)', 'bankitos'); ?></label>
+              <input id="bk_resignation" type="number" name="resignation_penalty" min="0" max="100" step="1" placeholder="0" value="0">
+              <small class="bankitos-field-hint"><?php esc_html_e('Ej.: 10 significa que al retirarse se le descuenta el 10% de sus ahorros. Deja en 0 para no aplicar penalización.', 'bankitos'); ?></small>
+            </div>
+
             <div class="bankitos-actions">
               <button type="submit" class="bankitos-btn"><?php esc_html_e('Crear B@nko', 'bankitos'); ?></button>
             </div>
           </form>
         </div>
+        <script>
+        (function(){
+          var chk  = document.getElementById('bk_mora_enabled');
+          var wrap = document.getElementById('bk_mora_fields');
+          if (!chk || !wrap) return;
+          chk.addEventListener('change', function(){ wrap.style.display = this.checked ? 'block' : 'none'; });
+        })();
+        </script>
         <?php
         return ob_get_clean();
     }

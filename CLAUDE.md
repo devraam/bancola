@@ -145,44 +145,12 @@ Todos los endpoints siguen el patrón WordPress `admin_post_{action}`:
 
 ## Vulnerabilidades conocidas (pendientes de resolver)
 
-### Alta prioridad
-
-| # | Descripción | Archivo(s) | Severidad | Estado |
-|---|-------------|------------|-----------|--------|
-| 1 | Sin rate limiting en login, reset de contraseña e invitaciones | [class-bk-auth.php](bankitos/includes/handlers/class-bk-auth.php) | ALTA | ✅ RESUELTO |
-| 2 | PII sin cifrar en DB (`document_id`, `phone`) | [class-bankitos-credit-requests.php](bankitos/includes/class-bankitos-credit-requests.php) | ALTA | ✅ RESUELTO |
-| 3 | Sin lockout de cuenta tras intentos fallidos de login | [class-bk-auth.php](bankitos/includes/handlers/class-bk-auth.php) | ALTA | ✅ RESUELTO |
-
-**Solución 1+3:** Nueva clase [class-bankitos-rate-limiter.php](bankitos/includes/class-bankitos-rate-limiter.php) — máx 5 intentos en 15 min por IP, lockout automático via transients.
-
-**Solución 2:** Nueva clase [class-bankitos-crypto.php](bankitos/includes/class-bankitos-crypto.php) — AES-256-CBC con clave derivada de `AUTH_KEY`. Compatible con datos legados (sin cifrar) gracias al prefijo `bk1:`.
-
-### Media prioridad
-
-| # | Descripción | Archivo(s) | Severidad | Estado |
-|---|-------------|------------|-----------|--------|
-| 4 | Tokens de invitación expuestos en URL (historial del browser, logs del servidor) | [class-bk-invites.php](bankitos/includes/handlers/class-bk-invites.php) | MEDIA | ⚠️ PENDIENTE (by design — email links) |
-| 5 | Sin headers de seguridad HTTP (X-Content-Type-Options, CSP, X-Frame-Options) | [class-bankitos-plugin.php](bankitos/includes/class-bankitos-plugin.php) | MEDIA | ✅ RESUELTO |
-| 6 | Posible enumeración de emails en recuperación de contraseña | [class-bk-auth.php](bankitos/includes/handlers/class-bk-auth.php) | MEDIA | ✅ RESUELTO |
-| 7 | Logs pueden contener datos sensibles en columna `data_json` sin filtrar | [class-bankitos-logs.php](bankitos/includes/class-bankitos-logs.php) | MEDIA | ✅ RESUELTO |
-
-**Solución 5:** `send_security_headers()` en `Bankitos_Plugin` — X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy.
-
-**Solución 6:** Rate limiting en `do_recover()` retorna siempre `ok=recovery_sent` (no revela si el email existe). + `record_failure` por email e IP.
-
-**Solución 7:** `$sensitive_fields` en `Bankitos_Logs::add_log()` — redacta automáticamente campos PII y credenciales antes de guardar en `data_json`.
-
-### Baja prioridad
-
-| # | Descripción | Archivo(s) | Severidad | Estado |
-|---|-------------|------------|-----------|--------|
-| 8 | Sin verificación de email al registrarse | [class-bk-auth.php](bankitos/includes/handlers/class-bk-auth.php) | BAJA | ⚠️ PENDIENTE |
-| 9 | Sin 2FA/MFA | Auth general | BAJA | ⚠️ PENDIENTE |
-| 10 | Supresión de errores con `@` en operaciones de archivos | [class-bankitos-secure-files.php](bankitos/includes/class-bankitos-secure-files.php) | BAJA | ✅ RESUELTO |
-| 11 | IP del usuario enviada a Google para reCAPTCHA (documentar en política de privacidad) | [class-bankitos-recaptcha.php](bankitos/includes/class-bankitos-recaptcha.php):75 | BAJA | ⚠️ PENDIENTE (documentar) |
-| 12 | `.htaccess` del dir de archivos protegidos usaba `Options +Indexes` + `Require all granted` — exponía todos los archivos públicamente | [class-bankitos-secure-files.php](bankitos/includes/class-bankitos-secure-files.php) | **ALTA** | ✅ RESUELTO |
-
-**Solución 10+12:** `.htaccess` corregido a `Options -Indexes` + `Require all denied`. `move_file()` usa `rename()`/`copy()` sin `@`, con `error_log()` en fallo.
+| # | Descripción | Archivo(s) | Severidad | Notas |
+|---|-------------|------------|-----------|-------|
+| 1 | Tokens de invitación expuestos en URL (historial del browser, logs del servidor) | [class-bk-invites.php](bankitos/includes/handlers/class-bk-invites.php) | MEDIA | By design — los links viajan por email |
+| 2 | Sin verificación de email al registrarse | [class-bk-auth.php](bankitos/includes/handlers/class-bk-auth.php) | BAJA | Pendiente de implementar |
+| 3 | Sin 2FA/MFA | Auth general | BAJA | Pendiente de implementar |
+| 4 | IP del usuario enviada a Google para reCAPTCHA | [class-bankitos-recaptcha.php](bankitos/includes/class-bankitos-recaptcha.php):75 | BAJA | Documentar en política de privacidad |
 
 ---
 
@@ -190,10 +158,6 @@ Todos los endpoints siguen el patrón WordPress `admin_post_{action}`:
 
 | Feature | Descripción | Impacto |
 |---------|-------------|---------|
-| Rate limiting | Limitar intentos en endpoints de auth | Seguridad crítica |
-| Lockout de cuenta | Bloquear temporalmente tras X intentos fallidos | Seguridad alta |
-| Cifrado de PII | Cifrar `document_id`, `phone`, `age` en DB | Seguridad alta |
-| Headers de seguridad | Agregar X-Content-Type-Options, X-Frame-Options, CSP | Seguridad media |
 | Verificación de email | Confirmar email antes de activar cuenta | Seguridad/UX |
 | Tests unitarios | No hay ningún test en el proyecto | Calidad de código |
 | Tests de integración | No hay tests E2E ni de integración | Calidad de código |
@@ -281,6 +245,64 @@ echo '<a href="' . esc_url($url) . '">' . esc_html($label) . '</a>';
 - **Nueva tabla DB:** agregar en `class-bankitos-db.php::create_tables()` con `dbDelta()`
 - **Nuevo rol o capacidad:** modificar `class-bankitos-roles.php`
 - **Nueva lógica de autorización:** extender `class-bankitos-access.php`
+
+---
+
+## Catálogo de shortcodes
+
+Todas las páginas deben usar plantilla de ancho completo (sin sidebar). Si un rol no tiene permisos el shortcode se oculta automáticamente, por lo que varios shortcodes pueden coexistir en la misma página.
+
+### Página `/panel` — panel principal del socio
+
+Orden recomendado (de arriba abajo):
+
+| # | Shortcode | Funcionalidad | Rol mínimo |
+|---|-----------|---------------|------------|
+| 1 | `[bankitos_panel]` | Saludo de bienvenida; si no pertenece a un banco ofrece crearlo | Cualquier socio autenticado |
+| 2 | `[bankitos_invite_portal]` | Acepta o rechaza invitaciones pendientes (se oculta si no hay token activo) | Invitado con token |
+| 3 | `[bankitos_panel_mis_finanzas]` | Historial de aportes con comprobantes y capacidad crediticia | socio_general |
+| 4 | `[bankitos_rentabilidad]` | Desglose de rentabilidad: capital + intereses + multas + capacidad de crédito (4×) | Cualquier miembro del banco |
+
+### Páginas adicionales recomendadas
+
+| Página | Shortcode(s) | Funcionalidad | Rol mínimo |
+|--------|-------------|---------------|------------|
+| `/acceder` | `[bankitos_login]` | Inicio de sesión con reCAPTCHA | Público |
+| `/registrarse` | `[bankitos_register]` | Alta de nuevos usuarios; lee `invite_token` de la URL | Público |
+| `/crear-banko` | `[bankitos_crear_banco_form]` | Formulario guiado para crear un nuevo B@nko; incluye mora, penalización por renuncia | Socio sin banco |
+| `/panel-info` | `[bankitos_panel_info]` | Tarjeta de detalles del banco: cuota, tasa, duración, capital total | Cualquier miembro |
+| `/panel-acciones` | `[bankitos_panel_quick_actions]` | Botones de acceso rápido contextuales según rol | Cualquier miembro |
+| `/miembros` | `[bankitos_panel_members_invite]` + `[bankitos_panel_members]` | Invitar socios y gestionar roles | presidente |
+| `/aportar` | `[bankitos_aporte_form]` | Registrar aporte con comprobante; opción de desglosar multa | socio_general (`submit_aportes`) |
+| `/tesorero` | `[bankitos_tesorero_aportes]` + `[bankitos_tesorero_creditos]` + `[bankitos_tesorero_desembolsos]` | Aprobar aportes, pagos de crédito y registrar desembolsos | tesorero (`approve_aportes`) |
+| `/veedor` | `[bankitos_veedor_aportes]` + `[bankitos_veedor_creditos]` | Auditoría de solo lectura de aportes y pagos | veedor |
+| `/creditos` | `[bankitos_credit_request]` + `[bankitos_credit_summary]` + `[bankitos_credit_review]` | Solicitar crédito, ver estado (con mora), revisar solicitudes (comité) | socio_general / comité |
+
+### Referencia completa de shortcodes
+
+| Shortcode | Clase | Funcionalidad | Rol / Capacidad |
+|-----------|-------|---------------|-----------------|
+| `[bankitos_login]` | `Bankitos_Shortcode_Login` | Formulario de login con reCAPTCHA y soporte de `invite_token` | Público |
+| `[bankitos_register]` | `Bankitos_Shortcode_Register` | Alta de usuario; vincula al banco si llega con `invite_token` | Público |
+| `[bankitos_invite_portal]` | `Bankitos_Shortcode_Invite_Portal` | Acepta/rechaza invitaciones; muestra detalles del banco que invita | Invitado con token |
+| `[bankitos_mobile_menu]` | `Bankitos_Shortcode_Mobile_Menu` | Menú flotante móvil según rol; auto-inyectado en `wp_footer` | Socios autenticados |
+| `[bankitos_panel]` | `Bankitos_Shortcode_Panel` | Bienvenida al panel; ofrece crear banco si no pertenece a uno | Cualquier socio |
+| `[bankitos_panel_info]` | `Bankitos_Shortcode_Panel_Info` | Tarjeta de información del banco: cuota, tasa, capital, créditos | Cualquier miembro |
+| `[bankitos_panel_quick_actions]` | `Bankitos_Shortcode_Panel_Quick_Actions` | Accesos directos contextuales (aportes, créditos, roles especiales) | Cualquier miembro |
+| `[bankitos_panel_mis_finanzas]` | `Bankitos_Shortcode_Panel_Finanzas` | Historial de aportes con estado y comprobantes; capacidad crediticia | socio_general |
+| `[bankitos_rentabilidad]` | `Bankitos_Shortcode_Rentabilidad` | Desglose de rentabilidad: capital ahorrado, intereses de créditos, multas distribuidas, total y capacidad de crédito (4×) | Cualquier miembro |
+| `[bankitos_crear_banco_form]` | `Bankitos_Shortcode_Crear_Banco` | Crear banco con nombre, cuota, tasa, mora configurable y penalización por renuncia | Socio sin banco |
+| `[bankitos_aporte_form]` | `Bankitos_Shortcode_Aporte_Form` | Registrar aporte + comprobante; checkbox para desglosar multa del monto | `submit_aportes` |
+| `[bankitos_tesorero_aportes]` | `Bankitos_Shortcode_Tesorero_List` | Tabla de aportes pendientes con paginación, filtros y comprobantes | `approve_aportes` (tesorero) |
+| `[bankitos_veedor_aportes]` | `Bankitos_Shortcode_Veedor_List` | Aportes aprobados en solo lectura para auditoría | veedor |
+| `[bankitos_credit_request]` | `Bankitos_Shortcode_Credit_Request` | Formulario de solicitud de crédito con monto, plazo, destino y firma | socio_general |
+| `[bankitos_credit_summary]` | `Bankitos_Shortcode_Credit_Summary` | Estado de créditos del socio; plan de pagos con mora calculada por cuota vencida | socio_general |
+| `[bankitos_credit_review]` | `Bankitos_Shortcode_Credit_Review` | Revisión de solicitudes del comité (aprobación/rechazo por rol) | presidente / tesorero / veedor |
+| `[bankitos_tesorero_creditos]` | `Bankitos_Shortcode_Tesorero_Creditos` | Aprobar o rechazar pagos de crédito con comprobante | tesorero (`approve_aportes`) |
+| `[bankitos_tesorero_desembolsos]` | `Bankitos_Shortcode_Tesorero_Desembolsos` | Registrar desembolsos de créditos aprobados (fecha + comprobante) | tesorero (`approve_aportes`) |
+| `[bankitos_veedor_creditos]` | `Bankitos_Shortcode_Veedor_Creditos` | Pagos de créditos en solo lectura para auditoría | veedor |
+| `[bankitos_panel_members_invite]` | `Bankitos_Shortcode_Panel_Members_Invite` | Enviar invitaciones por email (varias en una sola acción) | presidente |
+| `[bankitos_panel_members]` | `Bankitos_Shortcode_Panel_Members` | Tabla de miembros e invitaciones; asignación de roles | presidente |
 
 ---
 

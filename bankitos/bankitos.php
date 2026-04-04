@@ -19,6 +19,7 @@ if (!defined('BANKITOS_RECAPTCHA_SECRET'))define('BANKITOS_RECAPTCHA_SECRET', ''
 /* ========= Núcleo / Clases ========= */
 require_once BANKITOS_PATH . 'includes/class-bankitos-rate-limiter.php';
 require_once BANKITOS_PATH . 'includes/class-bankitos-crypto.php';
+require_once BANKITOS_PATH . 'includes/class-bankitos-distributions.php';
 require_once BANKITOS_PATH . 'includes/class-bankitos-plugin.php';
 require_once BANKITOS_PATH . 'includes/class-bankitos-db.php';
 require_once BANKITOS_PATH . 'includes/class-bankitos-credit-requests.php';
@@ -69,5 +70,15 @@ register_activation_hook(__FILE__, function() {
         Bankitos_Logs::create_table();
     }
 });
+
+// Ejecutar migraciones en cada carga si no se han aplicado aún (flag en options).
+add_action('init', function() {
+    if (!get_option('bankitos_db_v2_migrated')) {
+        if (class_exists('Bankitos_DB')) {
+            Bankitos_DB::create_tables();
+        }
+        update_option('bankitos_db_v2_migrated', 1);
+    }
+}, 1);
 
 add_action('init', ['Bankitos_CPT', 'init'], 5);

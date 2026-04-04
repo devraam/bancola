@@ -54,14 +54,25 @@ class Bankitos_Credit_Requests {
             return 0.0;
         }
         global $wpdb;
+        // Use _bankitos_savings_amount when present (aporte with fine split),
+        // fall back to _bankitos_monto for legacy aportes without fine.
         $sum = $wpdb->get_var($wpdb->prepare(
-            "SELECT SUM(CAST(m_monto.meta_value AS DECIMAL(18,2)))
+            "SELECT SUM(
+                CASE
+                    WHEN m_savings.meta_value IS NOT NULL AND m_savings.meta_value != ''
+                    THEN CAST(m_savings.meta_value AS DECIMAL(18,2))
+                    ELSE CAST(m_monto.meta_value AS DECIMAL(18,2))
+                END
+             )
              FROM {$wpdb->posts} p
-             INNER JOIN {$wpdb->postmeta} m_banco ON p.ID = m_banco.post_id AND m_banco.meta_key = %s
-             INNER JOIN {$wpdb->postmeta} m_monto ON p.ID = m_monto.post_id AND m_monto.meta_key = %s
-             WHERE p.post_type = %s AND p.post_status = 'publish' AND m_banco.meta_value = %d AND p.post_author = %d",
+             INNER JOIN {$wpdb->postmeta} m_banco  ON p.ID = m_banco.post_id  AND m_banco.meta_key  = %s
+             INNER JOIN {$wpdb->postmeta} m_monto  ON p.ID = m_monto.post_id  AND m_monto.meta_key  = %s
+             LEFT  JOIN {$wpdb->postmeta} m_savings ON p.ID = m_savings.post_id AND m_savings.meta_key = %s
+             WHERE p.post_type = %s AND p.post_status = 'publish'
+               AND m_banco.meta_value = %d AND p.post_author = %d",
             '_bankitos_banco_id',
             '_bankitos_monto',
+            '_bankitos_savings_amount',
             Bankitos_CPT::SLUG_APORTE,
             $banco_id,
             $user_id
@@ -285,6 +296,21 @@ class Bankitos_Credit_Requests {
 
         if ($updated === false) {
             return new WP_Error('bankitos_credit_disburse_update', __('No fue posible registrar el desembolso.', 'bankitos'));
+        }
+
+        // Capture snapshot of active members at this exact moment.
+        // This snapshot determines who shares the interest from this credit.
+        if (class_exists('Bankitos_Distributions')) {
+            $member_ids = Bankitos_Distributions::get_active_member_ids((int) $request['banco_id']);
+            if (!empty($member_ids)) {
+                $wpdb->update(
+                    $table,
+                    ['snapshot_member_ids' => wp_json_encode(array_values($member_ids))],
+                    ['id' => $request_id],
+                    ['%s'],
+                    ['%d']
+                );
+            }
         }
 
         return true;

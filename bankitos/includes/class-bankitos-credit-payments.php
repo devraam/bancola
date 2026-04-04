@@ -40,11 +40,12 @@ class Bankitos_Credit_Payments {
                 'request_id'    => $data['request_id'],
                 'user_id'       => $data['user_id'],
                 'amount'        => $data['amount'],
+                'mora_amount'   => isset($data['mora_amount']) ? floatval($data['mora_amount']) : 0.0,
                 'attachment_id' => $data['attachment_id'],
                 'status'        => $data['status'],
                 'created_at'    => current_time('mysql'),
             ],
-            ['%d','%d','%f','%d','%s','%s']
+            ['%d', '%d', '%f', '%f', '%d', '%s', '%s']
         );
         return $inserted ? (int) $wpdb->insert_id : 0;
     }

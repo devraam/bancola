@@ -57,14 +57,14 @@ class BK_Credit_Payments_Handler {
             exit;
         }
         check_admin_referer('bankitos_credit_payment_submit');
-        
+
         $user_id    = get_current_user_id();
         $request_id = isset($_POST['request_id']) ? absint($_POST['request_id']) : 0;
-        
-        // Recibimos el monto. El shortcode ahora enviará formato plano (ej: 17666.67)
-        // Usamos floatval directo.
-        $amount_raw = isset($_POST['amount']) ? $_POST['amount'] : 0;
-        $amount     = floatval($amount_raw);
+
+        // Recibimos el monto. El shortcode envía formato plano (ej: 17666.67)
+        $amount_raw  = isset($_POST['amount']) ? $_POST['amount'] : 0;
+        $amount      = floatval($amount_raw);
+        $mora_amount = isset($_POST['mora_amount']) ? floatval($_POST['mora_amount']) : 0.0;
         
         $redirect   = site_url('/creditos/');
 
@@ -148,6 +148,7 @@ class BK_Credit_Payments_Handler {
             'request_id'    => $request_id,
             'user_id'       => $user_id,
             'amount'        => $amount,
+            'mora_amount'   => $mora_amount,
             'attachment_id' => $attachment_id,
             'status'        => 'pending',
         ]);
@@ -158,6 +159,7 @@ class BK_Credit_Payments_Handler {
             self::redirect_with('err', 'pago_guardar', $redirect);
         }
 
+        do_action('bankitos_log_event', 'PAYMENT_SUBMIT', 'Pago #' . $payment_id . ' enviado para solicitud #' . $request_id . ' por usuario #' . $user_id, $banco_id, ['payment_id' => $payment_id, 'amount' => $amount]);
         self::redirect_with('ok', 'pago_enviado', $redirect);
     }
 
@@ -217,7 +219,34 @@ class BK_Credit_Payments_Handler {
         }
         
         Bankitos_Credit_Payments::update_status($payment_id, $status);
+
+        // Distribute credit interest among snapshot members when a payment is approved.
+        if ($status === 'approved' && class_exists('Bankitos_Distributions')) {
+            $credit = Bankitos_Credit_Requests::get_request((int) $payment['request_id']);
+            if ($credit && (int) $credit['term_months'] > 0) {
+                $principal_share = (float) $credit['amount'] / (int) $credit['term_months'];
+                $mora            = (float) ($payment['mora_amount'] ?? 0.0);
+                $net_payment     = (float) $payment['amount'] - $mora;
+                $interest_amount = max(0.0, round($net_payment - $principal_share, 2));
+
+                if ($interest_amount > 0) {
+                    $snapshot_json = $credit['snapshot_member_ids'] ?? '';
+                    $member_ids    = $snapshot_json ? (array) json_decode($snapshot_json, true) : [];
+                    if (!empty($member_ids)) {
+                        Bankitos_Distributions::distribute_credit_interest(
+                            $payment_id,
+                            (int) $credit['id'],
+                            (int) $credit['banco_id'],
+                            $interest_amount,
+                            $member_ids
+                        );
+                    }
+                }
+            }
+        }
+
         $code = $status === 'approved' ? 'pago_aprobado' : 'pago_rechazado';
+        do_action('bankitos_log_event', 'PAYMENT_' . strtoupper($status), 'Pago #' . $payment_id . ' ' . $status . ' por usuario #' . get_current_user_id(), (int) ($request['banco_id'] ?? 0), ['payment_id' => $payment_id, 'request_id' => $payment['request_id']]);
         self::redirect_with('ok', $code, $redirect);
     }
 

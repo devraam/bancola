@@ -35,15 +35,28 @@ class BK_Banco_Handler {
         if ($tasa < 0.1 || $tasa > 3.0) self::redir_err('tasa_rango');
         if (!in_array($dur,[2,4,6,8,12],true)) self::redir_err('duracion_invalida');
 
+        // Mora config (optional)
+        $mora_enabled         = !empty($_POST['mora_enabled']) ? 1 : 0;
+        $mora_rate            = $mora_enabled ? floatval($_POST['mora_rate'] ?? 0)         : 0.0;
+        $mora_grace_days      = $mora_enabled ? absint($_POST['mora_grace_days'] ?? 0)     : 0;
+        $resignation_penalty  = absint($_POST['resignation_penalty'] ?? 0);
+
+        if ($mora_enabled && ($mora_rate < 0.1 || $mora_rate > 5.0)) self::redir_err('mora_tasa_rango');
+        if ($resignation_penalty > 100) self::redir_err('penalizacion_rango');
+
         $postarr=['post_type'=>Bankitos_CPT::SLUG_BANCO,'post_title'=>$nombre,'post_content'=>$objetivo,'post_status'=>'publish','post_author'=>$user_id];
         $post_id=wp_insert_post($postarr,true);
         if (is_wp_error($post_id) || !$post_id){ $postarr['post_status']='draft'; $post_id=wp_insert_post($postarr,true);
             if (is_wp_error($post_id) || !$post_id){ self::redir_err('crear_post'); } }
-        update_post_meta($post_id,'_bk_objetivo',$objetivo);
-        update_post_meta($post_id,'_bk_cuota_monto',$cuota);
-        update_post_meta($post_id,'_bk_periodicidad',$period);
-        update_post_meta($post_id,'_bk_tasa',$tasa);
-        update_post_meta($post_id,'_bk_duracion_meses',$dur);
+        update_post_meta($post_id, '_bk_objetivo',            $objetivo);
+        update_post_meta($post_id, '_bk_cuota_monto',         $cuota);
+        update_post_meta($post_id, '_bk_periodicidad',        $period);
+        update_post_meta($post_id, '_bk_tasa',                $tasa);
+        update_post_meta($post_id, '_bk_duracion_meses',      $dur);
+        update_post_meta($post_id, '_bk_mora_enabled',        $mora_enabled);
+        update_post_meta($post_id, '_bk_mora_rate',           $mora_rate);
+        update_post_meta($post_id, '_bk_mora_grace_days',     $mora_grace_days);
+        update_post_meta($post_id, '_bk_resignation_penalty', $resignation_penalty);
         if (class_exists('Bankitos_Handlers')) {
             $registro = Bankitos_Handlers::registrar_miembro($post_id,$user_id,'presidente');
             if (is_wp_error($registro)) {

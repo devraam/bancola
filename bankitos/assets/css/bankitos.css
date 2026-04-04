@@ -225,41 +225,55 @@ p {padding-bottom: 0;}
 .bankitos-invite-portal__cta{display:flex;flex-wrap:wrap;gap:.75rem;}
 .bankitos-invite-portal__reject{text-align:right;}
 
-.bankitos-shortcodes-doc{margin:2rem 0 1rem;background:var(--bco-blanco);border-radius:18px;padding:1.5rem;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:1.25rem;}
-.bankitos-shortcodes-doc__intro h2{margin:0 0 .35rem;font-size:1.4rem;color:var(--bco-texto);}
-.bankitos-shortcodes-doc__intro p{margin:0;color:rgba(15,23,42,.75);}
-.bankitos-shortcodes-doc__tips{margin:.25rem 0 0 1.25rem;padding:0;display:grid;gap:.35rem;color:rgba(15,23,42,.75);}
-.bankitos-shortcodes-doc__section{border:1px solid rgba(0,115,179,.12);border-radius:16px;padding:1rem 1rem 1.25rem;background:var(--bco-gris);display:flex;flex-direction:column;gap:1rem;}
-.bankitos-shortcodes-doc__section-head h3{margin:0;font-size:1.1rem;color:var(--bco-azul);}
-.bankitos-shortcodes-doc__section-head p{margin:.2rem 0 0;color:rgba(15,23,42,.7);}
-.bankitos-shortcodes-doc__grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem;}
-.bankitos-shortcodes-doc__card{background:var(--bco-blanco);border-radius:14px;padding:1rem;box-shadow:0 10px 25px rgba(15,23,42,.06);border:1px solid rgba(0,115,179,.08);display:flex;flex-direction:column;gap:.5rem;min-height:220px;}
-.bankitos-shortcodes-doc__tag code{background:var(--bco-gris);padding:.35rem .6rem;border-radius:10px;display:inline-block;font-weight:800;color:var(--bco-texto);}
-.bankitos-shortcodes-doc__name{margin:0;font-size:1.05rem;color:var(--bco-texto);}
-.bankitos-shortcodes-doc__role{margin:0;font-weight:700;color:var(--bco-azul);}
-.bankitos-shortcodes-doc__summary{margin:0;color:rgba(15,23,42,.78);}
-.bankitos-shortcodes-doc__list{margin:.25rem 0 0 1.1rem;padding:0;display:grid;gap:.25rem;color:rgba(15,23,42,.78);}
-.bankitos-shortcodes-doc__usage{margin:.4rem 0 0;color:rgba(15,23,42,.7);font-weight:700;}
+/* ============================================================
+   Shortcodes documentation page — admin (B@nkos Config)
+   ============================================================ */
+.bk-sc-doc{display:flex;flex-direction:column;gap:2rem;margin:1.5rem 0;}
+.bk-sc-doc__intro{background:#f0f7ff;border-left:4px solid #016FB0;border-radius:0 10px 10px 0;padding:.85rem 1.1rem;}
+.bk-sc-doc__intro p{margin:0;color:#334155;font-size:.95rem;line-height:1.6;}
 
-.bankitos-wrap .bankitos-shortcodes-doc {
-  background: #ffffff;
-  color: #0f172a;
-}
-.bankitos-wrap .bankitos-shortcodes-doc__intro p,
-.bankitos-wrap .bankitos-shortcodes-doc__tips,
-.bankitos-wrap .bankitos-shortcodes-doc__section-head p,
-.bankitos-wrap .bankitos-shortcodes-doc__summary,
-.bankitos-wrap .bankitos-shortcodes-doc__list,
-.bankitos-wrap .bankitos-shortcodes-doc__usage {
-  color: #334155;
-}
-.bankitos-wrap .bankitos-shortcodes-doc__section {
-  background: #f8fafc;
-}
-.bankitos-wrap .bankitos-shortcodes-doc__tag code {
-  background: #e2e8f0;
-  color: #0f172a;
-}
+/* Sección */
+.bk-sc-doc__section{display:flex;flex-direction:column;gap:1rem;}
+.bk-sc-doc__section-head{padding-bottom:.5rem;border-bottom:2px solid #e2e8f0;}
+.bk-sc-doc__section-title{margin:0;font-size:1.15rem;font-weight:800;color:#016FB0;letter-spacing:-.01em;}
+.bk-sc-doc__section-desc{margin:.2rem 0 0;color:#64748b;font-size:.88rem;}
+
+/* Grid de tarjetas — 3 col > 2 col > 1 col */
+.bk-sc-doc__grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;}
+@media(max-width:1200px){.bk-sc-doc__grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:720px){.bk-sc-doc__grid{grid-template-columns:1fr;}}
+
+/* Tarjeta */
+.bk-sc-doc__card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 4px 16px rgba(15,23,42,.07);display:flex;flex-direction:column;overflow:hidden;}
+
+/* Header de tarjeta */
+.bk-sc-doc__card-header{background:#e7f3fb;border-bottom:1px solid #c8e1f4;padding:.75rem 1rem;}
+.bk-sc-doc__tag{display:inline-block;font-family:monospace;font-size:.82rem;font-weight:700;color:#015a8c;background:#c8e1f4;padding:.3rem .65rem;border-radius:8px;word-break:break-all;}
+
+/* Cuerpo */
+.bk-sc-doc__card-body{padding:.9rem 1rem .6rem;flex:1;}
+.bk-sc-doc__name{margin:0 0 .4rem;font-size:1rem;font-weight:700;color:#0f172a;}
+.bk-sc-doc__summary{margin:0;color:#475569;font-size:.875rem;line-height:1.55;}
+
+/* Metadatos: página + roles */
+.bk-sc-doc__card-meta{background:#f8fafc;border-top:1px solid #f1f5f9;border-bottom:1px solid #f1f5f9;padding:.65rem 1rem;display:flex;flex-direction:column;gap:.45rem;}
+.bk-sc-doc__meta-row{display:flex;align-items:flex-start;gap:.5rem;flex-wrap:wrap;}
+.bk-sc-doc__meta-label{font-size:.72rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;padding-top:.15rem;min-width:42px;}
+.bk-sc-doc__page-pill{display:inline-block;font-family:monospace;font-size:.8rem;color:#015a8c;background:#e7f3fb;border:1px solid #b6d9f5;padding:.15rem .55rem;border-radius:6px;line-height:1.4;}
+.bk-sc-doc__pills{display:flex;flex-wrap:wrap;gap:.35rem;}
+
+/* Pills de roles */
+.bk-sc-pill{display:inline-block;font-size:.72rem;font-weight:600;padding:.18rem .55rem;border-radius:20px;line-height:1.4;}
+.bk-sc-pill.bk-pill--pub{background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;}
+.bk-sc-pill.bk-pill--socio{background:#dbeafe;color:#1d4ed8;border:1px solid #bfdbfe;}
+.bk-sc-pill.bk-pill--tesorero{background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;}
+.bk-sc-pill.bk-pill--presidente{background:#ffedd5;color:#c2410c;border:1px solid #fed7aa;}
+.bk-sc-pill.bk-pill--veedor{background:#ede9fe;color:#6d28d9;border:1px solid #ddd6fe;}
+
+/* Lista de funcionalidades */
+.bk-sc-doc__actions{margin:0;padding:.65rem 1rem .85rem 1rem;list-style:none;display:flex;flex-direction:column;gap:.35rem;}
+.bk-sc-doc__actions li{color:#475569;font-size:.85rem;line-height:1.5;padding-left:1.1rem;position:relative;}
+.bk-sc-doc__actions li::before{content:"›";position:absolute;left:0;color:#016FB0;font-weight:700;}
 
 @media (max-width:720px){
   .bankitos-panel,

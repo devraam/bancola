@@ -221,6 +221,13 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
         $plan = self::build_payment_plan((float) $request['amount'], (int) $request['term_months'], $base_date, $tasa);
         if (!$plan) return '';
 
+        // Mora config from banco meta
+        $banco_id    = (int) ($request['banco_id'] ?? 0);
+        $banco_meta  = $banco_id > 0 ? self::get_banco_meta($banco_id) : [];
+        $mora_enabled    = !empty($banco_meta['mora_enabled']);
+        $mora_rate       = $mora_enabled ? (float) ($banco_meta['mora_rate'] ?? 0.0) : 0.0;
+        $mora_grace_days = $mora_enabled ? (int) ($banco_meta['mora_grace_days'] ?? 0) : 0;
+
         $can_submit = current_user_can('submit_aportes');
         $payments = Bankitos_Credit_Payments::get_request_payments((int) $request['id']);
         $payments_by_amount = self::index_payments_by_amount($payments);
@@ -307,6 +314,32 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
                               <span class="bankitos-credit-summary__help"><?php printf(esc_html__('(Capital: %s + Interés: %s)', 'bankitos'), esc_html(self::format_currency($row['principal'])), esc_html(self::format_currency($row['interest']))); ?></span>
                             </dd>
                           </div>
+                          <?php
+                          // Mora calculation: only show for open/rejected installments
+                          $mora_amount = 0.0;
+                          if ($mora_enabled && $mora_rate > 0 && in_array($installment['state'], ['open','rejected'], true)) {
+                              $due_ts   = strtotime($row['date']);
+                              $today_ts = current_time('timestamp');
+                              $days_late = (int) ceil(($today_ts - $due_ts) / DAY_IN_SECONDS);
+                              if ($days_late > $mora_grace_days) {
+                                  $days_chargeable = $days_late - $mora_grace_days;
+                                  $mora_amount = round($row['balance'] * ($mora_rate / 100 / 30) * $days_chargeable, 2);
+                              }
+                          }
+                          if ($mora_amount > 0): ?>
+                          <div class="bankitos-mora-warning" style="background:#fffbeb; border:1px solid #f59e0b; border-radius:6px; padding:0.75rem; margin-top:0.5rem;">
+                            <dt style="font-weight:600; color:#b45309;"><?php esc_html_e('Interés de mora', 'bankitos'); ?></dt>
+                            <dd style="color:#b45309;"><?php echo esc_html(self::format_currency($mora_amount)); ?></dd>
+                            <dd style="font-size:0.85em; color:#92400e;">
+                              <?php printf(
+                                esc_html__('Total a pagar: %s (cuota %s + mora %s)', 'bankitos'),
+                                esc_html(self::format_currency($row['amount'] + $mora_amount)),
+                                esc_html(self::format_currency($row['amount'])),
+                                esc_html(self::format_currency($mora_amount))
+                              ); ?>
+                            </dd>
+                          </div>
+                          <?php endif; ?>
                           
                           <div>
                             <dt><?php esc_html_e('Comprobante', 'bankitos'); ?></dt>
@@ -345,7 +378,8 @@ class Bankitos_Shortcode_Credit_Summary extends Bankitos_Shortcode_Panel_Base {
                             <?php echo wp_nonce_field('bankitos_credit_payment_submit', '_wpnonce', true, false); ?>
                             <input type="hidden" name="action" value="bankitos_credit_payment_submit">
                             <input type="hidden" name="request_id" value="<?php echo esc_attr($request['id']); ?>">
-                            <input type="hidden" name="amount" value="<?php echo esc_attr(number_format((float)$row['amount'], 2, '.', '')); ?>" data-bankitos-min-amount="10000">
+                            <input type="hidden" name="amount" value="<?php echo esc_attr(number_format($row['amount'] + $mora_amount, 2, '.', '')); ?>" data-bankitos-min-amount="10000">
+                            <input type="hidden" name="mora_amount" value="<?php echo esc_attr(number_format($mora_amount, 2, '.', '')); ?>">
                             <input type="hidden" name="installment_date" value="<?php echo esc_attr($row['date']); ?>">
                             <input type="hidden" name="redirect_to" value="<?php echo esc_url($redirect_url); ?>">
                             <button type="submit" class="bankitos-btn bankitos-btn--primary" data-bankitos-submit disabled aria-disabled="true">
