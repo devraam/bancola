@@ -17,6 +17,8 @@ if (!defined('BANKITOS_RECAPTCHA_SITE'))  define('BANKITOS_RECAPTCHA_SITE', '');
 if (!defined('BANKITOS_RECAPTCHA_SECRET'))define('BANKITOS_RECAPTCHA_SECRET', '');
 
 /* ========= Núcleo / Clases ========= */
+require_once BANKITOS_PATH . 'includes/class-bankitos-rate-limiter.php';
+require_once BANKITOS_PATH . 'includes/class-bankitos-crypto.php';
 require_once BANKITOS_PATH . 'includes/class-bankitos-plugin.php';
 require_once BANKITOS_PATH . 'includes/class-bankitos-db.php';
 require_once BANKITOS_PATH . 'includes/class-bankitos-credit-requests.php';

@@ -14,13 +14,23 @@ class BK_Auth_Handler {
     }
     public static function do_login() {
         check_admin_referer('bankitos_do_login');
+
+        $redirect_base = wp_get_referer() ?: site_url('/acceder');
+        $ip            = sanitize_text_field($_SERVER['REMOTE_ADDR'] ?? '');
+
+        // Rate limiting por IP
+        if (class_exists('Bankitos_Rate_Limiter') && !Bankitos_Rate_Limiter::check($ip, 'login')) {
+            wp_safe_redirect(add_query_arg('err', 'too_many_attempts', $redirect_base));
+            exit;
+        }
+
         if (class_exists('Bankitos_Recaptcha')) {
             if (!Bankitos_Recaptcha::is_enabled()) {
-                wp_safe_redirect(add_query_arg('err','recaptcha_config', wp_get_referer() ?: site_url('/acceder'))); exit;
+                wp_safe_redirect(add_query_arg('err','recaptcha_config', $redirect_base)); exit;
             }
             $token = sanitize_text_field($_POST['g-recaptcha-response'] ?? '');
             if (!$token || !Bankitos_Recaptcha::verify_token($token)) {
-                wp_safe_redirect(add_query_arg('err','recaptcha', wp_get_referer() ?: site_url('/acceder'))); exit;
+                wp_safe_redirect(add_query_arg('err','recaptcha', $redirect_base)); exit;
             }
         }
         $token = isset($_POST['invite_token']) ? sanitize_text_field($_POST['invite_token']) : '';
@@ -32,7 +42,23 @@ class BK_Auth_Handler {
         ];
         $user = wp_signon($creds, is_ssl());
         if (is_wp_error($user)) {
-            wp_safe_redirect(add_query_arg('err','credenciales', wp_get_referer() ?: site_url('/acceder'))); exit;
+            if (class_exists('Bankitos_Rate_Limiter')) {
+                Bankitos_Rate_Limiter::record_failure($ip, 'login');
+                // También registrar por email para detectar ataques dirigidos a una cuenta
+                Bankitos_Rate_Limiter::record_failure(
+                    strtolower($creds['user_login']),
+                    'login_user',
+                    Bankitos_Rate_Limiter::LOGIN_MAX_ATTEMPTS,
+                    Bankitos_Rate_Limiter::LOGIN_WINDOW_SECS
+                );
+            }
+            wp_safe_redirect(add_query_arg('err','credenciales', $redirect_base)); exit;
+        }
+
+        // Login exitoso: limpiar contadores
+        if (class_exists('Bankitos_Rate_Limiter')) {
+            Bankitos_Rate_Limiter::reset($ip, 'login');
+            Bankitos_Rate_Limiter::reset(strtolower($creds['user_login']), 'login_user');
         }
         if ($token && class_exists('BK_Invites_Handler')) {
             $result = BK_Invites_Handler::accept_invite_for_user($token, $user);
@@ -94,15 +120,34 @@ class BK_Auth_Handler {
 
     public static function do_recover() {
         check_admin_referer('bankitos_do_recover');
-        $email = sanitize_email($_POST['email'] ?? '');
+        $email         = sanitize_email($_POST['email'] ?? '');
         $redirect_base = site_url('/acceder');
+
         if (!$email) {
             wp_safe_redirect(add_query_arg(['mode' => 'recover', 'err' => 'recovery'], $redirect_base));
             exit;
         }
 
+        // Rate limiting: máximo 3 solicitudes por email y por IP en 1 hora
+        if (class_exists('Bankitos_Rate_Limiter')) {
+            $ip = sanitize_text_field($_SERVER['REMOTE_ADDR'] ?? '');
+            if (
+                !Bankitos_Rate_Limiter::check($email, 'recover', Bankitos_Rate_Limiter::RECOVER_MAX_ATTEMPTS, Bankitos_Rate_Limiter::RECOVER_WINDOW_SECS) ||
+                !Bankitos_Rate_Limiter::check($ip,    'recover', Bankitos_Rate_Limiter::RECOVER_MAX_ATTEMPTS, Bankitos_Rate_Limiter::RECOVER_WINDOW_SECS)
+            ) {
+                // Misma respuesta que el caso exitoso para evitar enumeración
+                wp_safe_redirect(add_query_arg(['mode' => 'recover', 'ok' => 'recovery_sent'], $redirect_base));
+                exit;
+            }
+        }
+
         $user = get_user_by('email', $email);
         if ($user) {
+            if (class_exists('Bankitos_Rate_Limiter')) {
+                $ip = $ip ?? sanitize_text_field($_SERVER['REMOTE_ADDR'] ?? '');
+                Bankitos_Rate_Limiter::record_failure($email, 'recover', Bankitos_Rate_Limiter::RECOVER_MAX_ATTEMPTS, Bankitos_Rate_Limiter::RECOVER_WINDOW_SECS);
+                Bankitos_Rate_Limiter::record_failure($ip,    'recover', Bankitos_Rate_Limiter::RECOVER_MAX_ATTEMPTS, Bankitos_Rate_Limiter::RECOVER_WINDOW_SECS);
+            }
             $key = get_password_reset_key($user);
             if (!is_wp_error($key)) {
                 $reset_link = add_query_arg(

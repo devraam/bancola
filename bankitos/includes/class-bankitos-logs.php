@@ -29,16 +29,36 @@ class Bankitos_Logs {
         dbDelta($sql);
     }
 
+    /**
+     * Campos que contienen PII o datos sensibles que NO deben guardarse en logs.
+     */
+    private static $sensitive_fields = [
+        'document_id', 'phone', 'age',
+        'password', 'pass', 'key', 'token', 'secret',
+        'invite_token', 'reset_key', 'auth_cookie',
+        'card_number', 'cvv', 'account_number',
+    ];
+
     public static function add_log($action_type, $message, $banco_id = 0, $data = []) {
         global $wpdb;
+
+        // Eliminar campos sensibles del payload antes de guardar
+        if (is_array($data)) {
+            foreach (self::$sensitive_fields as $field) {
+                if (array_key_exists($field, $data)) {
+                    $data[$field] = '[REDACTED]';
+                }
+            }
+        }
+
         $wpdb->insert(
             $wpdb->prefix . self::TABLE_NAME,
             [
                 'user_id'     => get_current_user_id(),
                 'banco_id'    => $banco_id,
-                'action_type' => $action_type,
-                'message'     => $message,
-                'data_json'   => json_encode($data),
+                'action_type' => sanitize_text_field((string) $action_type),
+                'message'     => sanitize_text_field((string) $message),
+                'data_json'   => wp_json_encode($data),
                 'created_at'  => current_time('mysql'),
             ]
         );

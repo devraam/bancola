@@ -110,10 +110,13 @@ class BK_Aportes_Handler {
     }
 
     /**
-     * Obtiene una URL accesible públicamente para visualizar el comprobante.
+     * Obtiene la URL para visualizar el comprobante en el modal.
      *
-     * Se prioriza la URL pública del adjunto para que cualquier usuario/navegador
-     * pueda cargar la imagen o PDF directamente en el modal.
+     * Los archivos se almacenan en un directorio protegido (bankitos-private)
+     * con acceso directo bloqueado por .htaccess, por lo que siempre se sirven
+     * a través del endpoint PHP autorizado que verifica permisos y nonce.
+     * Solo se usa la URL pública directa si el archivo no está protegido
+     * (caso excepcional — no debería ocurrir en producción).
      */
     public static function get_comprobante_view_src(int $aporte_id): string {
         $attachment_id = get_post_thumbnail_id($aporte_id);
@@ -121,14 +124,14 @@ class BK_Aportes_Handler {
             return '';
         }
 
-        // 1) URL pública estándar del adjunto.
-        $public_url = wp_get_attachment_url($attachment_id);
-        if ($public_url) {
-            return $public_url;
+        // 1) Si el archivo está en el directorio protegido, usar el endpoint seguro.
+        if (class_exists('Bankitos_Secure_Files') && Bankitos_Secure_Files::get_protected_path($attachment_id)) {
+            return self::get_comprobante_view_url($aporte_id);
         }
 
-        // 2) Último recurso: el endpoint seguro (si el archivo sigue protegido).
-        return self::get_comprobante_view_url($aporte_id);
+        // 2) Fallback: URL pública estándar (archivo no protegido).
+        $public_url = wp_get_attachment_url($attachment_id);
+        return $public_url ?: '';
     }
 
     private static function build_secure_comprobante_url(int $aporte_id, string $nonce_action, string $action): string {

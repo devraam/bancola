@@ -81,13 +81,24 @@ class Bankitos_Secure_Files {
     }
 
     private static function ensure_access_controls(string $dir): void {
+        // Bloquear todo acceso directo — los archivos se sirven únicamente via el endpoint PHP autorizado
         $htaccess = trailingslashit($dir) . '.htaccess';
-        $htaccess_contents = "Options +Indexes\nRequire all granted\n<FilesMatch \\\"\\.php$\\\">\n    Require all denied\n</FilesMatch>\n";
+        $htaccess_contents = implode("\n", [
+            'Options -Indexes',
+            '<IfModule mod_authz_core.c>',
+            '    Require all denied',
+            '</IfModule>',
+            '<IfModule !mod_authz_core.c>',
+            '    Order deny,allow',
+            '    Deny from all',
+            '</IfModule>',
+            '',
+        ]);
         file_put_contents($htaccess, $htaccess_contents);
 
         $index = trailingslashit($dir) . 'index.php';
         if (file_exists($index)) {
-            unlink($index);
+            wp_delete_file($index);
         }
     }
 
@@ -117,13 +128,17 @@ class Bankitos_Secure_Files {
     }
 
     private static function move_file(string $source, string $target): bool {
-        if (@rename($source, $target)) {
+        // phpcs:disable WordPress.PHP.NoSilencedErrors -- fallback intencional: intentamos rename, luego copy+unlink
+        if (rename($source, $target)) {
             return true;
         }
-        if (@copy($source, $target)) {
-            @unlink($source);
+        // rename() puede fallar entre particiones distintas; intentamos copy + unlink como fallback
+        if (copy($source, $target)) {
+            wp_delete_file($source);
             return true;
         }
+        // phpcs:enable
+        error_log(sprintf('[Bankitos] move_file: no se pudo mover "%s" a "%s"', $source, $target));
         return false;
     }
 }

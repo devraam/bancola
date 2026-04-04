@@ -10,9 +10,22 @@ class Bankitos_Plugin {
             flush_rewrite_rules();
         });
         add_action('wp_enqueue_scripts', [$this, 'register_public_assets'], 50);
-        
+        add_action('send_headers',       [$this, 'send_security_headers']);
+
         // Inyectar menú móvil automáticamente en el footer
         add_action('wp_footer', ['Bankitos_Shortcode_Mobile_Menu', 'output_global'], 100);
+    }
+
+    public function send_security_headers(): void {
+        // No aplicar en el panel de administración de WordPress
+        if (is_admin()) {
+            return;
+        }
+        header('X-Content-Type-Options: nosniff');
+        header('X-Frame-Options: SAMEORIGIN');
+        header('X-XSS-Protection: 1; mode=block');
+        header('Referrer-Policy: strict-origin-when-cross-origin');
+        header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
     }   
 
     public function activate(): void {

@@ -87,15 +87,24 @@ class Bankitos_Credit_Requests {
     public static function insert_request(array $data): int {
         global $wpdb;
         $table = self::table_name();
+
+        // Cifrar campos PII antes de guardar en DB
+        $document_id = isset($data['document_id']) ? (string) $data['document_id'] : '';
+        $phone       = isset($data['phone'])       ? (string) $data['phone']       : '';
+        if (class_exists('Bankitos_Crypto')) {
+            $document_id = Bankitos_Crypto::encrypt($document_id);
+            $phone       = Bankitos_Crypto::encrypt($phone);
+        }
+
         $inserted = $wpdb->insert(
             $table,
             [
                 'banco_id'                 => $data['banco_id'],
                 'user_id'                  => $data['user_id'],
                 'request_date'             => $data['request_date'],
-                'document_id'              => $data['document_id'],
+                'document_id'              => $document_id,
                 'age'                      => $data['age'],
-                'phone'                    => $data['phone'],
+                'phone'                    => $phone,
                 'credit_type'              => $data['credit_type'],
                 'amount'                   => $data['amount'],
                 'savings_snapshot'         => $data['savings_snapshot'],
@@ -283,7 +292,18 @@ class Bankitos_Credit_Requests {
 
     private static function prepare_row(array $row): array {
         $row['display_name'] = $row['display_name'] ?: $row['user_login'];
-        $row['status'] = self::normalize_status($row);
+        $row['status']       = self::normalize_status($row);
+
+        // Descifrar campos PII al leer de la DB (compatible con datos legados sin cifrar)
+        if (class_exists('Bankitos_Crypto')) {
+            if (!empty($row['document_id'])) {
+                $row['document_id'] = Bankitos_Crypto::decrypt((string) $row['document_id']);
+            }
+            if (!empty($row['phone'])) {
+                $row['phone'] = Bankitos_Crypto::decrypt((string) $row['phone']);
+            }
+        }
+
         return $row;
     }
 
