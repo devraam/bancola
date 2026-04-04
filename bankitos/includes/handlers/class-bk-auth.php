@@ -52,6 +52,7 @@ class BK_Auth_Handler {
                     Bankitos_Rate_Limiter::LOGIN_WINDOW_SECS
                 );
             }
+            do_action('bankitos_log_event', 'AUTH_LOGIN_FAIL', 'Intento de login fallido para: ' . $creds['user_login'], 0, ['ip' => $ip]);
             wp_safe_redirect(add_query_arg('err','credenciales', $redirect_base)); exit;
         }
 
@@ -103,6 +104,7 @@ class BK_Auth_Handler {
         wp_update_user(['ID'=>$user_id,'display_name'=>$name ?: $username,'nickname'=>$name ?: $username]);
         $u = new WP_User($user_id); $u->set_role('socio_general');
         wp_set_current_user($user_id); wp_set_auth_cookie($user_id, true);
+        do_action('bankitos_log_event', 'AUTH_REGISTER', 'Nuevo socio registrado: ' . $username, 0, ['user_id' => $user_id]);
         if ($token && class_exists('BK_Invites_Handler')) {
             $result = BK_Invites_Handler::accept_invite_for_user($token, $u);
             if (is_wp_error($result)) {

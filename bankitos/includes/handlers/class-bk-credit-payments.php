@@ -159,6 +159,7 @@ class BK_Credit_Payments_Handler {
             self::redirect_with('err', 'pago_guardar', $redirect);
         }
 
+        do_action('bankitos_log_event', 'PAYMENT_SUBMIT', 'Pago #' . $payment_id . ' enviado para solicitud #' . $request_id . ' por usuario #' . $user_id, $banco_id, ['payment_id' => $payment_id, 'amount' => $amount]);
         self::redirect_with('ok', 'pago_enviado', $redirect);
     }
 
@@ -245,6 +246,7 @@ class BK_Credit_Payments_Handler {
         }
 
         $code = $status === 'approved' ? 'pago_aprobado' : 'pago_rechazado';
+        do_action('bankitos_log_event', 'PAYMENT_' . strtoupper($status), 'Pago #' . $payment_id . ' ' . $status . ' por usuario #' . get_current_user_id(), (int) ($request['banco_id'] ?? 0), ['payment_id' => $payment_id, 'request_id' => $payment['request_id']]);
         self::redirect_with('ok', $code, $redirect);
     }
 

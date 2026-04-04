@@ -625,6 +625,13 @@ class Bankitos_Admin_Reports {
                     </tr>
                 </thead>
                 <tbody>
+                    <?php if (empty($logs)) : ?>
+                    <tr>
+                        <td colspan="5" style="text-align:center;padding:2rem;color:#64748b;">
+                            <?php esc_html_e('No hay registros en los últimos 30 días. Las trazas se generan cuando los socios realizan aportes, solicitan créditos o el sistema detecta errores de autorización.', 'bankitos'); ?>
+                        </td>
+                    </tr>
+                    <?php else : ?>
                     <?php foreach ($logs as $log): ?>
                     <tr>
                         <td><?php echo esc_html((string) $log->created_at); ?></td>
@@ -634,6 +641,7 @@ class Bankitos_Admin_Reports {
                         <td><code><?php echo esc_html($log->data_json); ?></code></td>
                     </tr>
                     <?php endforeach; ?>
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>

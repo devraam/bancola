@@ -135,6 +135,7 @@ class BK_Credit_Disbursements_Handler {
             self::redirect_with('err', 'desembolso_guardar', $redirect);
         }
 
+        do_action('bankitos_log_event', 'CREDIT_DISBURSE', 'Desembolso registrado para solicitud #' . $request_id . ' por usuario #' . $user_id, $banco_id, ['request_id' => $request_id, 'fecha' => $disbursement_date]);
         self::redirect_with('ok', 'desembolso_registrado', $redirect);
     }
 

@@ -117,6 +117,7 @@ class BK_Aportes_Handler {
                 self::redirect_with('err','archivo_seguro', site_url('/panel'));
             }
         }
+        do_action('bankitos_log_event', 'APORTE_SUBMIT', 'Aporte enviado por usuario #' . $user_id, $banco_id, ['aporte_id' => $aporte_id, 'monto' => $monto]);
         self::redirect_with('ok','aporte_enviado', site_url('/panel'));
     }
 
@@ -203,6 +204,7 @@ class BK_Aportes_Handler {
             }
         }
 
+        do_action('bankitos_log_event', 'APORTE_APPROVE', 'Aporte #' . $aporte_id . ' aprobado', (int) get_post_meta($aporte_id, '_bankitos_banco_id', true), ['aporte_id' => $aporte_id]);
         self::redirect_with('ok', 'aporte_aprobado', site_url('/panel'));
     }
     public static function aporte_reject() {
@@ -213,6 +215,7 @@ class BK_Aportes_Handler {
         if (!$aporte || $aporte->post_type!==Bankitos_CPT::SLUG_APORTE){ wp_safe_redirect(site_url('/panel')); exit; }
         if (!self::check_same_banco($aporte_id,get_current_user_id())){ self::redirect_with('err','permiso', site_url('/panel')); }
         wp_update_post(['ID'=>$aporte_id,'post_status'=>'private']);
+        do_action('bankitos_log_event', 'APORTE_REJECT', 'Aporte #' . $aporte_id . ' rechazado', (int) get_post_meta($aporte_id, '_bankitos_banco_id', true), ['aporte_id' => $aporte_id]);
         self::redirect_with('ok','aporte_rechazado', site_url('/panel'));
     }
 
