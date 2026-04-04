@@ -140,9 +140,11 @@ abstract class Bankitos_Shortcode_Base {
             'desembolso_fecha' => __('Selecciona una fecha de desembolso válida.', 'bankitos'),
             'desembolso_archivo' => __('Hubo un problema subiendo el comprobante de desembolso.', 'bankitos'),
             'desembolso_archivo_tamano' => __('El comprobante excede el tamaño permitido.', 'bankitos'),
-            'desembolso_archivo_tipo' => __('El comprobante debe ser una imagen o PDF válido.', 'bankitos'),
-            'desembolso_archivo_seguro' => __('No pudimos proteger el comprobante subido.', 'bankitos'),
-            'desembolso_guardar' => __('No fue posible guardar el desembolso.', 'bankitos'),
+            'desembolso_archivo_tipo'  => __('El comprobante debe ser una imagen o PDF válido.', 'bankitos'),
+            'desembolso_archivo_seguro'=> __('No pudimos proteger el comprobante subido.', 'bankitos'),
+            'desembolso_guardar'       => __('No fue posible guardar el desembolso.', 'bankitos'),
+            'mora_tasa_rango'          => __('La tasa de mora debe estar entre 0.1% y 5.0%.', 'bankitos'),
+            'penalizacion_rango'       => __('La penalización por renuncia no puede superar el 100%.', 'bankitos'),
         ];
         $msg = $map[$err] ?? __('Ha ocurrido un error. Intenta nuevamente.', 'bankitos');
         $html .= '<div class="bankitos-error">' . esc_html($msg) . '</div>';
@@ -361,10 +363,14 @@ abstract class Bankitos_Shortcode_Base {
 
     protected static function get_banco_meta(int $banco_id): array {
         return [
-            'cuota'        => (float) get_post_meta($banco_id, '_bk_cuota_monto', true),
-            'periodicidad' => (string) get_post_meta($banco_id, '_bk_periodicidad', true),
-            'tasa'         => (float) get_post_meta($banco_id, '_bk_tasa', true),
-            'duracion'     => (int) get_post_meta($banco_id, '_bk_duracion_meses', true),
+            'cuota'               => (float) get_post_meta($banco_id, '_bk_cuota_monto', true),
+            'periodicidad'        => (string) get_post_meta($banco_id, '_bk_periodicidad', true),
+            'tasa'                => (float) get_post_meta($banco_id, '_bk_tasa', true),
+            'duracion'            => (int) get_post_meta($banco_id, '_bk_duracion_meses', true),
+            'mora_enabled'        => (bool) get_post_meta($banco_id, '_bk_mora_enabled', true),
+            'mora_rate'           => (float) get_post_meta($banco_id, '_bk_mora_rate', true),
+            'mora_grace_days'     => (int) get_post_meta($banco_id, '_bk_mora_grace_days', true),
+            'resignation_penalty' => (int) get_post_meta($banco_id, '_bk_resignation_penalty', true),
         ];
     }
 

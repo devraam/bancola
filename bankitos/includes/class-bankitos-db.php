@@ -15,14 +15,16 @@ class Bankitos_DB {
         global $wpdb;
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-        $charset = $wpdb->get_charset_collate();
-        $members = self::members_table_name();
-        $savings = $wpdb->prefix . 'banco_savings';
-        $loans   = $wpdb->prefix . 'banco_loans';
-        $pays    = $wpdb->prefix . 'banco_loan_payments';
-        $invites = $wpdb->prefix . 'banco_invites';
-        $credits = $wpdb->prefix . 'banco_credit_requests';
-        $payments = $wpdb->prefix . 'banco_credit_payments';
+        $charset       = $wpdb->get_charset_collate();
+        $members       = self::members_table_name();
+        $savings       = $wpdb->prefix . 'banco_savings';
+        $loans         = $wpdb->prefix . 'banco_loans';
+        $pays          = $wpdb->prefix . 'banco_loan_payments';
+        $invites       = $wpdb->prefix . 'banco_invites';
+        $credits       = $wpdb->prefix . 'banco_credit_requests';
+        $payments      = $wpdb->prefix . 'banco_credit_payments';
+        $interest_dist = $wpdb->prefix . 'banco_interest_distributions';
+        $fine_dist     = $wpdb->prefix . 'banco_fine_distributions';
 
         dbDelta("CREATE TABLE $members (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -33,8 +35,6 @@ class Bankitos_DB {
             PRIMARY KEY  (id),
             KEY banco_user (banco_id, user_id)
         ) $charset;");
-
-        self::migrate_members_role_column($members);
 
         dbDelta("CREATE TABLE $savings (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -133,6 +133,36 @@ class Bankitos_DB {
             KEY request_status (request_id, status)
         ) $charset;");
         
+        dbDelta("CREATE TABLE $interest_dist (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            banco_id BIGINT UNSIGNED NOT NULL,
+            credit_request_id BIGINT UNSIGNED NOT NULL,
+            payment_id BIGINT UNSIGNED NOT NULL,
+            user_id BIGINT UNSIGNED NOT NULL,
+            amount DECIMAL(12,2) NOT NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id),
+            KEY banco_user (banco_id, user_id),
+            KEY payment (payment_id)
+        ) $charset;");
+
+        dbDelta("CREATE TABLE $fine_dist (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            banco_id BIGINT UNSIGNED NOT NULL,
+            source_aporte_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+            user_id BIGINT UNSIGNED NOT NULL,
+            amount DECIMAL(12,2) NOT NULL,
+            source_type VARCHAR(40) NOT NULL DEFAULT 'aporte_fine',
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id),
+            KEY banco_user (banco_id, user_id),
+            KEY source (banco_id, source_aporte_id)
+        ) $charset;");
+
+        self::migrate_members_role_column($members);
+        self::migrate_snapshot_column($credits);
+        self::migrate_mora_column($payments);
+
         self::$members_table_exists = true;
         self::$invites_table_exists = true;
     }
@@ -177,6 +207,28 @@ class Bankitos_DB {
 
     public static function reset_invites_table_cache(): void {
         self::$invites_table_exists = null;
+    }
+
+    private static function migrate_snapshot_column(string $credits): void {
+        global $wpdb;
+        $has = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=%s AND TABLE_NAME=%s AND COLUMN_NAME='snapshot_member_ids'",
+            DB_NAME, $credits
+        ));
+        if (!$has) {
+            $wpdb->query("ALTER TABLE {$credits} ADD COLUMN snapshot_member_ids TEXT NULL AFTER disbursement_attachment_id");
+        }
+    }
+
+    private static function migrate_mora_column(string $payments): void {
+        global $wpdb;
+        $has = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=%s AND TABLE_NAME=%s AND COLUMN_NAME='mora_amount'",
+            DB_NAME, $payments
+        ));
+        if (!$has) {
+            $wpdb->query("ALTER TABLE {$payments} ADD COLUMN mora_amount DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER amount");
+        }
     }
 
     private static function migrate_members_role_column(string $members): void {

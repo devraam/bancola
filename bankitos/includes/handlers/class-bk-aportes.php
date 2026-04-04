@@ -75,7 +75,16 @@ class BK_Aportes_Handler {
         $monto=isset($_POST['monto'])?floatval($_POST['monto']):0.0; if ($monto<=0){ self::redirect_with('err','monto', site_url('/panel')); }
         $aporte_id=wp_insert_post(['post_type'=>Bankitos_CPT::SLUG_APORTE,'post_title'=>'Aporte de '.wp_get_current_user()->display_name.' ('.current_time('Y-m-d H:i').')','post_status'=>'pending','post_author'=>$user_id],true);
         if (is_wp_error($aporte_id) || !$aporte_id){ self::redirect_with('err','crear_aporte', site_url('/panel')); }
-        update_post_meta($aporte_id,'_bankitos_banco_id',$banco_id); update_post_meta($aporte_id,'_bankitos_monto',$monto);
+        update_post_meta($aporte_id, '_bankitos_banco_id', $banco_id);
+        update_post_meta($aporte_id, '_bankitos_monto', $monto);
+
+        // Fine split: if the aporte includes a multa, store both parts.
+        $fine_amount = isset($_POST['fine_amount']) ? floatval($_POST['fine_amount']) : 0.0;
+        if ($fine_amount > 0 && $fine_amount < $monto) {
+            $savings_amount = round($monto - $fine_amount, 2);
+            update_post_meta($aporte_id, '_bankitos_fine_amount',    $fine_amount);
+            update_post_meta($aporte_id, '_bankitos_savings_amount', $savings_amount);
+        }
         if (!empty($_FILES['comprobante']['name'])){
             require_once ABSPATH.'wp-admin/includes/file.php'; require_once ABSPATH.'wp-admin/includes/media.php'; require_once ABSPATH.'wp-admin/includes/image.php';
             $file = $_FILES['comprobante'];
@@ -183,8 +192,18 @@ class BK_Aportes_Handler {
         $aporte_id=intval($_GET['aporte']??0); $aporte=get_post($aporte_id);
         if (!$aporte || $aporte->post_type!==Bankitos_CPT::SLUG_APORTE){ wp_safe_redirect(site_url('/panel')); exit; }
         if (!self::check_same_banco($aporte_id,get_current_user_id())){ self::redirect_with('err','permiso', site_url('/panel')); }
-        wp_update_post(['ID'=>$aporte_id,'post_status'=>'publish']);
-        self::redirect_with('ok','aporte_aprobado', site_url('/panel'));
+        wp_update_post(['ID' => $aporte_id, 'post_status' => 'publish']);
+
+        // Distribute any fine component among all active members of the banco.
+        $fine_amount = (float) get_post_meta($aporte_id, '_bankitos_fine_amount', true);
+        if ($fine_amount > 0 && class_exists('Bankitos_Distributions')) {
+            $aporte_banco_id = (int) get_post_meta($aporte_id, '_bankitos_banco_id', true);
+            if ($aporte_banco_id > 0) {
+                Bankitos_Distributions::distribute_fine($aporte_id, $aporte_banco_id, $fine_amount);
+            }
+        }
+
+        self::redirect_with('ok', 'aporte_aprobado', site_url('/panel'));
     }
     public static function aporte_reject() {
         if (!is_user_logged_in()) { wp_safe_redirect(site_url('/acceder')); exit; }

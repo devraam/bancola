@@ -28,6 +28,7 @@ class Bankitos_Shortcodes {
         'class-bankitos-shortcode-tesorero.php',
         'class-bankitos-shortcode-veedor.php',
         'class-bankitos-shortcode-invite-portal.php',
+        'class-bankitos-shortcode-rentabilidad.php',
     ];
 
     foreach ($files as $file) {
@@ -58,6 +59,7 @@ class Bankitos_Shortcodes {
         'Bankitos_Shortcode_Tesorero_List',
         'Bankitos_Shortcode_Veedor_List',
         'Bankitos_Shortcode_Invite_Portal',
+        'Bankitos_Shortcode_Rentabilidad',
     ];
 
     foreach ($classes as $class) {
