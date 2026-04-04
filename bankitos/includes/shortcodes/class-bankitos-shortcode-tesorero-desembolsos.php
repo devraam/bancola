@@ -184,7 +184,7 @@ class Bankitos_Shortcode_Tesorero_Desembolsos extends Bankitos_Shortcode_Panel_B
     }
 
     protected static function modal_markup(): string {
-        return '<div id="bankitos-modal" class="bankitos-modal" hidden><div class="bankitos-modal__backdrop"></div><div class="bankitos-modal__body"><button type="button" class="bankitos-modal__close" aria-label="' . esc_attr__('Cerrar', 'bankitos') . '">&times;</button><p class="bankitos-modal__error" hidden></p><iframe class="bankitos-modal__frame" src="" title="' . esc_attr__('Comprobante', 'bankitos') . '" hidden></iframe><img src="" alt="" loading="lazy" hidden></div></div>';
+        return '<div id="bankitos-modal" class="bankitos-modal" hidden><div class="bankitos-modal__backdrop"></div><div class="bankitos-modal__body"><button type="button" class="bankitos-modal__close" aria-label="' . esc_attr__('Cerrar', 'bankitos') . '">&times;</button><p class="bankitos-modal__error" hidden></p><iframe class="bankitos-modal__frame" src="" title="' . esc_attr__('Comprobante', 'bankitos') . '" hidden></iframe><img src="" alt="" hidden></div></div>';
     }
 
     protected static function inline_scripts(): string {
@@ -245,6 +245,7 @@ class Bankitos_Shortcode_Tesorero_Desembolsos extends Bankitos_Shortcode_Panel_B
               img.onload = function(){ img.removeAttribute('hidden'); modal.removeAttribute('hidden'); };
               img.onerror = function(){ img.setAttribute('hidden',''); showError('No se pudo cargar el comprobante.'); modal.removeAttribute('hidden'); };
               img.alt = title || '';
+              img.removeAttribute('hidden');
               img.src = receiptUrl;
               modal.removeAttribute('hidden');
               return;

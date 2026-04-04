@@ -9,6 +9,16 @@ class BK_Aportes_Handler {
         add_action('admin_post_bankitos_aporte_download',    [__CLASS__,'aporte_download']);
         add_action('admin_post_bankitos_aporte_view',        [__CLASS__,'aporte_view']);
         add_action('admin_post_bankitos_aporte_export_excel',[__CLASS__,'aporte_export_excel']);
+        add_action('template_redirect',                      [__CLASS__,'handle_file_request']);
+    }
+
+    public static function handle_file_request(): void {
+        $action = isset($_GET['bankitos_action']) ? sanitize_key($_GET['bankitos_action']) : '';
+        if ($action === 'bankitos_aporte_view') {
+            self::aporte_view();
+        } elseif ($action === 'bankitos_aporte_download') {
+            self::aporte_download();
+        }
     }
 
     private static function get_redirect_target(string $fallback): string {
@@ -154,12 +164,10 @@ class BK_Aportes_Handler {
             return '';
         }
         
-        $download_base = admin_url('admin-post.php');
-
         return wp_nonce_url(add_query_arg([
-            'action' => $action,
-            'aporte' => $aporte_id,
-        ], $download_base), $nonce_action . $aporte_id);
+            'bankitos_action' => $action,
+            'aporte'          => $aporte_id,
+        ], home_url('/')), $nonce_action . $aporte_id);
     }
 
     private static function check_same_banco($aporte_id, $user_id): bool {

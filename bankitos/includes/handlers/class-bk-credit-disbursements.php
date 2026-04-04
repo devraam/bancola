@@ -6,6 +6,14 @@ class BK_Credit_Disbursements_Handler {
     public static function init(): void {
         add_action('admin_post_bankitos_credit_disburse', [__CLASS__, 'submit_disbursement']);
         add_action('admin_post_bankitos_credit_disbursement_download', [__CLASS__, 'download_receipt']);
+        add_action('template_redirect', [__CLASS__, 'handle_file_request']);
+    }
+
+    public static function handle_file_request(): void {
+        $action = isset($_GET['bankitos_action']) ? sanitize_key($_GET['bankitos_action']) : '';
+        if ($action === 'bankitos_credit_disbursement_download') {
+            self::download_receipt();
+        }
     }
 
     private static function get_redirect_target(string $fallback): string {
@@ -139,9 +147,9 @@ class BK_Credit_Disbursements_Handler {
             return '';
         }
         return wp_nonce_url(add_query_arg([
-            'action'     => 'bankitos_credit_disbursement_download',
-            'request_id' => $request_id,
-        ], admin_url('admin-post.php')), 'bankitos_credit_disbursement_download_' . $request_id);
+            'bankitos_action' => 'bankitos_credit_disbursement_download',
+            'request_id'      => $request_id,
+        ], home_url('/')), 'bankitos_credit_disbursement_download_' . $request_id);
     }
 
     public static function download_receipt(): void {
