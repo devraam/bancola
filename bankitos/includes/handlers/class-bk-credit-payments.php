@@ -8,6 +8,14 @@ class BK_Credit_Payments_Handler {
         add_action('admin_post_bankitos_credit_payment_approve', [__CLASS__, 'approve_payment']);
         add_action('admin_post_bankitos_credit_payment_reject', [__CLASS__, 'reject_payment']);
         add_action('admin_post_bankitos_credit_payment_download', [__CLASS__, 'download_receipt']);
+        add_action('template_redirect', [__CLASS__, 'handle_file_request']);
+    }
+
+    public static function handle_file_request(): void {
+        $action = isset($_GET['bankitos_action']) ? sanitize_key($_GET['bankitos_action']) : '';
+        if ($action === 'bankitos_credit_payment_download') {
+            self::download_receipt();
+        }
     }
 
     private static function get_redirect_target(string $fallback): string {
@@ -170,9 +178,9 @@ class BK_Credit_Payments_Handler {
             return '';
         }
         return wp_nonce_url(add_query_arg([
-            'action'     => 'bankitos_credit_payment_download',
-            'payment_id' => $payment_id,
-        ], admin_url('admin-post.php')), 'bankitos_credit_payment_download_' . $payment_id);
+            'bankitos_action' => 'bankitos_credit_payment_download',
+            'payment_id'      => $payment_id,
+        ], home_url('/')), 'bankitos_credit_payment_download_' . $payment_id);
     }
     
     private static function moderate_payment(string $status): void {
