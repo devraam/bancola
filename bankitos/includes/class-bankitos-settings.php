@@ -507,7 +507,7 @@ class Bankitos_Settings {
                         'tag'     => 'bankitos_panel_members_invite',
                         'name'    => __('Invitar miembros', 'bankitos'),
                         'role'    => __('Presidente', 'bankitos'),
-                        'page'    => '/miembros',
+                        'page'    => '/panel-miembros-presidente',
                         'summary' => __('Formulario dinámico para enviar varias invitaciones por email en una sola acción, con control del mínimo requerido para activar el B@nko.', 'bankitos'),
                         'actions' => [
                             __('Permite agregar o eliminar filas de invitados sin recargar la página.', 'bankitos'),
@@ -518,7 +518,7 @@ class Bankitos_Settings {
                         'tag'     => 'bankitos_panel_members',
                         'name'    => __('Miembros e invitaciones', 'bankitos'),
                         'role'    => __('Presidente', 'bankitos'),
-                        'page'    => '/miembros',
+                        'page'    => '/panel-miembros-presidente',
                         'summary' => __('Tabla unificada que muestra miembros activos e invitaciones pendientes. Permite gestionar roles y realizar acciones sobre invitaciones.', 'bankitos'),
                         'actions' => [
                             __('Reenvía, cancela o edita invitaciones existentes.', 'bankitos'),
@@ -693,12 +693,12 @@ class Bankitos_Settings {
             'presidente' => [
                 ['label' => __('Panel', 'bankitos'), 'icon' => 'dashicons-dashboard', 'url' => '/panel'],
                 ['label' => __('Mi B@nko', 'bankitos'), 'icon' => 'dashicons-groups', 'url' => '/mi-banco'],
-                ['label' => __('Miembros', 'bankitos'), 'icon' => 'dashicons-admin-users', 'url' => '/miembros'],
+                ['label' => __('Miembros', 'bankitos'), 'icon' => 'dashicons-admin-users', 'url' => '/panel-miembros-presidente'],
                 ['label' => __('Créditos', 'bankitos'), 'icon' => 'dashicons-money-alt', 'url' => '/creditos'],
             ],
             'secretario' => [
                 ['label' => __('Panel', 'bankitos'), 'icon' => 'dashicons-dashboard', 'url' => '/panel'],
-                ['label' => __('Miembros', 'bankitos'), 'icon' => 'dashicons-id', 'url' => '/miembros'],
+                ['label' => __('Miembros', 'bankitos'), 'icon' => 'dashicons-id', 'url' => '/panel-miembros-presidente'],
                 ['label' => __('Invitaciones', 'bankitos'), 'icon' => 'dashicons-email-alt', 'url' => '/invitaciones'],
             ],
             'tesorero' => [

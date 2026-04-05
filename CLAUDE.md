@@ -272,7 +272,7 @@ Orden recomendado (de arriba abajo):
 | `/crear-banko` | `[bankitos_crear_banco_form]` | Formulario guiado para crear un nuevo B@nko; incluye mora, penalización por renuncia | Socio sin banco |
 | `/panel-info` | `[bankitos_panel_info]` | Tarjeta de detalles del banco: cuota, tasa, duración, capital total | Cualquier miembro |
 | `/panel-acciones` | `[bankitos_panel_quick_actions]` | Botones de acceso rápido contextuales según rol | Cualquier miembro |
-| `/miembros` | `[bankitos_panel_members_invite]` + `[bankitos_panel_members]` | Invitar socios y gestionar roles | presidente |
+| `/panel-miembros-presidente` | `[bankitos_panel_members_invite]` + `[bankitos_panel_members]` | Invitar socios y gestionar roles | presidente |
 | `/aportar` | `[bankitos_aporte_form]` | Registrar aporte con comprobante; opción de desglosar multa | socio_general (`submit_aportes`) |
 | `/tesorero` | `[bankitos_tesorero_aportes]` + `[bankitos_tesorero_creditos]` + `[bankitos_tesorero_desembolsos]` | Aprobar aportes, pagos de crédito y registrar desembolsos | tesorero (`approve_aportes`) |
 | `/veedor` | `[bankitos_veedor_aportes]` + `[bankitos_veedor_creditos]` | Auditoría de solo lectura de aportes y pagos | veedor |

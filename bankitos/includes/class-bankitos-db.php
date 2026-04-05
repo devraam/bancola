@@ -159,6 +159,20 @@ class Bankitos_DB {
             KEY source (banco_id, source_aporte_id)
         ) $charset;");
 
+        $resignations = self::resignation_table_name();
+        dbDelta("CREATE TABLE $resignations (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            banco_id BIGINT UNSIGNED NOT NULL,
+            user_id BIGINT UNSIGNED NOT NULL,
+            status VARCHAR(20) NOT NULL DEFAULT 'pending',
+            requested_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            resolved_at DATETIME NULL,
+            resolved_by BIGINT UNSIGNED NULL,
+            PRIMARY KEY  (id),
+            KEY banco_user (banco_id, user_id),
+            KEY banco_status (banco_id, status)
+        ) $charset;");
+
         self::migrate_members_role_column($members);
         self::migrate_snapshot_column($credits);
         self::migrate_mora_column($payments);
@@ -175,6 +189,17 @@ class Bankitos_DB {
     public static function invites_table_name(): string {
         global $wpdb;
         return $wpdb->prefix . 'banco_invites';
+    }
+
+    public static function resignation_table_name(): string {
+        global $wpdb;
+        return $wpdb->prefix . 'banco_resignation_requests';
+    }
+
+    public static function resignation_table_exists(): bool {
+        global $wpdb;
+        $table = self::resignation_table_name();
+        return (bool) $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table));
     }
 
     public static function members_table_exists(): bool {

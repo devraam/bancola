@@ -159,6 +159,44 @@ class Bankitos_CPT {
         <select name="bk_duracion_meses">
             <?php foreach([2,4,6,8,12] as $m){ printf('<option value="%d"%s>%d</option>',$m,selected(intval($duracion),$m,false),$m);} ?>
         </select></p>
+
+        <?php
+        $mora_enabled        = (int) get_post_meta($post->ID, '_bk_mora_enabled', true);
+        $mora_rate           = (float)(get_post_meta($post->ID, '_bk_mora_rate', true) ?: 2.0);
+        $mora_grace_days     = (int) get_post_meta($post->ID, '_bk_mora_grace_days', true);
+        $resignation_penalty = (int) get_post_meta($post->ID, '_bk_resignation_penalty', true);
+        ?>
+        <hr style="margin:1rem 0;">
+        <p><label><strong><?php _e('Intereses moratorios','bankitos'); ?></strong></label><br>
+        <label style="font-weight:normal;">
+            <input type="checkbox" name="bk_mora_enabled" value="1" id="bk_cpt_mora_enabled" <?php checked($mora_enabled, 1); ?>>
+            <?php _e('Aplicar intereses de mora por pagos atrasados','bankitos'); ?>
+        </label></p>
+
+        <div id="bk_cpt_mora_fields" style="<?php echo $mora_enabled ? '' : 'display:none;'; ?>padding-left:1rem; border-left:3px solid #3b82f6; margin-top:0.5rem;">
+            <p><label><strong><?php _e('Tasa de mora mensual (%)','bankitos'); ?></strong></label><br>
+            <input type="number" name="bk_mora_rate" min="0.1" max="5.0" step="0.1" value="<?php echo esc_attr($mora_rate); ?>" style="width:120px">
+            <span style="color:#666; font-size:0.9em;"><?php _e('(0.1 – 5.0)','bankitos'); ?></span></p>
+
+            <p><label><strong><?php _e('Días de gracia','bankitos'); ?></strong></label><br>
+            <input type="number" name="bk_mora_grace_days" min="0" max="30" step="1" value="<?php echo esc_attr($mora_grace_days); ?>" style="width:80px">
+            <span style="color:#666; font-size:0.9em;"><?php _e('(0 – 30 días)','bankitos'); ?></span></p>
+        </div>
+        <script>
+        (function(){
+            var chk  = document.getElementById('bk_cpt_mora_enabled');
+            var wrap = document.getElementById('bk_cpt_mora_fields');
+            if (chk && wrap) {
+                chk.addEventListener('change', function(){ wrap.style.display = this.checked ? 'block' : 'none'; });
+            }
+        })();
+        </script>
+
+        <hr style="margin:1rem 0;">
+        <p><label><strong><?php _e('Penalización por renuncia voluntaria (%)','bankitos'); ?></strong></label><br>
+        <input type="number" name="bk_resignation_penalty" min="0" max="100" step="1" value="<?php echo esc_attr($resignation_penalty); ?>" style="width:80px">
+        <span style="color:#666; font-size:0.9em;"><?php _e('(0 = sin penalización, máx. 100)','bankitos'); ?></span><br>
+        <small style="color:#666;"><?php _e('Porcentaje del ahorro acumulado que se retiene al retirarse voluntariamente.','bankitos'); ?></small></p>
         <?php
     }
     public static function save_banco_meta($post_id,$post){
@@ -176,6 +214,15 @@ class Bankitos_CPT {
         update_post_meta($post_id,'_bk_periodicidad',$period);
         update_post_meta($post_id,'_bk_tasa',$tasa);
         update_post_meta($post_id,'_bk_duracion_meses',$dur);
+
+        $mora_enabled = !empty($_POST['bk_mora_enabled']) ? 1 : 0;
+        $mora_rate    = $mora_enabled ? min(5.0, max(0.1, floatval($_POST['bk_mora_rate'] ?? 2.0))) : 0.0;
+        $mora_grace   = $mora_enabled ? min(30, absint($_POST['bk_mora_grace_days'] ?? 0)) : 0;
+        $penalty      = min(100, absint($_POST['bk_resignation_penalty'] ?? 0));
+        update_post_meta($post_id, '_bk_mora_enabled', $mora_enabled);
+        update_post_meta($post_id, '_bk_mora_rate', $mora_rate);
+        update_post_meta($post_id, '_bk_mora_grace_days', $mora_grace);
+        update_post_meta($post_id, '_bk_resignation_penalty', $penalty);
     }
 
 

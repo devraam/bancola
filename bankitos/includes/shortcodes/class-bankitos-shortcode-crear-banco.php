@@ -75,14 +75,13 @@ class Bankitos_Shortcode_Crear_Banco extends Bankitos_Shortcode_Base {
             </div>
 
             <hr class="bankitos-separator" style="margin:1.5rem 0; border:none; border-top:1px solid #e5e7eb;">
-            <h4 style="margin-bottom:0.75rem;"><?php esc_html_e('Intereses moratorios (opcional)', 'bankitos'); ?></h4>
-            <p class="bankitos-field-hint" style="margin-bottom:1rem;"><?php esc_html_e('Activa esto si el banco desea cobrar un interés adicional cuando un socio paga una cuota después de la fecha límite.', 'bankitos'); ?></p>
 
             <div class="bankitos-field bankitos-field--checkbox">
-              <label>
-                <input type="checkbox" id="bk_mora_enabled" name="mora_enabled" value="1">
-                <?php esc_html_e('Aplicar intereses de mora por pagos atrasados', 'bankitos'); ?>
+              <label style="font-weight:600; font-size:1rem;" class="custom-checkbox-container">
+                <?php esc_html_e('Marque la casilla para activar Intereses moratorios (opcional)', 'bankitos'); ?>
+                <input type="checkbox" id="bk_mora_enabled" name="mora_enabled" value="1">     
               </label>
+              <p class="bankitos-field-hint" style="margin-top:0.35rem; margin-bottom:0;"><?php esc_html_e('Activa esto si el banco desea cobrar un interés adicional cuando un socio paga una cuota después de la fecha límite.', 'bankitos'); ?></p>
             </div>
 
             <div id="bk_mora_fields" style="display:none; border-left:3px solid #3b82f6; padding-left:1rem; margin-top:0.5rem;">
