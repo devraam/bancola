@@ -52,37 +52,51 @@ class BK_Resignation_Handler {
             self::redirect_with('err', 'renuncia_transfiere_primero', $redirect);
         }
 
-        // socio_general: renuncia inmediata
+        // socio_general: renuncia inmediata — pero primero validar que no tenga crédito activo
         if ($user_role === 'socio_general' || empty($user_role)) {
+            if (self::user_has_active_credit($user_id, $banco_id)) {
+                self::redirect_with('err', 'renuncia_credito_pendiente', $redirect);
+            }
             self::execute_resignation($user_id, $banco_id);
-            wp_safe_redirect(site_url('/'));
+            wp_safe_redirect(add_query_arg('ok', 'renuncia_ejecutada', site_url('/panel')));
             exit;
         }
 
         // Roles con cargo (tesorero, veedor, secretario): solicitud pendiente
-        // Verificar que no tenga solicitud pendiente ya
-        if (class_exists('Bankitos_DB') && Bankitos_DB::resignation_table_exists()) {
-            global $wpdb;
-            $table    = Bankitos_DB::resignation_table_name();
-            $existing = (int) $wpdb->get_var($wpdb->prepare(
-                "SELECT COUNT(*) FROM {$table} WHERE banco_id=%d AND user_id=%d AND status='pending'",
-                $banco_id,
-                $user_id
-            ));
-            if ($existing > 0) {
-                self::redirect_with('err', 'renuncia_ya_solicitada', $redirect);
-            }
-            $wpdb->insert(
-                $table,
-                [
-                    'banco_id'     => $banco_id,
-                    'user_id'      => $user_id,
-                    'status'       => 'pending',
-                    'requested_at' => current_time('mysql'),
-                ],
-                ['%d', '%d', '%s', '%s']
-            );
+        if (!class_exists('Bankitos_DB')) {
+            self::redirect_with('err', 'renuncia_invalida', $redirect);
         }
+
+        // Crear tabla si aún no existe (primera vez tras la actualización del plugin)
+        if (!Bankitos_DB::resignation_table_exists()) {
+            Bankitos_DB::create_tables();
+        }
+
+        if (!Bankitos_DB::resignation_table_exists()) {
+            // Si sigue sin existir, no podemos guardar la solicitud
+            self::redirect_with('err', 'renuncia_invalida', $redirect);
+        }
+
+        global $wpdb;
+        $table    = Bankitos_DB::resignation_table_name();
+        $existing = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$table} WHERE banco_id=%d AND user_id=%d AND status='pending'",
+            $banco_id,
+            $user_id
+        ));
+        if ($existing > 0) {
+            self::redirect_with('err', 'renuncia_ya_solicitada', $redirect);
+        }
+        $wpdb->insert(
+            $table,
+            [
+                'banco_id'     => $banco_id,
+                'user_id'      => $user_id,
+                'status'       => 'pending',
+                'requested_at' => current_time('mysql'),
+            ],
+            ['%d', '%d', '%s', '%s']
+        );
 
         self::notify_president_of_resignation($banco_id, $user_id);
         do_action('bankitos_log_event', 'RESIGNATION_REQUEST', 'Usuario #' . $user_id . ' solicitó retiro del banco #' . $banco_id, $banco_id, ['user_id' => $user_id, 'role' => $user_role]);
@@ -250,6 +264,11 @@ class BK_Resignation_Handler {
         }
         $user->add_role('socio_general');
 
+        // 4. Limpiar caché estático para que get_user_banco_id() refleje 0 de inmediato
+        if (class_exists('Bankitos_Handlers')) {
+            Bankitos_Handlers::clear_user_banco_cache($user_id);
+        }
+
         do_action('bankitos_log_event', 'RESIGNATION_EXECUTED', 'Usuario #' . $user_id . ' se retiró del banco #' . $banco_id, $banco_id, ['user_id' => $user_id, 'penalty_pct' => $penalty_pct]);
     }
 
@@ -298,9 +317,26 @@ class BK_Resignation_Handler {
         wp_mail($president->user_email, $subject, $message, $headers);
     }
 
+    private static function user_has_active_credit(int $user_id, int $banco_id): bool {
+        global $wpdb;
+        $credits_table = $wpdb->prefix . 'banco_credit_requests';
+        $count = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$credits_table} WHERE user_id=%d AND banco_id=%d AND status='disbursed'",
+            $user_id,
+            $banco_id
+        ));
+        return $count > 0;
+    }
+
     public static function get_pending_resignations(int $banco_id): array {
-        if (!class_exists('Bankitos_DB') || !Bankitos_DB::resignation_table_exists()) {
+        if (!class_exists('Bankitos_DB')) {
             return [];
+        }
+        if (!Bankitos_DB::resignation_table_exists()) {
+            Bankitos_DB::create_tables();
+            if (!Bankitos_DB::resignation_table_exists()) {
+                return [];
+            }
         }
         global $wpdb;
         $table = Bankitos_DB::resignation_table_name();

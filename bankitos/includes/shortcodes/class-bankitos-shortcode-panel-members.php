@@ -41,28 +41,115 @@ class Bankitos_Shortcode_Panel_Members extends Bankitos_Shortcode_Panel_Base {
             ['presidente' => __('Presidente', 'bankitos')]
         );
 
-        $rows = self::merge_members_and_invites($context['members'], $context['invites']);
-        $can_manage = $context['can_manage_invites'];
+        $can_manage  = $context['can_manage_invites'];
         $current_url = self::get_current_url();
 
-        ob_start(); ?>
+        // Separar en dos listas: miembros aceptados e invitaciones (pendientes/rechazadas/expiradas)
+        $member_rows = $context['members'];
+        $invite_rows = [];
+        foreach ($context['invites'] as $invite) {
+            if (($invite['status'] ?? '') !== 'accepted') {
+                $invite_rows[] = [
+                    'type'         => 'invite',
+                    'id'           => (int) ($invite['id'] ?? 0),
+                    'name'         => $invite['name'] ?? '',
+                    'email'        => $invite['email'] ?? '',
+                    'status'       => $invite['status'] ?? 'pending',
+                    'status_label' => $invite['status_label'] ?? __('Enviada', 'bankitos'),
+                ];
+            }
+        }
+
+        ob_start();
+        echo self::top_notice_from_query();
+
+        // =====================================================================
+        // PANEL 1: Miembros activos con gestión de roles
+        // =====================================================================
+        ?>
         <div class="bankitos-members-table">
           <div class="bankitos-members-table__header">
-            <h3 class="bankitos-members-table__title"><?php esc_html_e('Invitaciones enviadas', 'bankitos'); ?></h3>
-            <p class="bankitos-members-table__subtitle"><?php esc_html_e('Consulta el estado de cada invitación y miembro registrado.', 'bankitos'); ?></p>
+            <h3 class="bankitos-members-table__title"><?php esc_html_e('Miembros del banco', 'bankitos'); ?></h3>
+            <p class="bankitos-members-table__subtitle"><?php esc_html_e('Socios activos. Puedes cambiar o transferir roles desde aquí.', 'bankitos'); ?></p>
           </div>
-          <?php if (empty($rows)): ?>
-            <p class="bankitos-members-table__empty"><?php esc_html_e('Aún no hay miembros ni invitaciones registradas.', 'bankitos'); ?></p>
+          <?php if (empty($member_rows)): ?>
+            <p class="bankitos-members-table__empty"><?php esc_html_e('Aún no hay otros miembros registrados.', 'bankitos'); ?></p>
           <?php else: ?>
             <div class="bankitos-accordion bankitos-members-table__accordion" role="list">
-              <?php $is_first = true; foreach ($rows as $row): ?>
+              <?php $is_first = true; foreach ($member_rows as $row): ?>
                 <?php
-                $display_name = $row['name'] ?: $row['email'];
+                $display_name  = $row['name'] ?: $row['email'];
                 $display_email = $row['email'] ?: __('No registrado', 'bankitos');
-                $row_id = isset($row['id']) ? (int) $row['id'] : 0;
-                $can_update_invite = $can_manage && $row['type'] === 'invite' && $row['status'] !== 'accepted' && $row_id > 0;
-                $pill_class = 'bankitos-pill bankitos-pill--' . sanitize_html_class($row['status']);
-                $edit_form_id = 'bankitos-edit-' . $row_id;
+                $member_user_id   = (int) $row['id'];
+                $current_role_key = $row['role_key'] ?? 'socio_general';
+                $pill_class = 'bankitos-pill bankitos-pill--' . sanitize_html_class($current_role_key);
+                $roles_for_member = ($current_role_key === 'socio_general')
+                    ? $assignable_roles_with_president
+                    : $assignable_roles;
+                ?>
+                <details class="bankitos-accordion__item bankitos-member-card" role="listitem" <?php echo $is_first ? 'open' : ''; ?>>
+                  <summary class="bankitos-accordion__summary">
+                    <div class="bankitos-accordion__title">
+                      <span class="bankitos-accordion__name"><?php echo esc_html($display_name); ?></span>
+                      <span class="bankitos-accordion__email"><?php echo esc_html($display_email); ?></span>
+                    </div>
+                    <div class="bankitos-accordion__meta">
+                      <span class="<?php echo esc_attr($pill_class); ?>"><?php echo esc_html($current_role_key); ?></span>
+                      <span class="bankitos-accordion__chevron" aria-hidden="true"></span>
+                    </div>
+                  </summary>
+                  <div class="bankitos-accordion__content">
+                    <div class="bankitos-role-manager">
+                      <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="bankitos-role-manager__form">
+                        <?php echo wp_nonce_field('bankitos_assign_role_' . $member_user_id, '_wpnonce', true, false); ?>
+                        <input type="hidden" name="action" value="bankitos_assign_role">
+                        <input type="hidden" name="member_user_id" value="<?php echo esc_attr($member_user_id); ?>">
+                        <input type="hidden" name="redirect_to" value="<?php echo esc_url($current_url); ?>">
+                        <label for="bankitos-role-<?php echo esc_attr($member_user_id); ?>" class="screen-reader-text"><?php esc_html_e('Asignar Rol', 'bankitos'); ?></label>
+                        <select name="member_role" id="bankitos-role-<?php echo esc_attr($member_user_id); ?>">
+                          <?php foreach ($roles_for_member as $role_key => $role_label): ?>
+                            <option value="<?php echo esc_attr($role_key); ?>" <?php selected($current_role_key, $role_key); ?>>
+                              <?php echo esc_html($role_label); ?>
+                            </option>
+                          <?php endforeach; ?>
+                        </select>
+                        <button type="submit" class="bankitos-btn bankitos-btn--small bankitos-btn--ghost"><?php esc_html_e('Guardar Rol', 'bankitos'); ?></button>
+                      </form>
+                      <?php if ($current_role_key === 'socio_general'): ?>
+                        <p class="bankitos-field-hint" style="margin-top:0.4rem; color:#6b7280; font-size:0.8rem;">
+                          <?php esc_html_e('Selecciona "Presidente" para transferirle la presidencia. Tu rol pasará a Socio general automáticamente.', 'bankitos'); ?>
+                        </p>
+                      <?php endif; ?>
+                    </div>
+                  </div>
+                </details>
+              <?php $is_first = false; endforeach; ?>
+            </div>
+          <?php endif; ?>
+        </div>
+
+        <?php
+        // =====================================================================
+        // PANEL 2: Invitaciones enviadas (pendientes / rechazadas / expiradas)
+        // =====================================================================
+        ?>
+        <div class="bankitos-members-table" style="margin-top:2rem;">
+          <div class="bankitos-members-table__header">
+            <h3 class="bankitos-members-table__title"><?php esc_html_e('Invitaciones enviadas', 'bankitos'); ?></h3>
+            <p class="bankitos-members-table__subtitle"><?php esc_html_e('Estado de cada invitación por correo. Puedes reenviar, editar o cancelar las pendientes.', 'bankitos'); ?></p>
+          </div>
+          <?php if (empty($invite_rows)): ?>
+            <p class="bankitos-members-table__empty"><?php esc_html_e('No hay invitaciones pendientes.', 'bankitos'); ?></p>
+          <?php else: ?>
+            <div class="bankitos-accordion bankitos-members-table__accordion" role="list">
+              <?php $is_first = true; foreach ($invite_rows as $row): ?>
+                <?php
+                $display_name  = $row['name'] ?: $row['email'];
+                $display_email = $row['email'];
+                $row_id        = (int) $row['id'];
+                $can_update_invite = $can_manage && $row['status'] !== 'accepted' && $row_id > 0;
+                $pill_class    = 'bankitos-pill bankitos-pill--' . sanitize_html_class($row['status']);
+                $edit_form_id  = 'bankitos-edit-' . $row_id;
                 ?>
                 <details class="bankitos-accordion__item bankitos-member-card" data-bankitos-invite-row role="listitem" <?php echo $is_first ? 'open' : ''; ?>>
                   <summary class="bankitos-accordion__summary">
@@ -95,7 +182,7 @@ class Bankitos_Shortcode_Panel_Members extends Bankitos_Shortcode_Panel_Base {
                               name="invite_name"
                               value="<?php echo esc_attr($row['name']); ?>"
                               required
-                            >   
+                            >
                           </div>
                         </dd>
                       </div>
@@ -126,38 +213,28 @@ class Bankitos_Shortcode_Panel_Members extends Bankitos_Shortcode_Panel_Base {
                         <dd><span class="<?php echo esc_attr($pill_class); ?>"><?php echo esc_html($row['status_label']); ?></span></dd>
                       </div>
                     </dl>
-
                     <div class="bankitos-member-card__actions" data-invite-actions-cell>
-                      <?php if ($can_update_invite): // --- INICIO: Lógica para INVITACIONES PENDIENTES --- ?>
+                      <?php if ($can_update_invite): ?>
                         <div class="bankitos-invite-actions">
                           <div class="bankitos-invite-actions__group" data-bankitos-invite-default-actions>
-                              <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="bankitos-invite-actions__form">
-                                <?php echo wp_nonce_field('bankitos_resend_invite_' . $row_id, '_wpnonce', true, false); ?>
-                                <input type="hidden" name="action" value="bankitos_resend_invite">
-                                <input type="hidden" name="invite_id" value="<?php echo esc_attr($row_id); ?>">
-                                <input type="hidden" name="redirect_to" value="<?php echo esc_url($current_url); ?>">
-                                <button type="submit" class="bankitos-btn bankitos-btn--small bankitos-btn--ghost"><?php esc_html_e('Reenviar', 'bankitos'); ?></button>
-                              </form>
-
-                              <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="bankitos-invite-actions__form">
-                                <?php echo wp_nonce_field('bankitos_cancel_invite_' . $row_id, '_wpnonce', true, false); ?>
-                                <input type="hidden" name="action" value="bankitos_cancel_invite">
-                                <input type="hidden" name="invite_id" value="<?php echo esc_attr($row_id); ?>">
-                                <input type="hidden" name="redirect_to" value="<?php echo esc_url($current_url); ?>">
-                                <button type="submit" class="bankitos-btn bankitos-btn--small bankitos-btn--danger" onclick="return confirm('<?php echo esc_js(__('¿Cancelar esta invitación?', 'bankitos')); ?>');"><?php esc_html_e('Cancelar invitación', 'bankitos'); ?></button>
-                              </form>
-                            </div>
-
-                          <button
-                            type="button"
-                            class="bankitos-btn bankitos-btn--small bankitos-btn--ghost"
-                            data-bankitos-invite-edit-toggle
-                            aria-expanded="false"
-                            aria-controls="<?php echo esc_attr($edit_form_id); ?>"
-                          >
+                            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="bankitos-invite-actions__form">
+                              <?php echo wp_nonce_field('bankitos_resend_invite_' . $row_id, '_wpnonce', true, false); ?>
+                              <input type="hidden" name="action" value="bankitos_resend_invite">
+                              <input type="hidden" name="invite_id" value="<?php echo esc_attr($row_id); ?>">
+                              <input type="hidden" name="redirect_to" value="<?php echo esc_url($current_url); ?>">
+                              <button type="submit" class="bankitos-btn bankitos-btn--small bankitos-btn--ghost"><?php esc_html_e('Reenviar', 'bankitos'); ?></button>
+                            </form>
+                            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="bankitos-invite-actions__form">
+                              <?php echo wp_nonce_field('bankitos_cancel_invite_' . $row_id, '_wpnonce', true, false); ?>
+                              <input type="hidden" name="action" value="bankitos_cancel_invite">
+                              <input type="hidden" name="invite_id" value="<?php echo esc_attr($row_id); ?>">
+                              <input type="hidden" name="redirect_to" value="<?php echo esc_url($current_url); ?>">
+                              <button type="submit" class="bankitos-btn bankitos-btn--small bankitos-btn--danger" onclick="return confirm('<?php echo esc_js(__('¿Cancelar esta invitación?', 'bankitos')); ?>');"><?php esc_html_e('Cancelar invitación', 'bankitos'); ?></button>
+                            </form>
+                          </div>
+                          <button type="button" class="bankitos-btn bankitos-btn--small bankitos-btn--ghost" data-bankitos-invite-edit-toggle aria-expanded="false" aria-controls="<?php echo esc_attr($edit_form_id); ?>">
                             <?php esc_html_e('Editar', 'bankitos'); ?>
                           </button>
-
                           <form id="<?php echo esc_attr($edit_form_id); ?>" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="bankitos-invite-actions__form bankitos-invite-actions__form--edit" data-bankitos-invite-edit-form hidden>
                             <?php echo wp_nonce_field('bankitos_update_invite_' . $row_id, '_wpnonce', true, false); ?>
                             <input type="hidden" name="action" value="bankitos_update_invite">
@@ -165,49 +242,13 @@ class Bankitos_Shortcode_Panel_Members extends Bankitos_Shortcode_Panel_Base {
                             <input type="hidden" name="redirect_to" value="<?php echo esc_url($current_url); ?>">
                             <div class="bankitos-invite-actions__buttons" data-bankitos-invite-edit-buttons hidden>
                               <button type="submit" class="bankitos-btn bankitos-btn--small"><?php esc_html_e('Guardar cambios', 'bankitos'); ?></button>
-                              <button type="button" class="bankitos-btn bankitos-btn--small bankitos-btn--ghost" data-bankitos-invite-edit-cancel>
-                                <?php esc_html_e('Cerrar', 'bankitos'); ?>
-                              </button>
+                              <button type="button" class="bankitos-btn bankitos-btn--small bankitos-btn--ghost" data-bankitos-invite-edit-cancel><?php esc_html_e('Cerrar', 'bankitos'); ?></button>
                             </div>
                           </form>
                         </div>
-                      
-                      <?php elseif ($row['type'] === 'member'): // --- INICIO: Lógica para MIEMBROS ACEPTADOS --- ?>
-                        <div class="bankitos-role-manager">
-                          <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="bankitos-role-manager__form">
-                              <?php
-                              $member_user_id    = (int) $row['id'];
-                              $current_role_key  = $row['role_key'] ?? 'socio_general';
-                              // Mostrar opción "Presidente" solo para socios_generales (transferencia de presidencia)
-                              $roles_for_member  = ($current_role_key === 'socio_general')
-                                  ? $assignable_roles_with_president
-                                  : $assignable_roles;
-                              ?>
-                              <?php echo wp_nonce_field('bankitos_assign_role_' . $member_user_id, '_wpnonce', true, false); ?>
-                              <input type="hidden" name="action" value="bankitos_assign_role">
-                              <input type="hidden" name="member_user_id" value="<?php echo esc_attr($member_user_id); ?>">
-                              <input type="hidden" name="redirect_to" value="<?php echo esc_url($current_url); ?>">
-
-                              <label for="bankitos-role-<?php echo esc_attr($member_user_id); ?>" class="screen-reader-text"><?php esc_html_e('Asignar Rol', 'bankitos'); ?></label>
-                              <select name="member_role" id="bankitos-role-<?php echo esc_attr($member_user_id); ?>">
-                                  <?php foreach ($roles_for_member as $role_key => $role_label): ?>
-                                      <option value="<?php echo esc_attr($role_key); ?>" <?php selected($current_role_key, $role_key); ?>>
-                                          <?php echo esc_html($role_label); ?>
-                                      </option>
-                                  <?php endforeach; ?>
-                              </select>
-                              <button type="submit" class="bankitos-btn bankitos-btn--small bankitos-btn--ghost"><?php esc_html_e('Guardar Rol', 'bankitos'); ?></button>
-                          </form>
-                          <?php if ($current_role_key === 'socio_general'): ?>
-                            <p class="bankitos-field-hint" style="margin-top:0.4rem; color:#6b7280; font-size:0.8rem;">
-                              <?php esc_html_e('Selecciona "Presidente" para transferirle la presidencia. Tu rol pasará a Socio general automáticamente.', 'bankitos'); ?>
-                            </p>
-                          <?php endif; ?>
-                        </div>
-
-                        <?php else: // Invitaciones Rechazadas, Expiradas, etc. ?>
+                      <?php else: ?>
                         <span class="bankitos-text-muted">—</span>
-                      <?php endif; // --- FIN DE LÓGICA DE ACCIONES --- ?>
+                      <?php endif; ?>
                     </div>
                   </div>
                 </details>

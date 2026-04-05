@@ -22,6 +22,10 @@ class Bankitos_Handlers {
         if (class_exists('BK_Resignation_Handler')) BK_Resignation_Handler::init();
     }
 
+    public static function clear_user_banco_cache(int $user_id): void {
+        unset(self::$user_banco_cache[$user_id]);
+    }
+
     public static function get_user_banco_id(int $user_id): int {
         if (isset(self::$user_banco_cache[$user_id])) {
             return self::$user_banco_cache[$user_id];

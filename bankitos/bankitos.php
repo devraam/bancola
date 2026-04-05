@@ -79,6 +79,13 @@ add_action('init', function() {
         }
         update_option('bankitos_db_v2_migrated', 1);
     }
+    // v3: tabla de solicitudes de renuncia
+    if (!get_option('bankitos_db_v3_migrated')) {
+        if (class_exists('Bankitos_DB')) {
+            Bankitos_DB::create_tables();
+        }
+        update_option('bankitos_db_v3_migrated', 1);
+    }
 }, 1);
 
 add_action('init', ['Bankitos_CPT', 'init'], 5);
