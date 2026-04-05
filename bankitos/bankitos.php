@@ -2,7 +2,7 @@
 /**
  * Plugin Name: BanKitos
  * Description: B@nko comunitario: aportes, préstamos y acceso solo para miembros.
- * Version: 0.6.1
+ * Version: 1.0.1
  * Author: Asesor Digital
  * Author URI: https://asesordigital.com.co
  * License: GPL2+

@@ -52,10 +52,11 @@ class BK_Resignation_Handler {
             self::redirect_with('err', 'renuncia_transfiere_primero', $redirect);
         }
 
-        // socio_general: renuncia inmediata — pero primero validar que no tenga crédito activo
+        // socio_general: renuncia inmediata si cumple validaciones de crédito
         if ($user_role === 'socio_general' || empty($user_role)) {
-            if (self::user_has_active_credit($user_id, $banco_id)) {
-                self::redirect_with('err', 'renuncia_credito_pendiente', $redirect);
+            $validation = self::validate_user_credit_for_resignation($user_id, $banco_id);
+            if (!$validation['allowed']) {
+                self::redirect_with('err', $validation['code'], $redirect);
             }
             self::execute_resignation($user_id, $banco_id);
             wp_safe_redirect(add_query_arg('ok', 'renuncia_ejecutada', site_url('/panel')));
@@ -139,7 +140,9 @@ class BK_Resignation_Handler {
             self::redirect_with('err', 'renuncia_invalida', $redirect);
         }
 
-        self::execute_resignation((int) $record['user_id'], $banco_id);
+        // El presidente aprueba la solicitud: el miembro queda como socio_general
+        // para que se retire por su cuenta desde Acciones rápidas.
+        self::set_user_role_to_socio_general((int) $record['user_id'], $banco_id);
 
         $wpdb->update(
             $table,
@@ -153,7 +156,7 @@ class BK_Resignation_Handler {
             ['%d']
         );
 
-        do_action('bankitos_log_event', 'RESIGNATION_APPROVED', 'Retiro de usuario #' . $record['user_id'] . ' aprobado por presidente #' . $president_id, $banco_id, ['resignation_id' => $resignation_id]);
+        do_action('bankitos_log_event', 'RESIGNATION_APPROVED', 'Solicitud de retiro aprobada para usuario #' . $record['user_id'] . ' por presidente #' . $president_id, $banco_id, ['resignation_id' => $resignation_id]);
         self::redirect_with('ok', 'renuncia_aprobada', $redirect);
     }
 
@@ -318,14 +321,59 @@ class BK_Resignation_Handler {
     }
 
     private static function user_has_active_credit(int $user_id, int $banco_id): bool {
+        return self::get_user_disbursed_credit_total($user_id, $banco_id) > 0;
+    }
+
+    private static function get_user_disbursed_credit_total(int $user_id, int $banco_id): float {
         global $wpdb;
         $credits_table = $wpdb->prefix . 'banco_credit_requests';
-        $count = (int) $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM {$credits_table} WHERE user_id=%d AND banco_id=%d AND status='disbursed'",
+        $total = (float) $wpdb->get_var($wpdb->prepare(
+            "SELECT COALESCE(SUM(amount),0) FROM {$credits_table} WHERE user_id=%d AND banco_id=%d AND status='disbursed'",
             $user_id,
             $banco_id
         ));
-        return $count > 0;
+        return $total > 0 ? $total : 0.0;
+    }
+
+    private static function validate_user_credit_for_resignation(int $user_id, int $banco_id): array {
+        $credit_total = self::get_user_disbursed_credit_total($user_id, $banco_id);
+        if ($credit_total <= 0) {
+            return ['allowed' => true, 'code' => ''];
+        }
+
+        $rentabilidad_total = 0.0;
+        if (class_exists('Bankitos_Distributions')) {
+            $rentabilidad = Bankitos_Distributions::get_user_rentabilidad($user_id, $banco_id);
+            $rentabilidad_total = isset($rentabilidad['total']) ? (float) $rentabilidad['total'] : 0.0;
+        }
+
+        if ($credit_total <= $rentabilidad_total) {
+            return ['allowed' => true, 'code' => ''];
+        }
+
+        return ['allowed' => false, 'code' => 'renuncia_credito_supera_rentabilidad'];
+    }
+
+    private static function set_user_role_to_socio_general(int $user_id, int $banco_id): void {
+        update_user_meta($user_id, 'bankitos_rol', 'socio_general');
+
+        $user = new WP_User($user_id);
+        foreach (['presidente', 'tesorero', 'secretario', 'veedor', 'socio_general'] as $r) {
+            $user->remove_role($r);
+        }
+        $user->add_role('socio_general');
+
+        if (class_exists('Bankitos_DB') && Bankitos_DB::members_table_exists()) {
+            global $wpdb;
+            $members_table = Bankitos_DB::members_table_name();
+            $wpdb->update(
+                $members_table,
+                ['member_role' => 'socio_general'],
+                ['banco_id' => $banco_id, 'user_id' => $user_id],
+                ['%s'],
+                ['%d', '%d']
+            );
+        }
     }
 
     public static function get_pending_resignations(int $banco_id): array {
