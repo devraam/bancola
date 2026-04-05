@@ -65,7 +65,7 @@ class Bankitos_Shortcode_Panel_Quick_Actions extends Bankitos_Shortcode_Panel_Ba
                     'action'      => 'bankitos_resignation_request',
                     'redirect_to' => self::get_current_url(),
                 ],
-                admin_url('admin-post.php')
+                self::get_current_url()
             );
             $resignation_url = wp_nonce_url($resignation_url, 'bankitos_resignation_request');
             ?>

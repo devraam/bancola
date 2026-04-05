@@ -217,14 +217,14 @@ class Bankitos_Shortcode_Panel_Members extends Bankitos_Shortcode_Panel_Base {
                       <?php if ($can_update_invite): ?>
                         <div class="bankitos-invite-actions">
                           <div class="bankitos-invite-actions__group" data-bankitos-invite-default-actions>
-                            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="bankitos-invite-actions__form">
+                            <form method="post" action="<?php echo esc_url($current_url); ?>" class="bankitos-invite-actions__form">
                               <?php echo wp_nonce_field('bankitos_resend_invite_' . $row_id, '_wpnonce', true, false); ?>
                               <input type="hidden" name="action" value="bankitos_resend_invite">
                               <input type="hidden" name="invite_id" value="<?php echo esc_attr($row_id); ?>">
                               <input type="hidden" name="redirect_to" value="<?php echo esc_url($current_url); ?>">
                               <button type="submit" class="bankitos-btn bankitos-btn--small bankitos-btn--ghost"><?php esc_html_e('Reenviar', 'bankitos'); ?></button>
                             </form>
-                            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="bankitos-invite-actions__form">
+                            <form method="post" action="<?php echo esc_url($current_url); ?>" class="bankitos-invite-actions__form">
                               <?php echo wp_nonce_field('bankitos_cancel_invite_' . $row_id, '_wpnonce', true, false); ?>
                               <input type="hidden" name="action" value="bankitos_cancel_invite">
                               <input type="hidden" name="invite_id" value="<?php echo esc_attr($row_id); ?>">
@@ -292,7 +292,7 @@ class Bankitos_Shortcode_Panel_Members extends Bankitos_Shortcode_Panel_Base {
                   <?php echo esc_html(sprintf(__('Solicitó el %s', 'bankitos'), date_i18n(get_option('date_format'), strtotime($resignation['requested_at'])))); ?>
                 </p>
                 <div class="bankitos-invite-actions">
-                  <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="bankitos-invite-actions__form">
+                  <form method="post" action="<?php echo esc_url($current_url); ?>" class="bankitos-invite-actions__form">
                     <?php echo wp_nonce_field('bankitos_resignation_approve_' . $res_id, '_wpnonce', true, false); ?>
                     <input type="hidden" name="action" value="bankitos_resignation_approve">
                     <input type="hidden" name="resignation_id" value="<?php echo esc_attr($res_id); ?>">
@@ -301,7 +301,7 @@ class Bankitos_Shortcode_Panel_Members extends Bankitos_Shortcode_Panel_Base {
                       <?php esc_html_e('Aprobar retiro', 'bankitos'); ?>
                     </button>
                   </form>
-                  <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="bankitos-invite-actions__form">
+                  <form method="post" action="<?php echo esc_url($current_url); ?>" class="bankitos-invite-actions__form">
                     <?php echo wp_nonce_field('bankitos_resignation_reject_' . $res_id, '_wpnonce', true, false); ?>
                     <input type="hidden" name="action" value="bankitos_resignation_reject">
                     <input type="hidden" name="resignation_id" value="<?php echo esc_attr($res_id); ?>">
