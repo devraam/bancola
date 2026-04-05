@@ -53,7 +53,7 @@ class Bankitos_Shortcode_Panel_Quick_Actions extends Bankitos_Shortcode_Panel_Ba
                 ? __('Retirarme del banco', 'bankitos')
                 : __('Solicitar retiro del banco', 'bankitos');
             $hint = $is_socio_general
-                ? __('Esta acción es inmediata e irreversible.', 'bankitos')
+                ? __('Podrás retirarte si no tienes créditos activos o si tu saldo de créditos es menor o igual a tu total disponible.', 'bankitos')
                 : __('Se enviará una solicitud al presidente para su aprobación.', 'bankitos');
             $confirm_msg = $is_socio_general
                 ? __('¿Estás seguro que deseas retirarte del banco? Esta acción borrara todos tus datos y no se puede deshacer.', 'bankitos')
