@@ -22,14 +22,15 @@ class Bankitos_Shortcode_Panel_Quick_Actions extends Bankitos_Shortcode_Panel_Ba
         $user_role = get_user_meta(get_current_user_id(), 'bankitos_rol', true) ?: 'socio_general';
         ob_start(); ?>
         <div class="bankitos-panel__quick-actions">
+          <?php echo self::top_notice_from_query(); ?>
           <p><strong><?php esc_html_e('Acciones rápidas', 'bankitos'); ?>:</strong></p>
           <ul>
             <li><a href="<?php echo esc_url(site_url('/mi-aporte')); ?>"><?php esc_html_e('Subir aporte', 'bankitos'); ?></a></li>
             <li><a href="<?php echo esc_url(site_url('/solicitud-credito')); ?>"><?php esc_html_e('Solicitar crédito', 'bankitos'); ?></a></li>
-            <?php if (current_user_can('approve_aportes')): ?>
+            <?php if ($user_role === 'tesorero'): ?>
               <li><a href="<?php echo esc_url(site_url('/auditoria-aportes')); ?>"><?php esc_html_e('Aprobar aportes (Tesorero)', 'bankitos'); ?></a></li>
             <?php endif; ?>
-            <?php if (current_user_can('audit_aportes')): ?>
+            <?php if ($user_role === 'veedor'): ?>
               <li><a href="<?php echo esc_url(site_url('/auditoria-aportes')); ?>"><?php esc_html_e('Aportes aprobados (Veedor)', 'bankitos'); ?></a></li>
             <?php endif; ?>
             <?php if (class_exists('Bankitos_Credit_Requests') && Bankitos_Credit_Requests::user_can_review()): ?>
@@ -55,7 +56,7 @@ class Bankitos_Shortcode_Panel_Quick_Actions extends Bankitos_Shortcode_Panel_Ba
                 ? __('Esta acción es inmediata e irreversible.', 'bankitos')
                 : __('Se enviará una solicitud al presidente para su aprobación.', 'bankitos');
             $confirm_msg = $is_socio_general
-                ? __('¿Estás seguro que deseas retirarte del banco? Esta acción no se puede deshacer.', 'bankitos')
+                ? __('¿Estás seguro que deseas retirarte del banco? Esta acción borrara todos tus datos y no se puede deshacer.', 'bankitos')
                 : __('¿Deseas enviar una solicitud de retiro al presidente del banco?', 'bankitos');
             ?>
             <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline;">

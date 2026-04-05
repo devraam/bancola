@@ -66,7 +66,12 @@ abstract class Bankitos_Shortcode_Base {
                 'invite_accepted'   => __('¡Bienvenido! Invitación aceptada.', 'bankitos'),
                 'invite_rejected'   => __('La invitación fue rechazada.', 'bankitos'),
                 'invite_updated_sent' => __('Invitación actualizada y reenviada correctamente.', 'bankitos'),
-                'role_updated'      => __('El rol del miembro ha sido actualizado.', 'bankitos'),
+                'role_updated'          => __('El rol del miembro ha sido actualizado.', 'bankitos'),
+                'presidencia_transferida' => __('Presidencia transferida correctamente. Ahora eres socio general.', 'bankitos'),
+                'renuncia_ejecutada'   => __('Has salido del banco exitosamente.', 'bankitos'),
+                'renuncia_solicitada'  => __('Tu solicitud de retiro fue enviada al presidente del banco.', 'bankitos'),
+                'renuncia_aprobada'    => __('Retiro aprobado. El socio ha sido desvinculado del banco.', 'bankitos'),
+                'renuncia_rechazada'   => __('Solicitud de retiro rechazada.', 'bankitos'),
                 'credito_solicitado'=> __('Solicitud de crédito enviada al comité.', 'bankitos'),
                 'credito_actualizado'=> __('Decisión registrada correctamente.', 'bankitos'),
                 'pago_enviado'      => __('Pago enviado al tesorero para revisión.', 'bankitos'),
@@ -145,6 +150,13 @@ abstract class Bankitos_Shortcode_Base {
             'desembolso_guardar'       => __('No fue posible guardar el desembolso.', 'bankitos'),
             'mora_tasa_rango'          => __('La tasa de mora debe estar entre 0.1% y 5.0%.', 'bankitos'),
             'penalizacion_rango'       => __('La penalización por renuncia no puede superar el 100%.', 'bankitos'),
+            'renuncia_transfiere_primero' => __('Como presidente, primero debes transferir la presidencia a otro socio antes de retirarte.', 'bankitos'),
+            'renuncia_sin_banco'       => __('No perteneces a ningún B@nko.', 'bankitos'),
+            'renuncia_ya_solicitada'   => __('Ya tienes una solicitud de retiro pendiente.', 'bankitos'),
+            'renuncia_credito_pendiente' => __('No puedes retirarte mientras tengas un crédito activo sin cancelar.', 'bankitos'),
+            'renuncia_permiso'         => __('No tienes permisos para gestionar esta solicitud.', 'bankitos'),
+            'renuncia_invalida'        => __('La solicitud de retiro no existe o ya fue procesada.', 'bankitos'),
+            'presidente_solo_a_socio'  => __('Solo puedes transferir la presidencia a un socio general.', 'bankitos'),
         ];
         $msg = $map[$err] ?? __('Ha ocurrido un error. Intenta nuevamente.', 'bankitos');
         $html .= '<div class="bankitos-error">' . esc_html($msg) . '</div>';
