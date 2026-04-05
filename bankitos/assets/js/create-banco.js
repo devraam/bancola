@@ -17,6 +17,7 @@
   var fields = {};
   var wrappers = {};
   var errors = {};
+  var touched = {};
 
   function resolveMap(source, target) {
     Object.keys(source || {}).forEach(function (key) {
@@ -131,13 +132,16 @@
     dur: validateDur
   };
 
-  function runValidation() {
+  function runValidation(onlyTouched) {
     var valid = true;
     Object.keys(validators).forEach(function (key) {
       var error = validators[key]();
-      setError(key, error);
       if (error) {
         valid = false;
+      }
+      // Solo mostrar error visual si el campo ya fue tocado (o es submit forzado)
+      if (!onlyTouched || touched[key]) {
+        setError(key, error);
       }
     });
 
@@ -153,14 +157,31 @@
     return valid;
   }
 
-  ['input', 'change', 'blur'].forEach(function (eventName) {
-    Object.keys(fields).forEach(function (key) {
-      fields[key].addEventListener(eventName, runValidation);
+  Object.keys(fields).forEach(function (key) {
+    fields[key].addEventListener('blur', function () {
+      touched[key] = true;
+      runValidation(true);
+    });
+    fields[key].addEventListener('input', function () {
+      if (touched[key]) {
+        runValidation(true);
+      } else {
+        // Actualizar estado del botón sin mostrar errores
+        runValidation(true);
+      }
+    });
+    fields[key].addEventListener('change', function () {
+      touched[key] = true;
+      runValidation(true);
     });
   });
 
   form.addEventListener('submit', function (event) {
-    if (!runValidation()) {
+    // Marcar todos como tocados para mostrar todos los errores
+    Object.keys(validators).forEach(function (key) {
+      touched[key] = true;
+    });
+    if (!runValidation(false)) {
       event.preventDefault();
       var firstError = form.querySelector('.has-error input, .has-error select, .has-error textarea');
       if (firstError && typeof firstError.focus === 'function') {
@@ -174,5 +195,6 @@
     }
   });
 
-  runValidation();
+  // Inicializar estado del botón sin mostrar errores
+  runValidation(true);
 })(window, document);

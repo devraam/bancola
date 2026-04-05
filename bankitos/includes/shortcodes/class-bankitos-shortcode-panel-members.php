@@ -35,6 +35,11 @@ class Bankitos_Shortcode_Panel_Members extends Bankitos_Shortcode_Panel_Base {
             'tesorero'      => __('Tesorero', 'bankitos'),
             'veedor'        => __('Veedor', 'bankitos'),
         ];
+        // El presidente puede transferir la presidencia solo a un socio_general
+        $assignable_roles_with_president = array_merge(
+            $assignable_roles,
+            ['presidente' => __('Presidente', 'bankitos')]
+        );
 
         $rows = self::merge_members_and_invites($context['members'], $context['invites']);
         $can_manage = $context['can_manage_invites'];
@@ -170,16 +175,22 @@ class Bankitos_Shortcode_Panel_Members extends Bankitos_Shortcode_Panel_Base {
                       <?php elseif ($row['type'] === 'member'): // --- INICIO: Lógica para MIEMBROS ACEPTADOS --- ?>
                         <div class="bankitos-role-manager">
                           <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="bankitos-role-manager__form">
-                              <?php $member_user_id = (int) $row['id']; ?>
+                              <?php
+                              $member_user_id    = (int) $row['id'];
+                              $current_role_key  = $row['role_key'] ?? 'socio_general';
+                              // Mostrar opción "Presidente" solo para socios_generales (transferencia de presidencia)
+                              $roles_for_member  = ($current_role_key === 'socio_general')
+                                  ? $assignable_roles_with_president
+                                  : $assignable_roles;
+                              ?>
                               <?php echo wp_nonce_field('bankitos_assign_role_' . $member_user_id, '_wpnonce', true, false); ?>
                               <input type="hidden" name="action" value="bankitos_assign_role">
                               <input type="hidden" name="member_user_id" value="<?php echo esc_attr($member_user_id); ?>">
                               <input type="hidden" name="redirect_to" value="<?php echo esc_url($current_url); ?>">
-                              
+
                               <label for="bankitos-role-<?php echo esc_attr($member_user_id); ?>" class="screen-reader-text"><?php esc_html_e('Asignar Rol', 'bankitos'); ?></label>
                               <select name="member_role" id="bankitos-role-<?php echo esc_attr($member_user_id); ?>">
-                                  <?php $current_role_key = $row['role_key'] ?? 'socio_general'; ?>
-                                  <?php foreach ($assignable_roles as $role_key => $role_label): ?>
+                                  <?php foreach ($roles_for_member as $role_key => $role_label): ?>
                                       <option value="<?php echo esc_attr($role_key); ?>" <?php selected($current_role_key, $role_key); ?>>
                                           <?php echo esc_html($role_label); ?>
                                       </option>
@@ -187,6 +198,11 @@ class Bankitos_Shortcode_Panel_Members extends Bankitos_Shortcode_Panel_Base {
                               </select>
                               <button type="submit" class="bankitos-btn bankitos-btn--small bankitos-btn--ghost"><?php esc_html_e('Guardar Rol', 'bankitos'); ?></button>
                           </form>
+                          <?php if ($current_role_key === 'socio_general'): ?>
+                            <p class="bankitos-field-hint" style="margin-top:0.4rem; color:#6b7280; font-size:0.8rem;">
+                              <?php esc_html_e('Selecciona "Presidente" para transferirle la presidencia. Tu rol pasará a Socio general automáticamente.', 'bankitos'); ?>
+                            </p>
+                          <?php endif; ?>
                         </div>
 
                         <?php else: // Invitaciones Rechazadas, Expiradas, etc. ?>
@@ -199,6 +215,67 @@ class Bankitos_Shortcode_Panel_Members extends Bankitos_Shortcode_Panel_Base {
             </div>
           <?php endif; ?>
         </div>
+
+        <?php
+        // --- SECCIÓN: Solicitudes de renuncia pendientes ---
+        $pending_resignations = class_exists('BK_Resignation_Handler')
+            ? BK_Resignation_Handler::get_pending_resignations($context['banco_id'])
+            : [];
+
+        if (!empty($pending_resignations)): ?>
+        <div class="bankitos-members-table" style="margin-top:2rem;">
+          <div class="bankitos-members-table__header">
+            <h3 class="bankitos-members-table__title"><?php esc_html_e('Solicitudes de retiro pendientes', 'bankitos'); ?></h3>
+            <p class="bankitos-members-table__subtitle"><?php esc_html_e('Estos socios han solicitado retirarse del banco. Puedes aprobar o rechazar cada solicitud.', 'bankitos'); ?></p>
+          </div>
+          <div class="bankitos-accordion bankitos-members-table__accordion" role="list">
+            <?php foreach ($pending_resignations as $resignation):
+              $res_user = get_userdata((int) $resignation['user_id']);
+              $res_name = $res_user ? $res_user->display_name : '#' . $resignation['user_id'];
+              $res_role = get_user_meta((int) $resignation['user_id'], 'bankitos_rol', true);
+              $res_id   = (int) $resignation['id'];
+            ?>
+            <details class="bankitos-accordion__item bankitos-member-card" role="listitem">
+              <summary class="bankitos-accordion__summary">
+                <div class="bankitos-accordion__title">
+                  <span class="bankitos-accordion__name"><?php echo esc_html($res_name); ?></span>
+                  <span class="bankitos-accordion__email"><?php echo esc_html($res_role ?: 'socio_general'); ?></span>
+                </div>
+                <div class="bankitos-accordion__meta">
+                  <span class="bankitos-pill bankitos-pill--pending"><?php esc_html_e('Pendiente', 'bankitos'); ?></span>
+                  <span class="bankitos-accordion__chevron" aria-hidden="true"></span>
+                </div>
+              </summary>
+              <div class="bankitos-accordion__content">
+                <p style="margin-bottom:0.75rem; color:#374151;">
+                  <?php echo esc_html(sprintf(__('Solicitó el %s', 'bankitos'), date_i18n(get_option('date_format'), strtotime($resignation['requested_at'])))); ?>
+                </p>
+                <div class="bankitos-invite-actions">
+                  <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="bankitos-invite-actions__form">
+                    <?php echo wp_nonce_field('bankitos_resignation_approve_' . $res_id, '_wpnonce', true, false); ?>
+                    <input type="hidden" name="action" value="bankitos_resignation_approve">
+                    <input type="hidden" name="resignation_id" value="<?php echo esc_attr($res_id); ?>">
+                    <input type="hidden" name="redirect_to" value="<?php echo esc_url($current_url); ?>">
+                    <button type="submit" class="bankitos-btn bankitos-btn--small" onclick="return confirm('<?php echo esc_js(__('¿Confirmas el retiro de este socio?', 'bankitos')); ?>');">
+                      <?php esc_html_e('Aprobar retiro', 'bankitos'); ?>
+                    </button>
+                  </form>
+                  <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="bankitos-invite-actions__form">
+                    <?php echo wp_nonce_field('bankitos_resignation_reject_' . $res_id, '_wpnonce', true, false); ?>
+                    <input type="hidden" name="action" value="bankitos_resignation_reject">
+                    <input type="hidden" name="resignation_id" value="<?php echo esc_attr($res_id); ?>">
+                    <input type="hidden" name="redirect_to" value="<?php echo esc_url($current_url); ?>">
+                    <button type="submit" class="bankitos-btn bankitos-btn--small bankitos-btn--ghost">
+                      <?php esc_html_e('Rechazar solicitud', 'bankitos'); ?>
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </details>
+            <?php endforeach; ?>
+          </div>
+        </div>
+        <?php endif; ?>
         <?php
         return ob_get_clean();
     }

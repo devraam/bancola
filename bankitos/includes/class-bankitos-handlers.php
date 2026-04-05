@@ -8,7 +8,7 @@ class Bankitos_Handlers {
 
     public static function init() {
         $base = BANKITOS_PATH . 'includes/handlers/';
-        foreach (['class-bk-auth.php','class-bk-banco.php','class-bk-aportes.php','class-bk-invites.php','class-bk-creditos.php','class-bk-credit-payments.php','class-bk-credit-disbursements.php'] as $f) {
+        foreach (['class-bk-auth.php','class-bk-banco.php','class-bk-aportes.php','class-bk-invites.php','class-bk-creditos.php','class-bk-credit-payments.php','class-bk-credit-disbursements.php','class-bk-resignation.php'] as $f) {
             $file = $base . $f;
             if (file_exists($file)) require_once $file;
         }
@@ -19,6 +19,7 @@ class Bankitos_Handlers {
         if (class_exists('BK_Creditos_Handler')) BK_Creditos_Handler::init();
         if (class_exists('BK_Credit_Payments_Handler')) BK_Credit_Payments_Handler::init();
         if (class_exists('BK_Credit_Disbursements_Handler')) BK_Credit_Disbursements_Handler::init();
+        if (class_exists('BK_Resignation_Handler')) BK_Resignation_Handler::init();
     }
 
     public static function get_user_banco_id(int $user_id): int {

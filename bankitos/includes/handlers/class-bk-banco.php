@@ -98,57 +98,125 @@ class BK_Banco_Handler {
         }
 
         // 2. Validar Datos
-        $new_role = isset($_POST['member_role']) ? sanitize_key($_POST['member_role']) : '';
-        $allowed_roles = ['socio_general', 'secretario', 'tesorero', 'veedor']; // Presidente no puede asignar a otro presidente
-        
+        $new_role      = isset($_POST['member_role']) ? sanitize_key($_POST['member_role']) : '';
+        $president_id  = get_current_user_id();
+        $banco_id      = class_exists('Bankitos_Handlers') ? Bankitos_Handlers::get_user_banco_id($president_id) : 0;
+        $member_banco_id = class_exists('Bankitos_Handlers') ? Bankitos_Handlers::get_user_banco_id($member_user_id) : 0;
+
+        $allowed_roles = ['socio_general', 'secretario', 'tesorero', 'veedor', 'presidente'];
+
         if (!$member_user_id || empty($new_role) || !in_array($new_role, $allowed_roles, true)) {
             wp_safe_redirect(add_query_arg('err', 'validacion', $redirect_to));
             exit;
         }
 
-        // 3. Validar que el Presidente y el Miembro estén en el mismo banco
-        $president_id = get_current_user_id();
-        $banco_id = class_exists('Bankitos_Handlers') ? Bankitos_Handlers::get_user_banco_id($president_id) : 0;
-        $member_banco_id = class_exists('Bankitos_Handlers') ? Bankitos_Handlers::get_user_banco_id($member_user_id) : 0;
-
+        // 3. Validar que ambos usuarios estén en el mismo banco
         if ($banco_id <= 0 || $banco_id !== $member_banco_id) {
             wp_safe_redirect(add_query_arg('err', 'permiso', $redirect_to));
             exit;
         }
 
-        // 4. Asignar el Rol
-        // Primero, actualizar el meta 'bankitos_rol'
-        update_user_meta($member_user_id, 'bankitos_rol', $new_role);
+        // 4. Lógica de transferencia de presidencia
+        if ($new_role === 'presidente') {
+            $current_user_role = get_user_meta($president_id, 'bankitos_rol', true);
+            $target_role       = get_user_meta($member_user_id, 'bankitos_rol', true);
 
-        // Segundo, actualizar el rol de WordPress
-        $user = new WP_User($member_user_id);
-        if ($user) {
-            // Quitar todos los roles del plugin para evitar duplicados
-            $user->remove_role('socio_general');
-            $user->remove_role('secretario');
-            $user->remove_role('tesorero');
-            $user->remove_role('veedor');
-            
-            // Añadir el nuevo rol
-            $user->add_role($new_role);
+            // Solo el presidente actual puede transferir y solo a un socio_general
+            if ($current_user_role !== 'presidente') {
+                wp_safe_redirect(add_query_arg('err', 'permiso', $redirect_to));
+                exit;
+            }
+            if ($target_role !== 'socio_general') {
+                wp_safe_redirect(add_query_arg('err', 'presidente_solo_a_socio', $redirect_to));
+                exit;
+            }
+
+            // Aplicar cambios al nuevo presidente
+            self::set_member_role($member_user_id, 'presidente', $banco_id);
+
+            // Degradar al presidente actual a socio_general
+            self::set_member_role($president_id, 'socio_general', $banco_id);
+
+            // Notificar a todos los miembros
+            self::notify_presidency_transfer($banco_id, $president_id, $member_user_id);
+
+            do_action('bankitos_log_event', 'PRESIDENCY_TRANSFER', 'Presidencia transferida de usuario #' . $president_id . ' a usuario #' . $member_user_id, $banco_id, ['from' => $president_id, 'to' => $member_user_id]);
+            wp_safe_redirect(add_query_arg('ok', 'presidencia_transferida', $redirect_to));
+            exit;
         }
-        
-        // Tercero, actualizar la tabla 'wp_banco_members'
+
+        // 5. Asignación normal de rol (no presidente)
+        self::set_member_role($member_user_id, $new_role, $banco_id);
+
+        wp_safe_redirect(add_query_arg('ok', 'role_updated', $redirect_to));
+        exit;
+    }
+
+    private static function set_member_role(int $user_id, string $role, int $banco_id): void {
+        update_user_meta($user_id, 'bankitos_rol', $role);
+
+        $user = new WP_User($user_id);
+        foreach (['socio_general', 'secretario', 'tesorero', 'veedor', 'presidente'] as $r) {
+            $user->remove_role($r);
+        }
+        $user->add_role($role);
+
         if (class_exists('Bankitos_DB') && Bankitos_DB::members_table_exists()) {
             global $wpdb;
             $table = Bankitos_DB::members_table_name();
             $wpdb->update(
                 $table,
-                ['member_role' => $new_role],
-                ['banco_id' => $banco_id, 'user_id' => $member_user_id],
+                ['member_role' => $role],
+                ['banco_id' => $banco_id, 'user_id' => $user_id],
                 ['%s'],
                 ['%d', '%d']
             );
         }
+    }
 
-        // 5. Redirigir
-        wp_safe_redirect(add_query_arg('ok', 'role_updated', $redirect_to));
-        exit;
+    private static function notify_presidency_transfer(int $banco_id, int $old_president_id, int $new_president_id): void {
+        global $wpdb;
+
+        if (!class_exists('Bankitos_DB') || !Bankitos_DB::members_table_exists()) {
+            return;
+        }
+
+        $old_president  = get_userdata($old_president_id);
+        $new_president  = get_userdata($new_president_id);
+        $banco_name     = get_the_title($banco_id) ?: 'B@nko #' . $banco_id;
+
+        $old_name = $old_president ? $old_president->display_name : '#' . $old_president_id;
+        $new_name = $new_president ? $new_president->display_name : '#' . $new_president_id;
+
+        $subject = sprintf(__('Nuevo presidente en %s', 'bankitos'), $banco_name);
+        $message = sprintf(
+            __("Hola,\n\nEl banco %s tiene un nuevo presidente: %s.\n\n%s ha dejado el cargo de presidente y ahora es socio general.", 'bankitos'),
+            $banco_name,
+            $new_name,
+            $old_name
+        );
+
+        $from_email = get_bloginfo('admin_email');
+        if (class_exists('Bankitos_Settings')) {
+            $custom = Bankitos_Settings::get('from_email', $from_email);
+            if (is_email($custom)) {
+                $from_email = $custom;
+            }
+        }
+        $headers = ['From: ' . sprintf('%s <%s>', get_bloginfo('name'), $from_email)];
+
+        $members_table = Bankitos_DB::members_table_name();
+        $member_ids    = $wpdb->get_col($wpdb->prepare(
+            "SELECT user_id FROM {$members_table} WHERE banco_id=%d",
+            $banco_id
+        ));
+
+        foreach ($member_ids as $mid) {
+            $member = get_userdata((int) $mid);
+            if ($member && $member->user_email) {
+                wp_mail($member->user_email, $subject, $message, $headers);
+            }
+        }
     }
 
 }
