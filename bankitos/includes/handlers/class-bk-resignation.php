@@ -7,6 +7,8 @@ class BK_Resignation_Handler {
         add_action('admin_post_bankitos_resignation_request', [__CLASS__, 'submit_resignation']);
         add_action('admin_post_bankitos_resignation_approve', [__CLASS__, 'approve_resignation']);
         add_action('admin_post_bankitos_resignation_reject',  [__CLASS__, 'reject_resignation']);
+        // Fallback frontend endpoint: permite procesar acciones sin depender de /wp-admin/admin-post.php
+        add_action('init', [__CLASS__, 'handle_frontend_actions'], 20);
     }
 
     private static function redirect_with(string $param, string $code, string $fallback): void {
@@ -26,6 +28,29 @@ class BK_Resignation_Handler {
         exit;
     }
 
+
+    public static function handle_frontend_actions(): void {
+        if (!isset($_REQUEST['action'])) {
+            return;
+        }
+
+        $action = sanitize_key(wp_unslash((string) $_REQUEST['action']));
+
+        if ($action === 'bankitos_resignation_request') {
+            self::submit_resignation();
+            return;
+        }
+
+        if ($action === 'bankitos_resignation_approve') {
+            self::approve_resignation();
+            return;
+        }
+
+        if ($action === 'bankitos_resignation_reject') {
+            self::reject_resignation();
+        }
+    }
+    
     // -------------------------------------------------------------------------
     // SUBMIT: cualquier miembro solicita retiro
     // -------------------------------------------------------------------------
