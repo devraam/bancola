@@ -59,18 +59,23 @@ class Bankitos_Shortcode_Panel_Quick_Actions extends Bankitos_Shortcode_Panel_Ba
                 ? __('¿Estás seguro que deseas retirarte del banco? Esta acción borrara todos tus datos y no se puede deshacer.', 'bankitos')
                 : __('¿Deseas enviar una solicitud de retiro al presidente del banco?', 'bankitos');
             ?>
-            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline;">
-              <?php echo wp_nonce_field('bankitos_resignation_request', '_wpnonce', true, false); ?>
-              <input type="hidden" name="action" value="bankitos_resignation_request">
-              <input type="hidden" name="redirect_to" value="<?php echo esc_url(self::get_current_url()); ?>">
-              <button
-                type="submit"
-                class="bankitos-btn bankitos-btn--small bankitos-btn--danger"
-                onclick="return confirm('<?php echo esc_js($confirm_msg); ?>');"
-              >
-                <?php echo esc_html($label); ?>
-              </button>
-            </form>
+            <?php
+            $resignation_url = add_query_arg(
+                [
+                    'action'      => 'bankitos_resignation_request',
+                    'redirect_to' => self::get_current_url(),
+                ],
+                admin_url('admin-post.php')
+            );
+            $resignation_url = wp_nonce_url($resignation_url, 'bankitos_resignation_request');
+            ?>
+            <a
+              href="<?php echo esc_url($resignation_url); ?>"
+              class="bankitos-btn bankitos-btn--small bankitos-btn--danger"
+              onclick="return confirm('<?php echo esc_js($confirm_msg); ?>');"
+            >
+              <?php echo esc_html($label); ?>
+            </a>
             <p style="font-size:0.8rem; color:#9ca3af; margin-top:0.35rem;"><?php echo esc_html($hint); ?></p>
           <?php endif; ?>
         </div>
