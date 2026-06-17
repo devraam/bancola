@@ -72,4 +72,68 @@ class Bankitos_Logs {
             date('Y-m-d H:i:s', strtotime("-$days days"))
         ));
     }
+
+    /**
+     * Consulta de trazas con filtros opcionales por banco, tipo de acción y
+     * solo-errores. Pensada para el diagnóstico por banco desde el admin.
+     *
+     * @param array $args days, banco_id, action_type, errors_only, limit
+     */
+    public static function query_logs(array $args = []): array {
+        global $wpdb;
+        $table = $wpdb->prefix . self::TABLE_NAME;
+
+        $days     = isset($args['days']) ? max(1, (int) $args['days']) : 30;
+        $banco_id = isset($args['banco_id']) ? (int) $args['banco_id'] : 0;
+        $action   = isset($args['action_type']) ? (string) $args['action_type'] : '';
+        $errors   = !empty($args['errors_only']);
+        $limit    = isset($args['limit']) ? max(1, min(2000, (int) $args['limit'])) : 500;
+
+        $where  = ['created_at >= %s'];
+        $params = [date('Y-m-d H:i:s', strtotime("-{$days} days"))];
+
+        if ($banco_id > 0) {
+            $where[]  = 'banco_id = %d';
+            $params[] = $banco_id;
+        }
+        if ($action !== '') {
+            $where[]  = 'action_type = %s';
+            $params[] = $action;
+        }
+        if ($errors) {
+            $where[]  = '(action_type LIKE %s OR action_type LIKE %s)';
+            $params[] = '%ERROR%';
+            $params[] = '%FAIL%';
+        }
+
+        $sql = "SELECT * FROM {$table} WHERE " . implode(' AND ', $where)
+             . " ORDER BY created_at DESC LIMIT {$limit}";
+
+        $results = $wpdb->get_results($wpdb->prepare($sql, $params));
+        return $results ?: [];
+    }
+
+    /**
+     * Devuelve los valores distintos de banco_id y action_type presentes en la
+     * ventana de tiempo, para poblar los desplegables de filtro del admin.
+     */
+    public static function get_facets(int $days = 30): array {
+        global $wpdb;
+        $table = $wpdb->prefix . self::TABLE_NAME;
+        $since = date('Y-m-d H:i:s', strtotime("-{$days} days"));
+
+        $bancos = $wpdb->get_col($wpdb->prepare(
+            "SELECT DISTINCT banco_id FROM {$table} WHERE created_at >= %s AND banco_id > 0 ORDER BY banco_id ASC",
+            $since
+        ));
+        $actions = $wpdb->get_col($wpdb->prepare(
+            "SELECT DISTINCT action_type FROM {$table} WHERE created_at >= %s ORDER BY action_type ASC",
+            $since
+        ));
+
+        return [
+            'bancos'  => array_map('intval', (array) $bancos),
+            'actions' => array_map('strval', (array) $actions),
+        ];
+    }
 }

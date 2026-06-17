@@ -1,6 +1,6 @@
 <?php
 if (!defined('ABSPATH')) exit;
-if (!defined('BANKITOS_VERSION')) define('BANKITOS_VERSION', '1.0.1');
+if (!defined('BANKITOS_VERSION')) define('BANKITOS_VERSION', '1.0.2');
 
 class Bankitos_Plugin {
 

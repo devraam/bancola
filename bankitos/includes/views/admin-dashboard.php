@@ -191,6 +191,7 @@
                             <tr>
                                 <td>
                                     <strong><?php echo esc_html($row['title']); ?></strong>
+                                    <div><a href="<?php echo esc_url(add_query_arg(['page' => Bankitos_Admin_Reports::BANCO_CREDITS_SLUG, 'banco_id' => $row['id']], admin_url('admin.php'))); ?>"><?php esc_html_e('Ver créditos', 'bankitos'); ?></a></div>
                                     <?php if (!empty($row['edit_link'])): ?>
                                         <div><a href="<?php echo esc_url($row['edit_link']); ?>"><?php esc_html_e('Ver en WordPress', 'bankitos'); ?></a></div>
                                     <?php endif; ?>

@@ -4,6 +4,7 @@ if (!defined('ABSPATH')) exit;
 class Bankitos_Admin_Reports {
 
     const PAGE_SLUG   = 'bankitos-global-dashboard';
+    const BANCO_CREDITS_SLUG = 'bankitos-banco-creditos';
     const CAPABILITY  = 'view_global_reports';
     const MANAGE_BANKS_CAPABILITY = 'manage_global_bancos';
     const EXPORT_ACTION = 'bankitos_export_global';
@@ -44,6 +45,15 @@ class Bankitos_Admin_Reports {
             self::CAPABILITY,
             'bankitos-logs',
             [__CLASS__, 'render_logs_page']
+        );
+
+        add_submenu_page(
+            self::PAGE_SLUG,
+            __('Créditos por B@nko', 'bankitos'),
+            __('Créditos por B@nko', 'bankitos'),
+            self::CAPABILITY,
+            self::BANCO_CREDITS_SLUG,
+            [__CLASS__, 'render_banco_credits_page']
         );
     }
 
@@ -604,39 +614,297 @@ class Bankitos_Admin_Reports {
         return $plan;
     }
 
+    /**
+     * Lista de bancos (id => título) para el selector. Incluye estados no
+     * publicados por consistencia con el directorio del Dashboard Global.
+     */
+    private static function get_banco_options(): array {
+        $posts = get_posts([
+            'post_type'   => Bankitos_CPT::SLUG_BANCO,
+            'post_status' => ['publish', 'draft', 'pending', 'private'],
+            'numberposts' => -1,
+            'orderby'     => 'title',
+            'order'       => 'ASC',
+        ]);
+        $options = [];
+        foreach ($posts as $p) {
+            $title = get_the_title($p);
+            $options[(int) $p->ID] = ($title !== '') ? $title : sprintf(__('B@nko #%d', 'bankitos'), $p->ID);
+        }
+        return $options;
+    }
+
+    /**
+     * Formulario GET con el selector de banco. Reutilizado en el estado sin
+     * banco y en el detalle (con el banco actual preseleccionado).
+     */
+    public static function render_banco_selector_form(array $options, int $current_id = 0): string {
+        ob_start(); ?>
+        <form method="get" action="<?php echo esc_url(admin_url('admin.php')); ?>" style="margin:.5rem 0 1rem;display:flex;gap:.5rem;align-items:flex-end;flex-wrap:wrap;">
+            <input type="hidden" name="page" value="<?php echo esc_attr(self::BANCO_CREDITS_SLUG); ?>" />
+            <label style="display:flex;flex-direction:column;font-weight:600;">
+                <?php esc_html_e('B@nko', 'bankitos'); ?>
+                <select name="banco_id" style="min-width:240px;">
+                    <option value=""><?php esc_html_e('Selecciona un B@nko', 'bankitos'); ?></option>
+                    <?php foreach ($options as $bid => $bname): ?>
+                        <option value="<?php echo esc_attr($bid); ?>" <?php selected($current_id, $bid); ?>>
+                            <?php echo esc_html($bname . ' (#' . $bid . ')'); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+            <button type="submit" class="button button-primary"><?php esc_html_e('Ver créditos', 'bankitos'); ?></button>
+        </form>
+        <?php
+        return ob_get_clean();
+    }
+
+    /**
+     * Página de admin (solo lectura): detalle de créditos de un banco.
+     * Permite a los gestores de la plataforma ver el estado de las solicitudes
+     * de crédito de cualquier banco sin ser miembros de él.
+     */
+    public static function render_banco_credits_page(): void {
+        if (!self::can_view_reports()) {
+            wp_die(__('No tienes permiso para ver estos créditos.', 'bankitos'));
+        }
+
+        $banco_id = isset($_GET['banco_id']) ? absint($_GET['banco_id']) : 0;
+        $banco    = $banco_id ? get_post($banco_id) : null;
+        $valid    = ($banco instanceof WP_Post) && $banco->post_type === Bankitos_CPT::SLUG_BANCO;
+
+        $banco_options = self::get_banco_options();
+
+        if (!$valid) {
+            echo '<div class="wrap">';
+            echo '<h1>' . esc_html__('Créditos por B@nko', 'bankitos') . '</h1>';
+            echo '<p>' . esc_html__('Elige un B@nko para ver el estado de sus solicitudes de crédito.', 'bankitos') . '</p>';
+            echo self::render_banco_selector_form($banco_options, 0);
+            echo '</div>';
+            return;
+        }
+
+        $banco_name     = get_the_title($banco) ?: sprintf(__('B@nko #%d', 'bankitos'), $banco_id);
+        $totals         = Bankitos_Shortcode_Base::get_banco_financial_totals($banco_id);
+        $requests       = Bankitos_Credit_Requests::get_requests($banco_id);
+        $types          = Bankitos_Credit_Requests::get_credit_types();
+        $committee      = Bankitos_Credit_Requests::get_committee_roles();
+        $payment_labels = Bankitos_Credit_Payments::get_status_labels();
+        $status_labels  = self::credit_status_labels();
+        $status_classes = self::credit_status_classes();
+        $committee_cols = [
+            'presidente' => 'approved_president',
+            'tesorero'   => 'approved_treasurer',
+            'veedor'     => 'approved_veedor',
+        ];
+
+        $payments_by_request = self::get_payments_by_requests(wp_list_pluck($requests, 'id'));
+
+        include BANKITOS_PATH . 'includes/views/admin-banco-creditos.php';
+    }
+
+    /** Etiquetas de estado de crédito (reutilizadas en la vista admin). */
+    public static function credit_status_labels(): array {
+        return [
+            'pending'              => __('Pendiente', 'bankitos'),
+            'approved'             => __('Aprobado', 'bankitos'),
+            'disbursement_pending' => __('Pendiente de desembolso', 'bankitos'),
+            'disbursed'            => __('Desembolsado', 'bankitos'),
+            'rejected'             => __('No aprobado', 'bankitos'),
+        ];
+    }
+
+    /**
+     * Color inline por estado para las pills (la vista no depende del CSS del
+     * dashboard porque su hook no pasa el filtro de enqueue_assets()).
+     * Devuelve [background, color de texto].
+     */
+    public static function credit_status_colors(): array {
+        return [
+            'pending'              => ['#fef9c3', '#854d0e'],
+            'approved'             => ['#dcfce7', '#166534'],
+            'disbursement_pending' => ['#fef9c3', '#854d0e'],
+            'disbursed'            => ['#dcfce7', '#166534'],
+            'rejected'             => ['#fee2e2', '#b91c1c'],
+        ];
+    }
+
+    /** Clases pill (compatibilidad con los shortcodes; no usadas si no hay CSS). */
+    public static function credit_status_classes(): array {
+        return [
+            'pending'              => 'bankitos-pill--pending',
+            'approved'             => 'bankitos-pill--accepted',
+            'disbursement_pending' => 'bankitos-pill--pending',
+            'disbursed'            => 'bankitos-pill--accepted',
+            'rejected'             => 'bankitos-pill--rejected',
+        ];
+    }
+
+    /**
+     * Enmascara PII para presentación: muestra solo los últimos $visible
+     * caracteres. NO descifra ni altera datos; el descifrado ya ocurrió en
+     * Bankitos_Credit_Requests::prepare_row().
+     */
+    public static function mask_pii(string $value, int $visible = 4): string {
+        $value = trim($value);
+        if ($value === '') {
+            return '—';
+        }
+        $len = strlen($value);
+        if ($len <= $visible) {
+            return str_repeat('*', max(0, $len - 1)) . substr($value, -1);
+        }
+        return str_repeat('*', $len - $visible) . substr($value, -$visible);
+    }
+
+    /**
+     * Carga en una sola consulta los pagos de todas las solicitudes indicadas y
+     * los agrupa por request_id (evita N+1 en la vista).
+     */
+    private static function get_payments_by_requests(array $request_ids): array {
+        $request_ids = array_values(array_unique(array_filter(array_map('intval', $request_ids))));
+        if (!$request_ids) {
+            return [];
+        }
+        global $wpdb;
+        $table = Bankitos_Credit_Payments::table_name();
+        $placeholders = implode(',', array_fill(0, count($request_ids), '%d'));
+        $rows = $wpdb->get_results(
+            $wpdb->prepare("SELECT * FROM {$table} WHERE request_id IN ({$placeholders}) ORDER BY created_at DESC", $request_ids),
+            ARRAY_A
+        );
+        $map = [];
+        foreach (($rows ?: []) as $row) {
+            $map[(int) $row['request_id']][] = $row;
+        }
+        return $map;
+    }
+
     public static function render_logs_page(): void {
         if (!self::can_view_reports()) {
             wp_die(__('No permitido', 'bankitos'));
         }
-    
-        $logs = Bankitos_Logs::get_recent_logs(30);
+
+        // Filtros (GET): banco, tipo de acción y "solo errores".
+        $filter_banco  = isset($_GET['log_banco']) ? absint($_GET['log_banco']) : 0;
+        $filter_action = isset($_GET['log_action']) ? sanitize_text_field(wp_unslash($_GET['log_action'])) : '';
+        $only_errors   = isset($_GET['log_errors']) && $_GET['log_errors'] === '1';
+
+        $facets = Bankitos_Logs::get_facets(30);
+
+        // Mapa banco_id => nombre legible (resuelto una sola vez).
+        $bank_names = [];
+        foreach ($facets['bancos'] as $bid) {
+            $title = get_the_title($bid);
+            $bank_names[$bid] = ($title !== '') ? $title : sprintf(__('Banco #%d', 'bankitos'), $bid);
+        }
+
+        $logs = Bankitos_Logs::query_logs([
+            'days'        => 30,
+            'banco_id'    => $filter_banco,
+            'action_type' => $filter_action,
+            'errors_only' => $only_errors,
+            'limit'       => 1000,
+        ]);
+
+        $is_error_action = static function (string $action): bool {
+            return stripos($action, 'ERROR') !== false || stripos($action, 'FAIL') !== false;
+        };
+
+        $error_count = 0;
+        foreach ($logs as $log) {
+            if ($is_error_action((string) $log->action_type)) {
+                $error_count++;
+            }
+        }
+
+        $base_url = admin_url('admin.php?page=bankitos-logs');
         ?>
         <div class="wrap">
-            <h1>Trazas de Transacciones (Últimos 30 días)</h1>
-            <p>Usa esta vista para identificar por qué fallan las aprobaciones.</p>
+            <h1><?php esc_html_e('Trazas de Transacciones (Últimos 30 días)', 'bankitos'); ?></h1>
+            <p><?php esc_html_e('Usa esta vista para identificar por qué fallan las aprobaciones, solicitudes de crédito y aportes en cada banco. Las filas en rojo son errores.', 'bankitos'); ?></p>
+
+            <form method="get" action="<?php echo esc_url(admin_url('admin.php')); ?>" style="margin:1rem 0;display:flex;flex-wrap:wrap;gap:.75rem;align-items:flex-end;">
+                <input type="hidden" name="page" value="bankitos-logs">
+                <label style="display:flex;flex-direction:column;font-weight:600;">
+                    <?php esc_html_e('Banco', 'bankitos'); ?>
+                    <select name="log_banco" style="min-width:220px;">
+                        <option value="0"><?php esc_html_e('Todos los bancos', 'bankitos'); ?></option>
+                        <?php foreach ($facets['bancos'] as $bid): ?>
+                            <option value="<?php echo esc_attr($bid); ?>" <?php selected($filter_banco, $bid); ?>>
+                                <?php echo esc_html($bank_names[$bid] . ' (#' . $bid . ')'); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+                <label style="display:flex;flex-direction:column;font-weight:600;">
+                    <?php esc_html_e('Tipo de acción', 'bankitos'); ?>
+                    <select name="log_action" style="min-width:200px;">
+                        <option value=""><?php esc_html_e('Todas las acciones', 'bankitos'); ?></option>
+                        <?php foreach ($facets['actions'] as $action): ?>
+                            <option value="<?php echo esc_attr($action); ?>" <?php selected($filter_action, $action); ?>>
+                                <?php echo esc_html($action); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+                <label style="display:flex;align-items:center;gap:.4rem;font-weight:600;padding-bottom:.4rem;">
+                    <input type="checkbox" name="log_errors" value="1" <?php checked($only_errors); ?>>
+                    <?php esc_html_e('Solo errores', 'bankitos'); ?>
+                </label>
+                <button type="submit" class="button button-primary"><?php esc_html_e('Filtrar', 'bankitos'); ?></button>
+                <a href="<?php echo esc_url($base_url); ?>" class="button"><?php esc_html_e('Limpiar', 'bankitos'); ?></a>
+            </form>
+
+            <p style="color:#475569;">
+                <?php
+                printf(
+                    /* translators: 1: total registros, 2: total errores */
+                    esc_html__('Mostrando %1$d registros (%2$d errores).', 'bankitos'),
+                    count($logs),
+                    $error_count
+                );
+                ?>
+            </p>
+
             <table class="wp-list-table widefat fixed striped">
                 <thead>
                     <tr>
-                        <th>Fecha</th>
-                        <th>Acción</th>
-                        <th>Banco ID</th>
-                        <th>Mensaje</th>
-                        <th>Datos Técnicos</th>
+                        <th style="width:150px;"><?php esc_html_e('Fecha', 'bankitos'); ?></th>
+                        <th style="width:160px;"><?php esc_html_e('Acción', 'bankitos'); ?></th>
+                        <th style="width:200px;"><?php esc_html_e('Banco', 'bankitos'); ?></th>
+                        <th><?php esc_html_e('Mensaje', 'bankitos'); ?></th>
+                        <th><?php esc_html_e('Datos Técnicos', 'bankitos'); ?></th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($logs)) : ?>
                     <tr>
                         <td colspan="5" style="text-align:center;padding:2rem;color:#64748b;">
-                            <?php esc_html_e('No hay registros en los últimos 30 días. Las trazas se generan cuando los socios realizan aportes, solicitan créditos o el sistema detecta errores de autorización.', 'bankitos'); ?>
+                            <?php esc_html_e('No hay registros que coincidan con el filtro. Las trazas se generan cuando los socios realizan aportes, solicitan créditos o el sistema detecta errores de autorización.', 'bankitos'); ?>
                         </td>
                     </tr>
                     <?php else : ?>
                     <?php foreach ($logs as $log): ?>
-                    <tr>
+                    <?php
+                        $action   = (string) $log->action_type;
+                        $is_error = $is_error_action($action);
+                        $bid      = (int) $log->banco_id;
+                    ?>
+                    <tr<?php echo $is_error ? ' style="background:#fef2f2;"' : ''; ?>>
                         <td><?php echo esc_html((string) $log->created_at); ?></td>
-                        <td><strong><?php echo esc_html((string) $log->action_type); ?></strong></td>
-                        <td><?php echo esc_html((string) $log->banco_id); ?></td>
+                        <td>
+                            <strong style="<?php echo $is_error ? 'color:#b91c1c;' : ''; ?>"><?php echo esc_html($action); ?></strong>
+                        </td>
+                        <td>
+                            <?php if ($bid > 0): ?>
+                                <?php $name = $bank_names[$bid] ?? sprintf(__('Banco #%d', 'bankitos'), $bid); ?>
+                                <strong><?php echo esc_html($name); ?></strong>
+                                <span style="color:#94a3b8;">#<?php echo esc_html((string) $bid); ?></span>
+                            <?php else: ?>
+                                <span style="color:#94a3b8;"><?php esc_html_e('Sistema / Global', 'bankitos'); ?></span>
+                            <?php endif; ?>
+                        </td>
                         <td><?php echo esc_html($log->message); ?></td>
                         <td><code><?php echo esc_html($log->data_json); ?></code></td>
                     </tr>

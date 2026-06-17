@@ -20,16 +20,24 @@ class BK_Auth_Handler {
 
         // Rate limiting por IP
         if (class_exists('Bankitos_Rate_Limiter') && !Bankitos_Rate_Limiter::check($ip, 'login')) {
+            $lockout = Bankitos_Rate_Limiter::get_lockout_remaining($ip, 'login');
+            do_action('bankitos_log_event', 'AUTH_LOGIN_FAIL', 'Login bloqueado por demasiados intentos desde la IP.', 0, ['motivo' => 'bloqueo_por_intentos', 'ip' => $ip, 'lockout_restante_seg' => $lockout]);
             wp_safe_redirect(add_query_arg('err', 'too_many_attempts', $redirect_base));
             exit;
         }
 
         if (class_exists('Bankitos_Recaptcha')) {
             if (!Bankitos_Recaptcha::is_enabled()) {
+                do_action('bankitos_log_event', 'AUTH_LOGIN_FAIL', 'reCAPTCHA no configurado: nadie puede iniciar sesión.', 0, ['motivo' => 'recaptcha_no_configurado', 'ip' => $ip]);
                 wp_safe_redirect(add_query_arg('err','recaptcha_config', $redirect_base)); exit;
             }
             $token = sanitize_text_field($_POST['g-recaptcha-response'] ?? '');
-            if (!$token || !Bankitos_Recaptcha::verify_token($token)) {
+            if (!$token) {
+                do_action('bankitos_log_event', 'AUTH_LOGIN_FAIL', 'Login sin token de reCAPTCHA.', 0, ['motivo' => 'recaptcha_token_vacio', 'ip' => $ip]);
+                wp_safe_redirect(add_query_arg('err','recaptcha', $redirect_base)); exit;
+            }
+            if (!Bankitos_Recaptcha::verify_token($token)) {
+                do_action('bankitos_log_event', 'AUTH_LOGIN_FAIL', 'Token de reCAPTCHA inválido.', 0, ['motivo' => 'recaptcha_token_invalido', 'ip' => $ip]);
                 wp_safe_redirect(add_query_arg('err','recaptcha', $redirect_base)); exit;
             }
         }
@@ -52,7 +60,8 @@ class BK_Auth_Handler {
                     Bankitos_Rate_Limiter::LOGIN_WINDOW_SECS
                 );
             }
-            do_action('bankitos_log_event', 'AUTH_LOGIN_FAIL', 'Intento de login fallido para: ' . $creds['user_login'], 0, ['ip' => $ip]);
+            $reason = self::login_fail_reason($user);
+            do_action('bankitos_log_event', 'AUTH_LOGIN_FAIL', 'Login fallido (' . $reason . ') para: ' . $creds['user_login'], 0, ['motivo' => $reason, 'ip' => $ip, 'error_code' => $user->get_error_code()]);
             wp_safe_redirect(add_query_arg('err','credenciales', $redirect_base)); exit;
         }
 
@@ -64,6 +73,7 @@ class BK_Auth_Handler {
         if ($token && class_exists('BK_Invites_Handler')) {
             $result = BK_Invites_Handler::accept_invite_for_user($token, $user);
             if (is_wp_error($result)) {
+                do_action('bankitos_log_event', 'AUTH_LOGIN_FAIL', 'No se pudo aceptar la invitación tras el login.', 0, ['motivo' => 'invite_accept_fallo', 'user_id' => $user->ID, 'error_code' => $result->get_error_code()]);
                 wp_logout();
                 $redirect = add_query_arg([
                     'invite_token' => $token,
@@ -81,26 +91,44 @@ class BK_Auth_Handler {
     }
     public static function do_register() {
         check_admin_referer('bankitos_do_register');
+        $ip = sanitize_text_field($_SERVER['REMOTE_ADDR'] ?? '');
         if (class_exists('Bankitos_Recaptcha')) {
             if (!Bankitos_Recaptcha::is_enabled()) {
+                do_action('bankitos_log_event', 'AUTH_REGISTER_FAIL', 'reCAPTCHA no configurado: nadie puede registrarse.', 0, ['motivo' => 'recaptcha_no_configurado', 'ip' => $ip]);
                 wp_safe_redirect(add_query_arg('err','recaptcha_config', wp_get_referer() ?: site_url('/registrarse'))); exit;
             }
             $token = sanitize_text_field($_POST['g-recaptcha-response'] ?? '');
-            if (!$token || !Bankitos_Recaptcha::verify_token($token)) {
+            if (!$token) {
+                do_action('bankitos_log_event', 'AUTH_REGISTER_FAIL', 'Registro sin token de reCAPTCHA.', 0, ['motivo' => 'recaptcha_token_vacio', 'ip' => $ip]);
+                wp_safe_redirect(add_query_arg('err','recaptcha', wp_get_referer() ?: site_url('/registrarse'))); exit;
+            }
+            if (!Bankitos_Recaptcha::verify_token($token)) {
+                do_action('bankitos_log_event', 'AUTH_REGISTER_FAIL', 'Token de reCAPTCHA inválido.', 0, ['motivo' => 'recaptcha_token_invalido', 'ip' => $ip]);
                 wp_safe_redirect(add_query_arg('err','recaptcha', wp_get_referer() ?: site_url('/registrarse'))); exit;
             }
         }
         $token = isset($_POST['invite_token']) ? sanitize_text_field($_POST['invite_token']) : '';
 
         $email = sanitize_email($_POST['email'] ?? ''); $pass  = (string)($_POST['password'] ?? ''); $name  = sanitize_text_field($_POST['name'] ?? '');
-        if (!$email || !$pass) { wp_safe_redirect(add_query_arg('err','validacion', wp_get_referer() ?: site_url('/registrarse'))); exit; }
+        if (!$email || !$pass) {
+            do_action('bankitos_log_event', 'AUTH_REGISTER_FAIL', 'Registro con campos obligatorios vacíos.', 0, ['motivo' => 'campos_vacios', 'email' => $email, 'ip' => $ip]);
+            wp_safe_redirect(add_query_arg('err','validacion', wp_get_referer() ?: site_url('/registrarse'))); exit;
+        }
         if (class_exists('Bankitos_Domains') && !Bankitos_Domains::is_email_allowed($email)) {
+            do_action('bankitos_log_event', 'AUTH_REGISTER_FAIL', 'Registro con dominio de correo no permitido.', 0, ['motivo' => 'dominio_no_permitido', 'email' => $email, 'ip' => $ip]);
             wp_safe_redirect(add_query_arg('err','domain_not_allowed', wp_get_referer() ?: site_url('/registrarse'))); exit;
+        }
+        if (email_exists($email)) {
+            do_action('bankitos_log_event', 'AUTH_REGISTER_FAIL', 'Registro fallido: el correo ya está registrado: ' . $email, 0, ['motivo' => 'email_ya_existe', 'email' => $email, 'ip' => $ip]);
+            wp_safe_redirect(add_query_arg('err','email_exists', wp_get_referer() ?: site_url('/registrarse'))); exit;
         }
         $username = sanitize_user(current(explode('@', $email)));
         if (username_exists($username)) $username .= wp_generate_password(4, false, false);
         $user_id = wp_create_user($username, $pass, $email);
-        if (is_wp_error($user_id)) { wp_safe_redirect(add_query_arg('err','crear', wp_get_referer() ?: site_url('/registrarse'))); exit; }
+        if (is_wp_error($user_id)) {
+            do_action('bankitos_log_event', 'AUTH_REGISTER_FAIL', 'No se pudo crear el usuario en el registro.', 0, ['motivo' => 'crear_usuario', 'email' => $email, 'ip' => $ip, 'error_code' => $user_id->get_error_code()]);
+            wp_safe_redirect(add_query_arg('err','crear', wp_get_referer() ?: site_url('/registrarse'))); exit;
+        }
         wp_update_user(['ID'=>$user_id,'display_name'=>$name ?: $username,'nickname'=>$name ?: $username]);
         $u = new WP_User($user_id); $u->set_role('socio_general');
         wp_set_current_user($user_id); wp_set_auth_cookie($user_id, true);
@@ -108,6 +136,7 @@ class BK_Auth_Handler {
         if ($token && class_exists('BK_Invites_Handler')) {
             $result = BK_Invites_Handler::accept_invite_for_user($token, $u);
             if (is_wp_error($result)) {
+                do_action('bankitos_log_event', 'AUTH_REGISTER_FAIL', 'No se pudo aceptar la invitación tras el registro.', 0, ['motivo' => 'invite_accept_fallo', 'user_id' => $user_id, 'error_code' => $result->get_error_code()]);
                 $redirect = add_query_arg('err', 'invite_accept', site_url('/panel'));
                 wp_safe_redirect($redirect);
                 exit;
@@ -207,6 +236,28 @@ class BK_Auth_Handler {
         reset_password($user, $pass);
         wp_safe_redirect(add_query_arg(['ok' => 'password_reset'], $redirect_base));
         exit;
+    }
+
+    /**
+     * Traduce el código de error de wp_signon a un motivo legible para el log
+     * de admin. El usuario final siempre ve un mensaje genérico ('credenciales')
+     * para evitar enumeración de cuentas; el motivo preciso queda solo en el log.
+     */
+    private static function login_fail_reason(WP_Error $error): string {
+        switch ($error->get_error_code()) {
+            case 'invalid_username':
+            case 'invalid_email':
+            case 'invalidcombo':
+                return 'usuario_no_existe';
+            case 'incorrect_password':
+                return 'contrasena_incorrecta';
+            case 'empty_username':
+            case 'empty_password':
+                return 'campos_vacios';
+            default:
+                $code = $error->get_error_code();
+                return $code !== '' ? sanitize_key($code) : 'desconocido';
+        }
     }
 
     private static function mail_headers(): array {
